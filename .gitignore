@@ -1,0 +1,36 @@
+# Independent source repositories are committed separately.
+/sp_vision_25/
+/vision_simulator_26/
+/MvSdkLog/
+/rm26/
+
+# Local desktop runtime, credentials, and generated logs.
+/docker/sunshine/
+/docker/auto_aim/.runtime/
+/docker/auto_aim/logs/
+/docker/auto_aim/__pycache__/
+/docker/auto_aim/experiments/
+/docker/daedalus/.runtime/
+/docker/daedalus/logs/
+
+# Host-local state and generated files.
+*.pyc
+.env
+.env.*
+*.swp
+*~
+
+# Other host provisioning artifacts are outside the simulator integration repo.
+/docker/Dockerfile.generated
+/docker/*.log
+/docker/deploy-sunshine.sh
+/docker/deploy.sh
+/docker/enter-sunshine.sh
+/docker/enter.sh
+/docker/environment-info.txt
+/docker/install-display-service.sh
+/docker/nvidia-apt-plan.txt
+/docker/pull.log
+/docker/setup-gpu.sh
+/docker/setup-host.sh
+/docker/sunshine-assets.html

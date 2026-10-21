@@ -1,0 +1,188 @@
+{
+  "implementation_complete": true,
+  "independent_validation_complete": true,
+  "independent_validation_runs": 228,
+  "rule_acceptance_passed": false,
+  "visual_review": "pending",
+  "baseline_promoted": false,
+  "frozen_source_preserved": true,
+  "old_evidence_preserved": true,
+  "user_test_unchanged": true,
+  "profiles": {
+    "tracking_v2": {
+      "runs": 114,
+      "shots": 7092,
+      "useful_hits": 5942,
+      "measurement_s": 1692.0,
+      "useful_hits_per_s": 3.5118203309692673,
+      "hit_rate": 0.8378454596728708
+    },
+    "tracking_fire_v3": {
+      "runs": 114,
+      "shots": 7072,
+      "useful_hits": 6486,
+      "measurement_s": 1692.0,
+      "useful_hits_per_s": 3.8333333333333335,
+      "hit_rate": 0.9171380090497737
+    }
+  },
+  "unresolved_conditions": [
+    {
+      "scene": "distance_3",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved"
+      ]
+    },
+    {
+      "scene": "distance_5",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved"
+      ]
+    },
+    {
+      "scene": "line",
+      "physics": "drag",
+      "rules": [
+        "steady_useful_hits_nonregression"
+      ]
+    },
+    {
+      "scene": "line",
+      "physics": "no-drag",
+      "rules": [
+        "steady_useful_hits_nonregression"
+      ]
+    },
+    {
+      "scene": "random_both_05",
+      "physics": "drag",
+      "rules": [
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "range_in_out",
+      "physics": "no-drag",
+      "rules": [
+        "first_hit_nonregression"
+      ]
+    },
+    {
+      "scene": "spin",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved"
+      ]
+    },
+    {
+      "scene": "spin_move_05_neg",
+      "physics": "drag",
+      "rules": [
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_05_neg",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_05_pos",
+      "physics": "drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_05_pos",
+      "physics": "no-drag",
+      "rules": [
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_15_neg",
+      "physics": "drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression",
+        "first_hit_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_15_neg",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_15_pos",
+      "physics": "drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_15_pos",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_ego_05",
+      "physics": "drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression",
+        "first_hit_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_ego_05",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression",
+        "first_hit_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_ego_15",
+      "physics": "drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression"
+      ]
+    },
+    {
+      "scene": "spin_move_ego_15",
+      "physics": "no-drag",
+      "rules": [
+        "useful_hits_per_s_improved",
+        "first_hit_censor_nonregression",
+        "first_hit_nonregression"
+      ]
+    }
+  ],
+  "runtime": {
+    "simulator": "stopped",
+    "bridge": "stopped",
+    "sunshine": "running",
+    "fire": "off",
+    "control": "off",
+    "default_algorithm_profile": "legacy"
+  },
+  "completed_utc": "2026-10-20T20:25:39.255910+00:00",
+  "desktop_publication_complete": true
+}

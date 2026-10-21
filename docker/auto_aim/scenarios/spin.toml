@@ -1,0 +1,22 @@
+id = "rm26_spin"
+seed = 20261019
+duration = 60.0
+trigger = "on_load"
+
+[[robot]]
+id = 0
+spawn = { x = -6.5, y = 11.3, z = -0.2465, yaw_deg = 0.0 }
+[[robot.segment]]
+t0 = 0.0
+t1 = 60.0
+type = "static"
+
+[[robot]]
+id = 1
+spawn = { x = -2.5, y = 11.3, z = -0.2465, yaw_deg = 180.0 }
+
+[[robot.segment]]
+t0 = 0.0
+t1 = 60.0
+type = "spin"
+omega = 0.5

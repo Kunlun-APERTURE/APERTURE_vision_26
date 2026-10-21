@@ -1,0 +1,1866 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ec0966b..5b3bec7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -34,6 +34,19 @@ add_subdirectory(tasks/auto_aim)
+ add_subdirectory(tasks/auto_buff)
+ add_subdirectory(tasks/omniperception)
+ 
++# Optional, ROS-free simulator transport. Existing hardware targets are unchanged.
++option(BUILD_SIMULATOR_ADAPTER "Build the ROS-independent simulator entry point" OFF)
++if(BUILD_SIMULATOR_ADAPTER)
++  add_executable(sim_auto_aim src/sim_auto_aim.cpp)
++  target_link_libraries(sim_auto_aim ${OpenCV_LIBS} fmt::fmt yaml-cpp
++    nlohmann_json::nlohmann_json auto_aim tools io)
++  add_executable(robustness_test tests/robustness_test.cpp)
++  target_link_libraries(robustness_test ${OpenCV_LIBS} fmt::fmt yaml-cpp nlohmann_json::nlohmann_json auto_aim tools io)
++  add_executable(continuity_test tests/continuity_test.cpp)
++  target_link_libraries(continuity_test ${OpenCV_LIBS} fmt::fmt yaml-cpp
++    nlohmann_json::nlohmann_json auto_aim tools io)
++endif()
++
+ ####################src###################
+ add_executable(standard src/standard.cpp)
+ add_executable(mt_standard src/mt_standard.cpp)
+diff --git a/io/CMakeLists.txt b/io/CMakeLists.txt
+index b85f1a8..319e401 100644
+--- a/io/CMakeLists.txt
++++ b/io/CMakeLists.txt
+@@ -18,9 +18,21 @@ add_library(io STATIC
+ # hikrobot
+ target_include_directories(io PUBLIC hikrobot/include)
+ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+-  target_link_directories(io PUBLIC hikrobot/lib/amd64)
++  if(EXISTS "/opt/MVS/include/MvCameraControl.h" AND EXISTS "/opt/MVS/lib/64/libMvCameraControl.so")
++    target_include_directories(io BEFORE PUBLIC /opt/MVS/include)
++    target_link_directories(io BEFORE PUBLIC /opt/MVS/lib/64)
++    message(STATUS "Using installed Hikrobot MVS SDK from /opt/MVS")
++  else()
++    target_link_directories(io PUBLIC hikrobot/lib/amd64)
++  endif()
+ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+-  target_link_directories(io PUBLIC hikrobot/lib/arm64)
++  if(EXISTS "/opt/MVS/include/MvCameraControl.h" AND EXISTS "/opt/MVS/lib/aarch64/libMvCameraControl.so")
++    target_include_directories(io BEFORE PUBLIC /opt/MVS/include)
++    target_link_directories(io BEFORE PUBLIC /opt/MVS/lib/aarch64)
++    message(STATUS "Using installed Hikrobot MVS SDK from /opt/MVS")
++  else()
++    target_link_directories(io PUBLIC hikrobot/lib/arm64)
++  endif()
+ else()
+   message(FATAL_ERROR "Unsupported architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}!")
+ endif()
+diff --git a/readme.md b/readme.md
+index 407d664..035156f 100644
+--- a/readme.md
++++ b/readme.md
+@@ -54,7 +54,7 @@ IMU型号：使用C板内置BMI088作为IMU\
+ 
+ ### 3.2 编译方式
+ 1. 安装依赖项：
+-   - [MindVision SDK](https://mindvision.com.cn/category/software/sdk-installation-package/)或[HikRobot SDK](https://www.hikrobotics.com/cn2/source/support/software/MVS_STD_GML_V2.1.2_231116.zip)
++   - [MindVision SDK](https://mindvision.com.cn/category/software/sdk-installation-package/)或 [Hikrobot MVS Linux 完整安装包](https://www.hikrobotics.com/en/machinevision/service/download/?module=0)（需包含 USB3 Vision 传输层；安装到 `/opt/MVS` 时 CMake 会优先使用该 SDK）
+    - [OpenVINO](https://docs.openvino.ai/2024/get-started/install-openvino/install-openvino-archive-linux.html)
+    - [Ceres](http://ceres-solver.org/installation.html)
+    - 其余：
+diff --git a/tasks/auto_aim/aimer.cpp b/tasks/auto_aim/aimer.cpp
+index b9194cd..4096374 100644
+--- a/tasks/auto_aim/aimer.cpp
++++ b/tasks/auto_aim/aimer.cpp
+@@ -15,6 +15,7 @@ Aimer::Aimer(const std::string & config_path)
+ : left_yaw_offset_(std::nullopt), right_yaw_offset_(std::nullopt)
+ {
+   auto yaml = YAML::LoadFile(config_path);
++  continuity_=ContinuityConfig::read(config_path);
+   yaw_offset_ = yaml["yaw_offset"].as<double>() / 57.3;        // degree to rad
+   pitch_offset_ = yaml["pitch_offset"].as<double>() / 57.3;    // degree to rad
+   comming_angle_ = yaml["comming_angle"].as<double>() / 57.3;  // degree to rad
+@@ -33,12 +34,18 @@ io::Command Aimer::aim(
+   std::list<Target> targets, std::chrono::steady_clock::time_point timestamp, double bullet_speed,
+   bool to_now)
+ {
+-  if (targets.empty()) return {false, false, 0, 0};
++  if (targets.empty()) {
++    if(continuity_.enabled) {lock_id_=-1;selected_plate_id=-1;debug_aim_point.valid=false;}
++    return {false, false, 0, 0};
++  }
+   auto target = targets.front();
++  if(continuity_.enabled && generation_!=target.generation) {
++    lock_id_=-1;generation_=target.generation;
++  }
+ 
+   auto ekf = target.ekf();
+   double delay_time =
+-    target.ekf_x()[7] > decision_speed_ ? high_speed_delay_time_ : low_speed_delay_time_;
++    (continuity_.enabled ? std::abs(target.ekf_x()[7]) : target.ekf_x()[7]) > decision_speed_ ? high_speed_delay_time_ : low_speed_delay_time_;
+ 
+   if (bullet_speed < 14) bullet_speed = 23;
+ 
+@@ -46,7 +53,8 @@ io::Command Aimer::aim(
+   auto future = timestamp;
+   if (to_now) {
+     double dt;
+-    dt = tools::delta_time(std::chrono::steady_clock::now(), timestamp) + delay_time;
++    dt = processing_age_.value_or(tools::delta_time(std::chrono::steady_clock::now(), timestamp)) + delay_time;
++    prediction_horizon_s=dt;
+     future += std::chrono::microseconds(int(dt * 1e6));
+     target.predict(future);
+   }
+@@ -59,13 +67,19 @@ io::Command Aimer::aim(
+   }
+ 
+   auto aim_point0 = choose_aim_point(target);
++  if(continuity_.enabled) {
++    selected_plate_id=-1;
++    const auto plates=target.armor_xyza_list();
++    for(size_t i=0;i<plates.size();++i)
++      if((plates[i]-aim_point0.xyza).norm()<1e-6) {selected_plate_id=i;break;}
++  }
+   debug_aim_point = aim_point0;
+   if (!aim_point0.valid) {
+     // tools::logger()->debug("Invalid aim_point0.");
+     return {false, false, 0, 0};
+   }
+ 
+-  Eigen::Vector3d xyz0 = aim_point0.xyza.head(3);
++  Eigen::Vector3d xyz0 = aim_point0.xyza.head(3) - muzzle_position_;
+   auto d0 = std::sqrt(xyz0[0] * xyz0[0] + xyz0[1] * xyz0[1]);
+   tools::Trajectory trajectory0(bullet_speed, d0, xyz0[2]);
+   if (trajectory0.unsolvable) {
+@@ -87,14 +101,18 @@ io::Command Aimer::aim(
+     iteration_target[iter].predict(predict_time);
+ 
+     // 计算瞄准点
+-    auto aim_point = choose_aim_point(iteration_target[iter]);
++    // Commit selection once per frame; iterating flight time must not change
++    // the persistent plate lock or interpolate between physical plates.
++    auto aim_point = continuity_.enabled && selected_plate_id>=0 ?
++      AimPoint{true,iteration_target[iter].armor_xyza_list()[selected_plate_id]} :
++      choose_aim_point(iteration_target[iter]);
+     debug_aim_point = aim_point;
+     if (!aim_point.valid) {
+       return {false, false, 0, 0};
+     }
+ 
+     // 计算新弹道
+-    Eigen::Vector3d xyz = aim_point.xyza.head(3);
++    Eigen::Vector3d xyz = aim_point.xyza.head(3) - muzzle_position_;
+     double d = std::sqrt(xyz.x() * xyz.x() + xyz.y() * xyz.y());
+     current_traj = tools::Trajectory(bullet_speed, d, xyz.z());
+ 
+@@ -109,6 +127,7 @@ io::Command Aimer::aim(
+ 
+     // 检查收敛条件
+     if (std::abs(current_traj.fly_time - prev_fly_time) < 0.001) {
++      prediction_horizon_s+=prev_fly_time;
+       converged = true;
+       break;
+     }
+@@ -116,7 +135,7 @@ io::Command Aimer::aim(
+   }
+ 
+   // 计算最终角度
+-  Eigen::Vector3d final_xyz = debug_aim_point.xyza.head(3);
++  Eigen::Vector3d final_xyz = debug_aim_point.xyza.head(3) - muzzle_position_;
+   double yaw = std::atan2(final_xyz.y(), final_xyz.x()) + yaw_offset_;
+   double pitch = -(current_traj.pitch + pitch_offset_);  //世界坐标系下pitch向上为负
+   return {true, false, yaw, pitch};
+@@ -146,6 +165,8 @@ AimPoint Aimer::choose_aim_point(const Target & target)
+   Eigen::VectorXd ekf_x = target.ekf_x();
+   std::vector<Eigen::Vector4d> armor_xyza_list = target.armor_xyza_list();
+   auto armor_num = armor_xyza_list.size();
++  if(continuity_.enabled && target.preferred_plate()>=0)
++    return {true,armor_xyza_list[target.preferred_plate()]};
+   // 如果装甲板未发生过跳变，则只有当前装甲板的位置已知
+   if (!target.jumped) return {true, armor_xyza_list[0]};
+ 
+@@ -160,7 +181,7 @@ AimPoint Aimer::choose_aim_point(const Target & target)
+   }
+ 
+   // 不考虑小陀螺
+-  if (std::abs(target.ekf_x()[8]) <= 2 && target.name != ArmorName::outpost) {
++  if (std::abs(target.ekf_x()[continuity_.enabled ? 7 : 8]) <= 2 && target.name != ArmorName::outpost) {
+     // 选择在可射击范围内的装甲板
+     std::vector<int> id_list;
+     for (int i = 0; i < armor_num; i++) {
+@@ -208,4 +229,4 @@ AimPoint Aimer::choose_aim_point(const Target & target)
+   return {false, armor_xyza_list[0]};
+ }
+ 
+-}  // namespace auto_aim
+\ No newline at end of file
++}  // namespace auto_aim
+diff --git a/tasks/auto_aim/aimer.hpp b/tasks/auto_aim/aimer.hpp
+index 26c1e81..e18efad 100644
+--- a/tasks/auto_aim/aimer.hpp
++++ b/tasks/auto_aim/aimer.hpp
+@@ -23,6 +23,13 @@ class Aimer
+ public:
+   AimPoint debug_aim_point;
+   explicit Aimer(const std::string & config_path);
++  // Generic calibrated muzzle translation, in the same world-aligned frame as
++  // Target. Zero preserves existing hardware callers and their calibration.
++  void set_muzzle_position(const Eigen::Vector3d & position) { muzzle_position_ = position; }
++  // Optional deterministic capture-to-evaluation age, for read-only replay.
++  void set_processing_age(double seconds) { processing_age_=seconds; }
++  int selected_plate_id=-1;
++  double prediction_horizon_s=0;
+   io::Command aim(
+     std::list<Target> targets, std::chrono::steady_clock::time_point timestamp, double bullet_speed,
+     bool to_now = true);
+@@ -32,6 +39,7 @@ public:
+     io::ShootMode shoot_mode, bool to_now = true);
+ 
+ private:
++  Eigen::Vector3d muzzle_position_ = Eigen::Vector3d::Zero();
+   double yaw_offset_;
+   std::optional<double> left_yaw_offset_, right_yaw_offset_;
+   double pitch_offset_;
+@@ -41,10 +49,13 @@ private:
+   double high_speed_delay_time_;
+   double low_speed_delay_time_;
+   double decision_speed_;
++  ContinuityConfig continuity_;
++  unsigned generation_=0;
++  std::optional<double> processing_age_;
+ 
+   AimPoint choose_aim_point(const Target & target);
+ };
+ 
+ }  // namespace auto_aim
+ 
+-#endif  // AUTO_AIM__AIMER_HPP
+\ No newline at end of file
++#endif  // AUTO_AIM__AIMER_HPP
+diff --git a/tasks/auto_aim/armor.hpp b/tasks/auto_aim/armor.hpp
+index 4950582..c1973ae 100644
+--- a/tasks/auto_aim/armor.hpp
++++ b/tasks/auto_aim/armor.hpp
+@@ -5,6 +5,7 @@
+ #include <opencv2/opencv.hpp>
+ #include <string>
+ #include <vector>
++#include <limits>
+ 
+ namespace auto_aim
+ {
+@@ -79,6 +80,9 @@ struct Lightbar
+ 
+ struct Armor
+ {
++  bool pose_valid=false;
++  bool pose_constrained=false;
++  double reprojection_rms_px=std::numeric_limits<double>::infinity();
+   Color color;
+   Lightbar left, right;     //used to be const
+   cv::Point2f center;       // 不是对角线交点，不能作为实际中心！
+@@ -91,7 +95,7 @@ struct Armor
+ 
+   ArmorType type;
+   ArmorName name;
+-  ArmorPriority priority;
++  ArmorPriority priority=ArmorPriority::fifth;
+   int class_id;
+   cv::Rect box;
+   cv::Mat pattern;
+@@ -122,4 +126,4 @@ struct Armor
+ 
+ }  // namespace auto_aim
+ 
+-#endif  // AUTO_AIM__ARMOR_HPP
+\ No newline at end of file
++#endif  // AUTO_AIM__ARMOR_HPP
+diff --git a/tasks/auto_aim/detector.cpp b/tasks/auto_aim/detector.cpp
+index 1a9728e..bea4b45 100644
+--- a/tasks/auto_aim/detector.cpp
++++ b/tasks/auto_aim/detector.cpp
+@@ -4,6 +4,7 @@
+ #include <yaml-cpp/yaml.h>
+ 
+ #include <filesystem>
++#include <algorithm>
+ 
+ #include "tools/img_tools.hpp"
+ #include "tools/logger.hpp"
+@@ -16,6 +17,12 @@ Detector::Detector(const std::string & config_path, bool debug)
+   auto yaml = YAML::LoadFile(config_path);
+ 
+   threshold_ = yaml["threshold"].as<double>();
++  const auto profile=yaml["algorithm_profile"] ? yaml["algorithm_profile"].as<std::string>() : "legacy";
++  color_refinement_=(profile=="tracking_v3" || profile=="tracking_fire_v3") &&
++    (!yaml["robustness_v3"] || !yaml["robustness_v3"]["color_refinement"] || yaml["robustness_v3"]["color_refinement"].as<bool>());
++  if(yaml["robustness_v3"] && yaml["robustness_v3"]["color_refinement_max_lightbar_px"])
++    color_refinement_max_lightbar_px_=yaml["robustness_v3"]["color_refinement_max_lightbar_px"].as<double>();
++  if(!std::isfinite(color_refinement_max_lightbar_px_) || color_refinement_max_lightbar_px_<0)throw std::invalid_argument("Invalid color refinement size");
+   max_angle_error_ = yaml["max_angle_error"].as<double>() / 57.3;  // degree to rad
+   min_lightbar_ratio_ = yaml["min_lightbar_ratio"].as<double>();
+   max_lightbar_ratio_ = yaml["max_lightbar_ratio"].as<double>();
+@@ -121,6 +128,9 @@ std::list<Armor> Detector::detect(const cv::Mat & bgr_img, int frame_count)
+ 
+ bool Detector::detect(Armor & armor, const cv::Mat & bgr_img)
+ {
++  const double observed_height=(cv::norm(armor.points[0]-armor.points[3])+cv::norm(armor.points[1]-armor.points[2]))*.5;
++  const bool color_refinement=color_refinement_ && (color_refinement_max_lightbar_px_<=0 || observed_height<=color_refinement_max_lightbar_px_);
++  refinement_reason="geometry_distance";
+   // 取得四个角点
+   auto tl = armor.points[0];
+   auto tr = armor.points[1];
+@@ -147,12 +157,14 @@ bool Detector::detect(Armor & armor, const cv::Mat & bgr_img)
+   if (
+     boundingBox.x < 0 || boundingBox.y < 0 || boundingBox.x + boundingBox.width > bgr_img.cols ||
+     boundingBox.y + boundingBox.height > bgr_img.rows) {
++    refinement_reason="roi_outside_image";
+     return false;
+   }
+ 
+   // 在图像上裁剪出这个矩形区域（ROI）
+   cv::Mat armor_roi = bgr_img(boundingBox);
+   if (armor_roi.empty()) {
++    refinement_reason="empty_roi";
+     return false;
+   }
+ 
+@@ -162,6 +174,15 @@ bool Detector::detect(Armor & armor, const cv::Mat & bgr_img)
+   // 进行二值化
+   cv::Mat binary_img;
+   cv::threshold(gray_img, binary_img, threshold_, 255, cv::THRESH_BINARY);
++  if(color_refinement && (armor.color==blue || armor.color==red)) {
++    std::vector<cv::Mat> channels;cv::split(armor_roi,channels);
++    const int index=armor.color==blue?0:2;
++    cv::Mat other,dominance;
++    cv::max(channels[1],channels[2-index],other);cv::subtract(channels[index],other,dominance);
++    double maximum=0;cv::minMaxLoc(dominance,nullptr,&maximum);
++    const double contrast=std::clamp(maximum*.2,20.,40.);
++    cv::threshold(dominance,binary_img,contrast,255,cv::THRESH_BINARY);
++  }
+   // cv::imshow("binary_img", binary_img);
+   // 获取轮廓点
+   std::vector<std::vector<cv::Point>> contours;
+@@ -173,15 +194,24 @@ bool Detector::detect(Armor & armor, const cv::Mat & bgr_img)
+     auto rotated_rect = cv::minAreaRect(contour);
+     auto lightbar = Lightbar(rotated_rect, lightbar_id);
+ 
+-    if (!check_geometry(lightbar)) continue;
+-
+-    lightbar.color = get_color(bgr_img, contour);
++    // A one-pixel raster line has zero minAreaRect width; it still carries
++    // a measurable lightbar axis. Treat its pixel footprint as one pixel.
++    if(color_refinement && lightbar.width<1.)lightbar.ratio=lightbar.length;
++    const double expected_height=(cv::norm(bl-tl)+cv::norm(br-tr))*.5;
++    const double minimum=color_refinement?std::min(min_lightbar_length_,std::max(4.,expected_height*.6)):-1.;
++    if (!check_geometry(lightbar,minimum)) continue;
++
++    lightbar.color = get_color(color_refinement?armor_roi:bgr_img, contour);
++    if(color_refinement && lightbar.length>1e-6) {
++      const auto half_pixel=(lightbar.bottom-lightbar.top)*(float(.5/lightbar.length));
++      lightbar.top-=half_pixel;lightbar.bottom+=half_pixel;
++    }
+     // lightbar_points_corrector(lightbar, gray_img); //关闭PCA
+     lightbars.emplace_back(lightbar);
+     lightbar_id += 1;
+   }
+ 
+-  if (lightbars.size() < 2) return false;
++  if (lightbars.size() < 2) { refinement_reason="insufficient_lightbars"; return false; }
+ 
+   // 将灯条从左到右排序
+   lightbars.sort([](const Lightbar & a, const Lightbar & b) { return a.center.x < b.center.x; });
+@@ -218,23 +248,29 @@ bool Detector::detect(Armor & armor, const cv::Mat & bgr_img)
+ 
+   if (
+     closest_left_lightbar && closest_right_lightbar &&
+-    min_distance_br_tr + min_distance_tl_bl < 15) {
++    min_distance_br_tr + min_distance_tl_bl < 15 &&
++    (!color_refinement || closest_left_lightbar->id!=closest_right_lightbar->id)) {
+     // 将四个点从armor_roi坐标系转换到原始图像坐标系
+     armor.points[0] = closest_left_lightbar->top + cv::Point2f(boundingBox.x, boundingBox.y);
+     armor.points[1] = closest_right_lightbar->top + cv::Point2f(boundingBox.x, boundingBox.y);
+     armor.points[2] = closest_right_lightbar->bottom + cv::Point2f(boundingBox.x, boundingBox.y);
+     armor.points[3] = closest_left_lightbar->bottom + cv::Point2f(boundingBox.x, boundingBox.y);
++    if(color_refinement) {
++      armor.center=(armor.points[0]+armor.points[1]+armor.points[2]+armor.points[3])*.25;
++      armor.box=cv::boundingRect(armor.points);
++    }
++    refinement_reason="refined";
+     return true;
+   }
+ 
+   return false;
+ }
+ 
+-bool Detector::check_geometry(const Lightbar & lightbar) const
++bool Detector::check_geometry(const Lightbar & lightbar, double minimum_length) const
+ {
+   auto angle_ok = lightbar.angle_error < max_angle_error_;
+   auto ratio_ok = lightbar.ratio > min_lightbar_ratio_ && lightbar.ratio < max_lightbar_ratio_;
+-  auto length_ok = lightbar.length > min_lightbar_length_;
++  auto length_ok = lightbar.length > (minimum_length<0?min_lightbar_length_:minimum_length);
+   return angle_ok && ratio_ok && length_ok;
+ }
+ 
+diff --git a/tasks/auto_aim/detector.hpp b/tasks/auto_aim/detector.hpp
+index 3e00c6e..b4444ba 100644
+--- a/tasks/auto_aim/detector.hpp
++++ b/tasks/auto_aim/detector.hpp
+@@ -20,6 +20,7 @@ public:
+   std::list<Armor> detect(const cv::Mat & bgr_img, int frame_count = -1);
+ 
+   bool detect(Armor & armor, const cv::Mat & bgr_img);
++  std::string refinement_reason;
+ 
+   friend class YOLOV8;
+ 
+@@ -36,12 +37,14 @@ private:
+   double max_rectangular_error_;
+ 
+   bool debug_;
++  bool color_refinement_=false;
++  double color_refinement_max_lightbar_px_=0;
+   std::string save_path_;
+ 
+   // 利用PCA回归角点，参考自https://github.com/CSU-FYT-Vision/FYT2024_vision
+   void lightbar_points_corrector(Lightbar & lightbar, const cv::Mat & gray_img) const;
+ 
+-  bool check_geometry(const Lightbar & lightbar) const;
++  bool check_geometry(const Lightbar & lightbar, double minimum_length=-1) const;
+   bool check_geometry(const Armor & armor) const;
+   bool check_name(const Armor & armor) const;
+   bool check_type(const Armor & armor) const;
+diff --git a/tasks/auto_aim/shooter.cpp b/tasks/auto_aim/shooter.cpp
+index faeefb6..54fca93 100644
+--- a/tasks/auto_aim/shooter.cpp
++++ b/tasks/auto_aim/shooter.cpp
+@@ -10,6 +10,7 @@ namespace auto_aim
+ Shooter::Shooter(const std::string & config_path) : last_command_{false, false, 0, 0}
+ {
+   auto yaml = YAML::LoadFile(config_path);
++  continuity_=ContinuityConfig::read(config_path);
+   first_tolerance_ = yaml["first_tolerance"].as<double>() / 57.3;    // degree to rad
+   second_tolerance_ = yaml["second_tolerance"].as<double>() / 57.3;  // degree to rad
+   judge_distance_ = yaml["judge_distance"].as<double>();
+@@ -40,4 +41,46 @@ bool Shooter::shoot(
+   return false;
+ }
+ 
+-}  // namespace auto_aim
+\ No newline at end of file
++bool Shooter::shoot_current(const io::Command &command,const FireContext &c)
++{
++  const double yaw_error=tools::limit_rad(command.yaw-c.yaw);
++  const double pitch_error=-command.pitch-c.elevation;
++  const double dt=tools::delta_time(c.capture_time,previous_time_);
++  const double radians=CV_PI/180.;
++  double angle_residual=0;
++  bool discontinuity=!(continuity_.robust_v3?previous_command_valid_:previous_valid_) || dt<=0 || dt>.1 || c.generation!=previous_generation_ || (!continuity_.robust_v3 && c.plate_id!=previous_plate_);
++  if((continuity_.robust_v3?previous_command_valid_:previous_valid_) && dt>0 && dt<=.1) {
++    const double yaw_delta=tools::limit_rad(command.yaw-last_command_.yaw);
++    const double pitch_delta=command.pitch-last_command_.pitch;
++    angle_residual=std::hypot(tools::limit_rad(yaw_delta-previous_yaw_rate_*dt),pitch_delta-previous_pitch_rate_*dt);
++    if(angle_residual>continuity_.fire_jump_deg*radians)discontinuity=true;
++    previous_yaw_rate_=yaw_delta/dt;previous_pitch_rate_=pitch_delta/dt;
++  } else {previous_yaw_rate_=0;previous_pitch_rate_=0;}
++  const double yaw_tolerance=continuity_.robust_v3 && c.target_half_width_rad>=0 ?
++    std::min(continuity_.fire_yaw_max_deg*radians,c.target_half_width_rad*.9) : continuity_.fire_tolerance_deg*radians;
++  const bool target_face_valid=!(continuity_.robust_v3 && c.target_half_width_rad>=0) || c.target_half_width_rad>1e-6;
++  const bool command_valid=target_face_valid && command.control && std::isfinite(command.yaw) && std::isfinite(command.pitch)
++    && c.plate_id>=0;
++  const bool valid=command_valid && c.tracking && c.measurement_fresh;
++  const bool pose_valid=std::isfinite(c.yaw) && std::isfinite(c.elevation)
++    && c.pose_age_s>=0 && c.pose_age_s<=continuity_.fire_pose_max_age_s;
++  const bool aligned=pose_valid && std::abs(yaw_error)<=yaw_tolerance
++    && std::abs(pitch_error)<=continuity_.fire_tolerance_deg*radians;
++  const bool stable_input=valid && pose_valid && (aligned || (continuity_.robust_v3 && !continuity_.fire_stability_requires_alignment));
++  const double good_age=tools::delta_time(c.capture_time,last_good_time_);
++  const bool held=continuity_.robust_v3 && !discontinuity && command_valid && pose_valid && (aligned || !continuity_.fire_stability_requires_alignment) && !valid
++    && stable_time_s_>=continuity_.fire_stable_time_s && good_age>0 && good_age<=continuity_.fire_measurement_hold_s;
++  if(discontinuity || !pose_valid || (!aligned && (!continuity_.robust_v3 || continuity_.fire_stability_requires_alignment)) || (!valid && !held)) {stable_frames_=0;stable_time_s_=0;}
++  else if(valid) {++stable_frames_;if(continuity_.robust_v3?previous_good_:previous_aligned_)stable_time_s_+=dt;}
++  if(stable_input)last_good_time_=c.capture_time;
++  const bool recovered=continuity_.robust_v3 ? stable_time_s_>=continuity_.fire_stable_time_s : stable_frames_>=continuity_.fire_recovery_frames;
++  const bool advice=auto_fire_ && valid && aligned && recovered;
++  diagnostics={{"pose_valid",pose_valid},{"stability_requires_alignment",continuity_.fire_stability_requires_alignment},{"qualification_held",held},{"last_good_age_s",good_age},{"yaw_tolerance_rad",yaw_tolerance},{"target_half_width_rad",c.target_half_width_rad},{"target_face_valid",target_face_valid},{"yaw_error_rad",yaw_error},{"pitch_error_rad",pitch_error},{"pose_age_s",c.pose_age_s},
++    {"command_residual_deg",angle_residual/radians},{"discontinuity",discontinuity},
++    {"stable_time_s",stable_time_s_},{"plate_changed",c.plate_id!=previous_plate_},{"aligned",aligned},{"valid",valid},{"stable_frames",stable_frames_},{"eligible",advice}};
++  previous_command_valid_=command_valid;previous_good_=stable_input;previous_aligned_=aligned;previous_valid_=valid;previous_time_=c.capture_time;last_command_=command;
++  previous_generation_=c.generation;previous_plate_=c.plate_id;
++  return advice;
++}
++
++}  // namespace auto_aim
+diff --git a/tasks/auto_aim/shooter.hpp b/tasks/auto_aim/shooter.hpp
+index 2b4cb78..6f6b6fb 100644
+--- a/tasks/auto_aim/shooter.hpp
++++ b/tasks/auto_aim/shooter.hpp
+@@ -16,6 +16,16 @@ public:
+   bool shoot(
+     const io::Command & command, const auto_aim::Aimer & aimer,
+     const std::list<auto_aim::Target> & targets, const Eigen::Vector3d & gimbal_pos);
++  struct FireContext {
++    double yaw=0,elevation=0,pose_age_s=1;
++    double target_half_width_rad=-1; // negative: caller did not provide geometry
++    std::chrono::steady_clock::time_point capture_time{},now{};
++    bool tracking=false,measurement_fresh=false;
++    unsigned generation=0;
++    int plate_id=-1;
++  };
++  bool shoot_current(const io::Command &command,const FireContext &context);
++  nlohmann::json diagnostics;
+ 
+ private:
+   io::Command last_command_;
+@@ -23,7 +33,15 @@ private:
+   double first_tolerance_;
+   double second_tolerance_;
+   bool auto_fire_;
++  ContinuityConfig continuity_;
++  bool previous_valid_=false,previous_aligned_=false,previous_command_valid_=false,previous_good_=false;
++  std::chrono::steady_clock::time_point last_good_time_{};
++  int stable_frames_=0,previous_plate_=-1;
++  double stable_time_s_=0;
++  unsigned previous_generation_=0;
++  double previous_yaw_rate_=0,previous_pitch_rate_=0;
++  std::chrono::steady_clock::time_point previous_time_{};
+ };
+ }  // namespace auto_aim
+ 
+-#endif  // AUTO_AIM__SHOOTER_HPP
+\ No newline at end of file
++#endif  // AUTO_AIM__SHOOTER_HPP
+diff --git a/tasks/auto_aim/solver.cpp b/tasks/auto_aim/solver.cpp
+index d7ce7c8..2eb6c1a 100644
+--- a/tasks/auto_aim/solver.cpp
++++ b/tasks/auto_aim/solver.cpp
+@@ -3,6 +3,8 @@
+ #include <yaml-cpp/yaml.h>
+ 
+ #include <vector>
++#include <algorithm>
++#include <limits>
+ 
+ #include "tools/logger.hpp"
+ #include "tools/math_tools.hpp"
+@@ -27,7 +29,12 @@ const std::vector<cv::Point3f> SMALL_ARMOR_POINTS{
+ Solver::Solver(const std::string & config_path) : R_gimbal2world_(Eigen::Matrix3d::Identity())
+ {
+   auto yaml = YAML::LoadFile(config_path);
++  const auto profile=yaml["algorithm_profile"]?yaml["algorithm_profile"].as<std::string>():"legacy";
++  constrained_pose_=(profile=="tracking_v3" || profile=="tracking_fire_v3") && yaml["robustness_v3"] && yaml["robustness_v3"]["constrained_pose"] && yaml["robustness_v3"]["constrained_pose"].as<bool>();
+ 
++  if(yaml["robustness_v3"] && yaml["robustness_v3"]["constrained_pose_max_lightbar_px"])
++    constrained_pose_max_lightbar_px_=yaml["robustness_v3"]["constrained_pose_max_lightbar_px"].as<double>();
++  if(!std::isfinite(constrained_pose_max_lightbar_px_) || constrained_pose_max_lightbar_px_<0)throw std::invalid_argument("Invalid constrained pose size");
+   auto R_gimbal2imubody_data = yaml["R_gimbal2imubody"].as<std::vector<double>>();
+   auto R_camera2gimbal_data = yaml["R_camera2gimbal"].as<std::vector<double>>();
+   auto t_camera2gimbal_data = yaml["t_camera2gimbal"].as<std::vector<double>>();
+@@ -45,6 +52,13 @@ Solver::Solver(const std::string & config_path) : R_gimbal2world_(Eigen::Matrix3
+ 
+ Eigen::Matrix3d Solver::R_gimbal2world() const { return R_gimbal2world_; }
+ 
++void Solver::set_camera2gimbal(
++  const Eigen::Matrix3d & rotation, const Eigen::Vector3d & translation)
++{
++  R_camera2gimbal_ = rotation;
++  t_camera2gimbal_ = translation;
++}
++
+ void Solver::set_R_gimbal2world(const Eigen::Quaterniond & q)
+ {
+   Eigen::Matrix3d R_imubody2imuabs = q.toRotationMatrix();
+@@ -52,16 +66,30 @@ void Solver::set_R_gimbal2world(const Eigen::Quaterniond & q)
+ }
+ 
+ //solvePnP（获得姿态）
+-void Solver::solve(Armor & armor) const
++void Solver::solve(Armor & armor,std::optional<double> yaw_hint) const
+ {
++  armor.pose_constrained=false;
+   const auto & object_points =
+     (armor.type == ArmorType::big) ? BIG_ARMOR_POINTS : SMALL_ARMOR_POINTS;
+ 
+   cv::Vec3d rvec, tvec;
+-  cv::solvePnP(
++  const bool solved=cv::solvePnP(
+     object_points, armor.points, camera_matrix_, distort_coeffs_, rvec, tvec, false,
+     cv::SOLVEPNP_IPPE);
+ 
++  armor.pose_valid=solved && std::isfinite(tvec[0]) && std::isfinite(tvec[1])
++    && std::isfinite(tvec[2]) && tvec[2]>0;
++  if(!armor.pose_valid)return;
++  if(armor.pose_valid) {
++    std::vector<cv::Point2f> reprojection;
++    cv::projectPoints(object_points,rvec,tvec,camera_matrix_,distort_coeffs_,reprojection);
++    double squared=0;
++    for(size_t i=0;i<reprojection.size();++i) {
++      const auto d=reprojection[i]-armor.points[i]; squared+=d.dot(d);
++    }
++    armor.reprojection_rms_px=std::sqrt(squared/reprojection.size());
++  }
++
+   Eigen::Vector3d xyz_in_camera;
+   cv::cv2eigen(tvec, xyz_in_camera);
+   armor.xyz_in_gimbal = R_camera2gimbal_ * xyz_in_camera + t_camera2gimbal_;
+@@ -84,7 +112,78 @@ void Solver::solve(Armor & armor) const
+                      armor.name == ArmorName::five);
+   if (is_balance) return;
+ 
+-  optimize_yaw(armor);
++  const double observed_height=(cv::norm(armor.points[0]-armor.points[3])+cv::norm(armor.points[1]-armor.points[2]))*.5;
++  const bool small_object=constrained_pose_max_lightbar_px_<=0 || observed_height<=constrained_pose_max_lightbar_px_;
++  if(!constrained_pose_ || !small_object || !solve_with_pitch_constraint(armor,yaw_hint))optimize_yaw(armor,yaw_hint);
++}
++
++bool Solver::solve_with_pitch_constraint(Armor &armor,std::optional<double> yaw_hint) const
++{
++  // Ordinary armour already uses a fixed pitch in reproject_armor. Fit its
++  // translation together with yaw so a free IPPE tilt cannot absorb noisy
++  // lightbar endpoints as a large range change.
++  if(armor.points.size()!=4)return false;
++  std::vector<cv::Point2f> normalized;
++  cv::undistortPoints(armor.points,normalized,camera_matrix_,distort_coeffs_);
++  constexpr double vertical_weight=.35;
++  const double fx=camera_matrix_.at<double>(0,0),fy=camera_matrix_.at<double>(1,1);
++  Eigen::Matrix<double,8,3> A=Eigen::Matrix<double,8,3>::Zero();
++  for(int i=0;i<4;++i) {
++    if(!std::isfinite(normalized[i].x)||!std::isfinite(normalized[i].y))return false;
++    A(2*i,0)=fx;A(2*i,2)=-fx*normalized[i].x;
++    A(2*i+1,1)=fy*vertical_weight;A(2*i+1,2)=-fy*vertical_weight*normalized[i].y;
++  }
++  const Eigen::Matrix3d information=A.transpose()*A;
++  const Eigen::LDLT<Eigen::Matrix3d> factor(information);
++  if(factor.info()!=Eigen::Success || !factor.isPositive())return false;
++  const auto &points=armor.type==big?BIG_ARMOR_POINTS:SMALL_ARMOR_POINTS;
++  const double pitch=(armor.name==outpost?-15.:15.)*CV_PI/180.;
++  const double cp=std::cos(pitch),sp=std::sin(pitch);
++  const double centre=tools::eulers(R_gimbal2world_,2,1,0)[0];
++  struct Candidate {double yaw,cost,rms;Eigen::Vector3d xyz;};
++  std::vector<Candidate> candidates;double best=std::numeric_limits<double>::infinity();
++  for(int degree=-70;degree<70;++degree) {
++    const double yaw=tools::limit_rad(centre+degree*CV_PI/180.);
++    const double c=std::cos(yaw),s=std::sin(yaw);
++    Eigen::Matrix3d orientation;orientation<<c*cp,-s,c*sp,s*cp,c,s*sp,-sp,0,cp;
++    const Eigen::Matrix3d optical_rotation=R_camera2gimbal_.transpose()*R_gimbal2world_.transpose()*orientation;
++    Eigen::Matrix<double,8,1> rhs;
++    for(int i=0;i<4;++i) {
++      const auto &p=points[i];const Eigen::Vector3d rotated=optical_rotation*Eigen::Vector3d(p.x,p.y,p.z);
++      rhs[2*i]=fx*(normalized[i].x*rotated.z()-rotated.x());
++      rhs[2*i+1]=fy*vertical_weight*(normalized[i].y*rotated.z()-rotated.y());
++    }
++    const Eigen::Vector3d optical=factor.solve(A.transpose()*rhs);
++    if(!optical.allFinite() || optical.z()<=.05)continue;
++    const Eigen::Vector3d xyz=R_gimbal2world_*(R_camera2gimbal_*optical+t_camera2gimbal_);
++    const auto projected=reproject_armor(xyz,yaw,armor.type,armor.name);
++    double weighted=0,squared=0;
++    for(int i=0;i<4;++i) {
++      const auto d=projected[i]-armor.points[i];squared+=d.dot(d);
++      weighted+=d.x*d.x+vertical_weight*vertical_weight*d.y*d.y;
++    }
++    const double cost=std::sqrt(weighted/4.);if(!std::isfinite(cost))continue;
++    candidates.push_back({yaw,cost,std::sqrt(squared/4.),xyz});best=std::min(best,cost);
++  }
++  if(candidates.empty())return false;
++  auto chosen=std::min_element(candidates.begin(),candidates.end(),[](const auto &a,const auto &b){return a.cost<b.cost;});
++  if(yaw_hint && std::isfinite(*yaw_hint)) {
++    double closest=std::numeric_limits<double>::infinity();
++    for(auto candidate=candidates.begin();candidate!=candidates.end();++candidate) {
++      if(candidate->cost>best+.5)continue;
++      const double distance=std::abs(tools::limit_rad(candidate->yaw-*yaw_hint));
++      if(distance<closest) {closest=distance;chosen=candidate;}
++    }
++  }
++  armor.yaw_raw=armor.ypr_in_world[0];armor.xyz_in_world=chosen->xyz;
++  armor.xyz_in_gimbal=R_gimbal2world_.transpose()*chosen->xyz;
++  armor.ypd_in_world=tools::xyz2ypd(chosen->xyz);
++  armor.ypr_in_world={chosen->yaw,pitch,0};
++  const double c=std::cos(chosen->yaw),s=std::sin(chosen->yaw);
++  Eigen::Matrix3d orientation;orientation<<c*cp,-s,c*sp,s*cp,c,s*sp,-sp,0,cp;
++  armor.ypr_in_gimbal=tools::eulers(R_gimbal2world_.transpose()*orientation,2,1,0);
++  armor.reprojection_rms_px=chosen->rms;armor.pose_constrained=true;
++  return true;
+ }
+ 
+ std::vector<cv::Point2f> Solver::reproject_armor(
+@@ -193,7 +292,7 @@ double Solver::oupost_reprojection_error(Armor armor, const double & pitch)
+   return error;
+ }
+ 
+-void Solver::optimize_yaw(Armor & armor) const
++void Solver::optimize_yaw(Armor & armor,std::optional<double> yaw_hint) const
+ {
+   Eigen::Vector3d gimbal_ypr = tools::eulers(R_gimbal2world_, 2, 1, 0);
+ 
+@@ -202,10 +301,12 @@ void Solver::optimize_yaw(Armor & armor) const
+ 
+   auto min_error = 1e10;
+   auto best_yaw = armor.ypr_in_world[0];
++  std::vector<std::pair<double,double>> candidates;
+ 
+   for (int i = 0; i < SEARCH_RANGE; i++) {
+     double yaw = tools::limit_rad(yaw0 + i * CV_PI / 180.0);
+     auto error = armor_reprojection_error(armor, yaw, (i - SEARCH_RANGE / 2) * CV_PI / 180.0);
++    candidates.emplace_back(yaw,error);
+ 
+     if (error < min_error) {
+       min_error = error;
+@@ -213,6 +314,18 @@ void Solver::optimize_yaw(Armor & armor) const
+     }
+   }
+ 
++  if(yaw_hint) {
++    // Choose between distinct image-compatible pose minima. Do not average
++    // their angles or clamp a genuine, well-observed rotation to its prior.
++    double closest=1e10;
++    for(size_t i=1;i+1<candidates.size();++i) {
++      const auto [yaw,error]=candidates[i];
++      if(error>min_error+1. || error>candidates[i-1].second || error>candidates[i+1].second)continue;
++      const double distance=std::abs(tools::limit_rad(yaw-*yaw_hint));
++      if(distance<closest) {closest=distance;best_yaw=yaw;}
++    }
++  }
++
+   armor.yaw_raw = armor.ypr_in_world[0];
+   armor.ypr_in_world[0] = best_yaw;
+ }
+@@ -290,4 +403,4 @@ std::vector<cv::Point2f> Solver::world2pixel(const std::vector<cv::Point3f> & wo
+   cv::projectPoints(valid_world_points, rvec, tvec, camera_matrix_, distort_coeffs_, pixelPoints);
+   return pixelPoints;
+ }
+-}  // namespace auto_aim
+\ No newline at end of file
++}  // namespace auto_aim
+diff --git a/tasks/auto_aim/solver.hpp b/tasks/auto_aim/solver.hpp
+index 602af72..f4907c4 100644
+--- a/tasks/auto_aim/solver.hpp
++++ b/tasks/auto_aim/solver.hpp
+@@ -3,6 +3,7 @@
+ 
+ #include <Eigen/Dense>  // 必须在opencv2/core/eigen.hpp上面
+ #include <Eigen/Geometry>
++#include <optional>
+ #include <opencv2/core/eigen.hpp>
+ 
+ #include "armor.hpp"
+@@ -18,7 +19,11 @@ public:
+ 
+   void set_R_gimbal2world(const Eigen::Quaterniond & q);
+ 
+-  void solve(Armor & armor) const;
++  // A transport-independent calibration input. Existing YAML calibration and
++  // solve/track/aim calculations retain their original behaviour.
++  void set_camera2gimbal(const Eigen::Matrix3d & rotation, const Eigen::Vector3d & translation);
++
++  void solve(Armor & armor, std::optional<double> yaw_hint=std::nullopt) const;
+ 
+   std::vector<cv::Point2f> reproject_armor(
+     const Eigen::Vector3d & xyz_in_world, double yaw, ArmorType type, ArmorName name) const;
+@@ -28,6 +33,9 @@ public:
+   std::vector<cv::Point2f> world2pixel(const std::vector<cv::Point3f> & worldPoints);
+ 
+ private:
++  bool constrained_pose_=false;
++  double constrained_pose_max_lightbar_px_=0;
++  bool solve_with_pitch_constraint(Armor &armor,std::optional<double> yaw_hint) const;
+   cv::Mat camera_matrix_;
+   cv::Mat distort_coeffs_;
+   Eigen::Matrix3d R_gimbal2imubody_;
+@@ -35,7 +43,7 @@ private:
+   Eigen::Vector3d t_camera2gimbal_;
+   Eigen::Matrix3d R_gimbal2world_;
+ 
+-  void optimize_yaw(Armor & armor) const;
++  void optimize_yaw(Armor & armor,std::optional<double> yaw_hint=std::nullopt) const;
+ 
+   double armor_reprojection_error(const Armor & armor, double yaw, const double & inclined) const;
+   double SJTU_cost(
+@@ -45,4 +53,4 @@ private:
+ 
+ }  // namespace auto_aim
+ 
+-#endif  // AUTO_AIM__SOLVER_HPP
+\ No newline at end of file
++#endif  // AUTO_AIM__SOLVER_HPP
+diff --git a/tasks/auto_aim/target.cpp b/tasks/auto_aim/target.cpp
+index f1121bb..7dfc12c 100644
+--- a/tasks/auto_aim/target.cpp
++++ b/tasks/auto_aim/target.cpp
+@@ -1,6 +1,7 @@
+ #include "target.hpp"
+ 
+ #include <numeric>
++#include <algorithm>
+ 
+ #include "tools/logger.hpp"
+ #include "tools/math_tools.hpp"
+@@ -9,7 +10,7 @@ namespace auto_aim
+ {
+ Target::Target(
+   const Armor & armor, std::chrono::steady_clock::time_point t, double radius, int armor_num,
+-  Eigen::VectorXd P0_dig)
++  Eigen::VectorXd P0_dig, ContinuityConfig continuity)
+ : name(armor.name),
+   armor_type(armor.type),
+   jumped(false),
+@@ -21,6 +22,7 @@ Target::Target(
+   is_converged_(false),
+   switch_count_(0)
+ {
++  continuity_=continuity;
+   auto r = radius;
+   priority = armor.priority;
+   const Eigen::VectorXd & xyz = armor.xyz_in_world;
+@@ -38,6 +40,12 @@ Target::Target(
+   // h: z2 - z1
+   Eigen::VectorXd x0{{center_x, 0, center_y, 0, center_z, 0, ypr[0], 0, r, 0, 0}};  //初始化预测量
+   Eigen::MatrixXd P0 = P0_dig.asDiagonal();
++  if(continuity_.enabled) {
++    // Geometry is weakly observable from one plate. It must not absorb a noisy
++    // pose by creating a negative radius and resetting the complete track.
++    P0(8,8)=.0001; P0(9,9)=.0001; P0(10,10)=.0001;
++    P0(7,7)=1.;
++  }
+ 
+   // 防止夹角求和出现异常值
+   auto x_add = [](const Eigen::VectorXd & a, const Eigen::VectorXd & b) -> Eigen::VectorXd {
+@@ -47,6 +55,21 @@ Target::Target(
+   };
+ 
+   ekf_ = tools::ExtendedKalmanFilter(x0, P0, x_add);  //初始化滤波器（预测量、预测量协方差）
++  if(continuity_.enabled) {
++    plate_filters_.resize(armor_num_);
++    for(auto &plate:plate_filters_) {
++      plate.bootstrap_enabled=continuity_.robust_v3 && continuity_.velocity_bootstrap;
++      plate.bootstrap_window_s=continuity_.velocity_bootstrap_window_s;
++    }
++    Eigen::Matrix3d initial_R=Eigen::Matrix3d::Identity()*.01;
++    if(continuity_.robust_v3) {
++      const auto quality=assess(armor,0);
++      const Eigen::Matrix3d inverse=tools::xyz2ypd_jacobian(xyz).inverse();
++      initial_R=inverse*quality.R.topLeftCorner(3,3)*inverse.transpose();
++    }
++    plate_filters_[0].update(xyz,initial_R,std::abs(cv::contourArea(armor.points)));
++    preferred_plate_=0;
++  }
+ }
+ 
+ Target::Target(double x, double vyaw, double radius, double h) : armor_num_(4)
+@@ -101,6 +124,10 @@ void Target::predict(double dt)
+     v1 = 100;  // 加速度方差
+     v2 = 400;  // 角加速度方差
+   }
++  if(continuity_.enabled && name!=ArmorName::outpost) {
++    v1=translation_maneuver_ ? continuity_.maneuver_translation_variance : continuity_.translation_variance;
++    v2=rotation_maneuver_ ? continuity_.maneuver_rotation_variance : continuity_.rotation_variance;
++  }
+   auto a = dt * dt * dt * dt / 4;
+   auto b = dt * dt * dt / 2;
+   auto c = dt * dt;
+@@ -133,6 +160,11 @@ void Target::predict(double dt)
+     this->ekf_.x[7] = this->ekf_.x[7] > 0 ? 2.51 : -2.51;
+ 
+   ekf_.predict(F, Q, f);
++  if(continuity_.enabled) {
++    for(auto &plate:plate_filters_)plate.predict(dt,v1,continuity_.radial_acceleration_variance,
++      continuity_.vertical_acceleration_variance);
++    sync_translation();
++  }
+ }
+ 
+ void Target::update(const Armor & armor)
+@@ -222,6 +254,164 @@ void Target::update_ypda(const Armor & armor, int id)
+   ekf_.update(z, H, R, h, z_subtract);
+ }
+ 
++Target::Assessment Target::assess(const Armor &armor,int id) const
++{
++  Assessment a;
++  if(id<0 || id>=armor_num_ || !armor.pose_valid || !armor.xyz_in_world.allFinite()
++      || !armor.ypr_in_world.allFinite() || !armor.ypd_in_world.allFinite()
++      || !std::isfinite(armor.reprojection_rms_px)
++      || armor.reprojection_rms_px>continuity_.reprojection_max_px) {
++    a.reason="pose_quality"; return a;
++  }
++  const auto &plate=plate_filters_[id];
++  const Eigen::Vector3d predicted=plate.initialized?plate.position():h_armor_xyz(ekf_.x,id);
++  a.position_residual=armor.xyz_in_world-predicted;
++  if(a.position_residual.norm()>.8) { a.reason="association_distance";return a; }
++  a.H=Eigen::MatrixXd::Zero(4,11);a.H(3,6)=1;
++  const double center_yaw=std::atan2(armor.xyz_in_world[1],armor.xyz_in_world[0]);
++  const double delta=tools::limit_rad(armor.ypr_in_world[0]-center_yaw);
++  const double quality=std::clamp(1+std::pow(armor.reprojection_rms_px/2.,2),1.,16.);
++  // Image bearing is substantially better observed than the plate's normal
++  // and depth. Keep their uncertainty separate instead of forcing translation
++  // to wait for a noisy orientation estimate.
++  Eigen::Vector4d diagonal(std::pow(continuity_.bearing_noise_rad,2),
++    std::pow(continuity_.bearing_noise_rad,2),std::pow(continuity_.range_noise_m,2)*(1+std::abs(delta)),
++    std::log(std::abs(armor.ypd_in_world[2])+1)/200+9e-2);
++  a.R=(diagonal*quality).asDiagonal();
++  Eigen::Vector4d z(armor.ypd_in_world[0],armor.ypd_in_world[1],armor.ypd_in_world[2],armor.ypr_in_world[0]);
++  auto subtract=[](const Eigen::VectorXd &x,const Eigen::VectorXd &y)->Eigen::VectorXd {
++    Eigen::VectorXd r=x-y;
++    for(int i:{0,1,3}) r[i]=tools::limit_rad(r[i]);
++    return r;
++  };
++  const auto ypd=tools::xyz2ypd(predicted);
++  const Eigen::Vector4d expected(ypd[0],ypd[1],ypd[2],tools::limit_rad(ekf_.x[6]+id*2*CV_PI/armor_num_));
++  a.innovation.residual=subtract(z,expected);
++  a.innovation.covariance=a.R;
++  const auto J=tools::xyz2ypd_jacobian(predicted);
++  const Eigen::Matrix3d position_covariance=plate.initialized?plate.position_covariance():Eigen::Matrix3d::Identity()*.04;
++  a.innovation.covariance.topLeftCorner(3,3)+=J*position_covariance*J.transpose();
++  a.innovation.covariance(3,3)+=ekf_.P(6,6);
++  Eigen::LDLT<Eigen::MatrixXd> factor(a.innovation.covariance);
++  if(factor.info()==Eigen::Success && factor.isPositive() && a.innovation.residual.allFinite()) {
++    a.innovation.nis=a.innovation.residual.dot(factor.solve(a.innovation.residual));
++    a.innovation.valid=std::isfinite(a.innovation.nis)&&a.innovation.nis>=0;
++  }
++  a.quality=a.innovation.valid;
++  // Geometric distance resolves model plate identity when yaw is uncertain.
++  a.cost=a.innovation.nis+a.position_residual.squaredNorm()/.04+(plate.initialized?0.:2.);
++  a.reason=!a.quality ? "nonfinite_innovation" : a.innovation.nis>continuity_.innovation_limit ? "innovation" : "accepted";
++  return a;
++}
++
++bool Target::update_robust(const std::vector<std::pair<Armor,int>> &observations)
++{
++  continuity_diagnostics={{"updates",nlohmann::json::array()},
++    {"state_before",std::vector<double>(ekf_.x.data(),ekf_.x.data()+ekf_.x.size())}};
++  bool accepted=false;
++  if(!observations.empty()) {
++    const auto &[armor,id]=observations.front();
++    auto a=assess(armor,id);
++    const double gap=tools::delta_time(t_,evidence_time_);
++    const bool consecutive=id==evidence_id_ && gap>0 && gap<=.075;
++    if(a.quality) {
++      // Bearing change is observed much more reliably than single-frame PnP
++      // depth. Depth noise must not trigger a lateral maneuver or relax every
++      // velocity axis at once.
++      const double bearing=std::atan2(armor.xyz_in_world.y(),armor.xyz_in_world.x());
++      const Eigen::Vector2d lateral(-std::sin(bearing),std::cos(bearing));
++      const Eigen::Vector2d motion_innovation=consecutive ?
++        (lateral*lateral.dot(a.position_residual.head<2>())).eval() : Eigen::Vector2d::Zero();
++      const double lateral_threshold=std::max(.01,continuity_.bearing_noise_rad
++        *armor.xyz_in_world.head<2>().norm()*1.5);
++      const bool position_large=consecutive && motion_innovation.norm()>lateral_threshold;
++      const double dot=motion_innovation.dot(previous_motion_innovation_);
++      const double scale=motion_innovation.norm()*previous_motion_innovation_.norm();
++      translation_evidence_=position_large ? (consecutive && scale>0 && dot/scale>.8 ? translation_evidence_+1 : 1) : 0;
++      const double angle=a.innovation.residual[3];
++      // A persistent orientation offset is not proof of angular acceleration.
++      // Require coherent incremental orientation evidence instead.
++      const double orientation_step=tools::limit_rad(angle-previous_angle_residual_);
++      const bool angular_motion=consecutive && std::abs(orientation_step)>.01 && std::abs(orientation_step)<.15;
++      rotation_evidence_=angular_motion ? (orientation_step*previous_orientation_step_>0 ? rotation_evidence_+1 : 1) : 0;
++      if(translation_evidence_>=3) {
++        if(translation_evidence_==3) {
++          // Relax velocity certainty rather than teleporting position to data.
++          for(auto &plate:plate_filters_)if(plate.initialized) {
++            Eigen::Matrix<double,6,1> direction=Eigen::Matrix<double,6,1>::Zero();
++            direction[1]=lateral.x();direction[3]=lateral.y();
++            const double current=direction.dot(plate.P*direction);
++            plate.P+=std::max(0.,4.-current)*direction*direction.transpose();
++          }
++        }
++        translation_maneuver_=true;
++      }
++      if(rotation_evidence_>=3) {
++        if(rotation_evidence_==3) ekf_.P(7,7)=std::max(ekf_.P(7,7),1.);
++        rotation_maneuver_=true;
++      }
++      if(!position_large && std::abs(angle)<.15 && a.innovation.nis<continuity_.innovation_limit) ++quiet_count_;
++      else quiet_count_=0;
++      if(quiet_count_>=5) { translation_maneuver_=false; rotation_maneuver_=false; }
++      previous_angle_residual_=angle;
++      previous_orientation_step_=orientation_step;
++      previous_motion_innovation_=motion_innovation;
++      evidence_time_=t_; evidence_id_=id;
++    } else { translation_evidence_=0;rotation_evidence_=0; }
++  }
++  for(const auto &[armor,id]:observations) {
++    auto a=assess(armor,id);
++    auto record=nlohmann::json{{"plate_id",id},{"quality",a.quality},{"reason",a.reason},
++      {"reprojection_rms_px",armor.reprojection_rms_px},{"nis_prior",a.innovation.nis},
++      {"position_residual_m",{a.position_residual.x(),a.position_residual.y(),a.position_residual.z()}}};
++    if(a.innovation.valid) record["innovation"]=std::vector<double>(a.innovation.residual.data(),a.innovation.residual.data()+4);
++    if(a.quality && a.innovation.nis<=continuity_.innovation_limit) {
++      const auto before_x=ekf_.x; const auto before_P=ekf_.P;
++      const auto before_plate=plate_filters_[id];
++      bool ok=ekf_.correct(a.H,a.R,a.innovation);
++      if(ok) {
++        const Eigen::Matrix3d inverse=tools::xyz2ypd_jacobian(armor.xyz_in_world).inverse();
++        const Eigen::Matrix3d R=inverse*a.R.topLeftCorner(3,3)*inverse.transpose();
++        ok=plate_filters_[id].update(armor.xyz_in_world,R,std::abs(cv::contourArea(armor.points)));
++      }
++      if(ok && diverged()) {
++        ok=false;record["reason"]="geometry_bounds";
++      }
++      if(!ok) {ekf_.x=before_x;ekf_.P=before_P;plate_filters_[id]=before_plate;}
++      if(ok) {
++        accepted=true; if(id!=0) jumped=true;
++        is_switch_=id!=last_id; if(is_switch_)++switch_count_;
++        last_id=id;++update_count_;
++      }
++      record["accepted"]=ok;
++    } else record["accepted"]=false;
++    continuity_diagnostics["updates"].push_back(record);
++  }
++  int best=-1;double best_area=0;
++  for(int id=0;id<armor_num_;++id)if(plate_filters_[id].initialized && plate_filters_[id].age_s<.05) {
++    double area=plate_filters_[id].area*(id==preferred_plate_?(continuity_.robust_v3?continuity_.preferred_plate_hysteresis:1.15):1.);
++    if(area>best_area) {best=id;best_area=area;}
++  }
++  if(best>=0)preferred_plate_=best;
++  sync_translation();
++  continuity_diagnostics["state_after"]=std::vector<double>(ekf_.x.data(),ekf_.x.data()+ekf_.x.size());
++  continuity_diagnostics["translation_maneuver"]=translation_maneuver_;
++  continuity_diagnostics["rotation_maneuver"]=rotation_maneuver_;
++  continuity_diagnostics["translation_evidence_frames"]=translation_evidence_;
++  continuity_diagnostics["rotation_evidence_frames"]=rotation_evidence_;
++  continuity_diagnostics["translation_model"]="independent_plate_cv";
++  continuity_diagnostics["plates"]=nlohmann::json::array();
++  for(const auto &plate:plate_filters_) {
++    auto row=nlohmann::json{{"initialized",plate.initialized},{"age_s",plate.age_s}};
++    if(plate.initialized) {
++      row["state"]=std::vector<double>(plate.x.data(),plate.x.data()+6);
++      row["covariance_column_major"]=std::vector<double>(plate.P.data(),plate.P.data()+36);
++    }
++    continuity_diagnostics["plates"].push_back(row);
++  }
++  return accepted;
++}
++
+ Eigen::VectorXd Target::ekf_x() const { return ekf_.x; }
+ 
+ const tools::ExtendedKalmanFilter & Target::ekf() const { return ekf_; }
+@@ -233,11 +423,30 @@ std::vector<Eigen::Vector4d> Target::armor_xyza_list() const
+   for (int i = 0; i < armor_num_; i++) {
+     auto angle = tools::limit_rad(ekf_.x[6] + i * 2 * CV_PI / armor_num_);
+     Eigen::Vector3d xyz = h_armor_xyz(ekf_.x, i);
++    if(continuity_.enabled && plate_filters_[i].initialized)xyz=plate_filters_[i].position();
+     _armor_xyza_list.push_back({xyz[0], xyz[1], xyz[2], angle});
+   }
+   return _armor_xyza_list;
+ }
+ 
++std::vector<Eigen::Vector3d> Target::plate_velocities() const
++{
++  std::vector<Eigen::Vector3d> result;
++  for(const auto &plate:plate_filters_)result.push_back(plate.initialized?plate.velocity():Eigen::Vector3d::Zero());
++  return result;
++}
++
++void Target::sync_translation()
++{
++  if(preferred_plate_<0 || !plate_filters_[preferred_plate_].initialized)return;
++  const auto &plate=plate_filters_[preferred_plate_];
++  const double angle=ekf_.x[6]+preferred_plate_*2*CV_PI/armor_num_;
++  const bool alternate=armor_num_==4 && preferred_plate_%2;
++  const double radius=ekf_.x[8]+(alternate?ekf_.x[9]:0);
++  const Eigen::Vector3d center=plate.position()+Eigen::Vector3d(radius*std::cos(angle),radius*std::sin(angle),alternate?-ekf_.x[10]:0);
++  for(int i=0;i<3;++i) {ekf_.x[2*i]=center[i];ekf_.x[2*i+1]=plate.velocity()[i];}
++}
++
+ bool Target::diverged() const
+ {
+   auto r_ok = ekf_.x[8] > 0.05 && ekf_.x[8] < 0.5;
+diff --git a/tasks/auto_aim/target.hpp b/tasks/auto_aim/target.hpp
+index c881d79..0727f09 100644
+--- a/tasks/auto_aim/target.hpp
++++ b/tasks/auto_aim/target.hpp
+@@ -9,6 +9,9 @@
+ #include <vector>
+ 
+ #include "armor.hpp"
++#include "continuity.hpp"
++#include "plate_filter.hpp"
++#include <nlohmann/json.hpp>
+ #include "tools/extended_kalman_filter.hpp"
+ 
+ namespace auto_aim
+@@ -22,16 +25,32 @@ public:
+   ArmorPriority priority;
+   bool jumped;
+   int last_id;  // debug only
++  unsigned generation=0;
+ 
+   Target() = default;
+   Target(
+     const Armor & armor, std::chrono::steady_clock::time_point t, double radius, int armor_num,
+-    Eigen::VectorXd P0_dig);
++    Eigen::VectorXd P0_dig, ContinuityConfig continuity = {});
+   Target(double x, double vyaw, double radius, double h);
+ 
+   void predict(std::chrono::steady_clock::time_point t);
+   void predict(double dt);
+   void update(const Armor & armor);
++  struct Assessment {
++    tools::Innovation innovation;
++    Eigen::MatrixXd H,R;
++    Eigen::Vector3d position_residual=Eigen::Vector3d::Zero();
++    bool quality=false;
++    double cost=1e20;
++    std::string reason="unassessed";
++  };
++  Assessment assess(const Armor &armor,int id) const;
++  bool update_robust(const std::vector<std::pair<Armor,int>> &observations);
++  int armor_count() const { return armor_num_; }
++  int preferred_plate() const { return preferred_plate_; }
++  std::vector<Eigen::Vector3d> plate_velocities() const;
++  bool maneuvering() const { return translation_maneuver_ || rotation_maneuver_; }
++  nlohmann::json continuity_diagnostics;
+ 
+   Eigen::VectorXd ekf_x() const;
+   const tools::ExtendedKalmanFilter & ekf() const;
+@@ -54,6 +73,16 @@ private:
+ 
+   tools::ExtendedKalmanFilter ekf_;
+   std::chrono::steady_clock::time_point t_;
++  ContinuityConfig continuity_;
++  bool translation_maneuver_=false,rotation_maneuver_=false;
++  std::vector<PlateFilter> plate_filters_;
++  int preferred_plate_=-1;
++  void sync_translation();
++  int translation_evidence_=0,rotation_evidence_=0,quiet_count_=0,evidence_id_=-1;
++  Eigen::Vector2d previous_motion_innovation_=Eigen::Vector2d::Zero();
++  double previous_angle_residual_=0;
++  double previous_orientation_step_=0;
++  std::chrono::steady_clock::time_point evidence_time_{};
+ 
+   void update_ypda(const Armor & armor, int id);  // yaw pitch distance angle
+ 
+@@ -63,4 +92,4 @@ private:
+ 
+ }  // namespace auto_aim
+ 
+-#endif  // AUTO_AIM__TARGET_HPP
+\ No newline at end of file
++#endif  // AUTO_AIM__TARGET_HPP
+diff --git a/tasks/auto_aim/tracker.cpp b/tasks/auto_aim/tracker.cpp
+index cffd8aa..b820786 100644
+--- a/tasks/auto_aim/tracker.cpp
++++ b/tasks/auto_aim/tracker.cpp
+@@ -3,6 +3,8 @@
+ #include <yaml-cpp/yaml.h>
+ 
+ #include <tuple>
++#include <algorithm>
++#include <set>
+ 
+ #include "tools/logger.hpp"
+ #include "tools/math_tools.hpp"
+@@ -19,6 +21,7 @@ Tracker::Tracker(const std::string & config_path, Solver & solver)
+   omni_target_priority_{ArmorPriority::fifth}
+ {
+   auto yaml = YAML::LoadFile(config_path);
++  continuity_=ContinuityConfig::read(config_path);
+   enemy_color_ = (yaml["enemy_color"].as<std::string>() == "red") ? Color::red : Color::blue;
+   min_detect_count_ = yaml["min_detect_count"].as<int>();
+   max_temp_lost_count_ = yaml["max_temp_lost_count"].as<int>();
+@@ -31,6 +34,7 @@ std::string Tracker::state() const { return state_; }
+ std::list<Target> Tracker::track(
+   std::list<Armor> & armors, std::chrono::steady_clock::time_point t, bool use_enemy_color)
+ {
++  if(continuity_.enabled) return track_robust(armors,t);
+   auto dt = tools::delta_time(t, last_timestamp_);
+   last_timestamp_ = t;
+ 
+@@ -95,6 +99,110 @@ std::list<Target> Tracker::track(
+   return targets;
+ }
+ 
++std::list<Target> Tracker::track_robust(std::list<Armor> &armors,std::chrono::steady_clock::time_point t)
++{
++  const auto dt=tools::delta_time(t,last_timestamp_);
++  last_timestamp_=t;
++  diagnostics_={{"reset_reason",nullptr},{"generation",track_generation_},
++    {"observations",nlohmann::json::array()}};
++  if(dt<=0 && state_!="lost") {
++    state_="lost"; diagnostics_["reset_reason"]="nonincreasing_timestamp";
++  }
++  if(state_!="lost" && tools::delta_time(t,last_accepted_)>continuity_.trusted_timeout_s) {
++    state_="lost";diagnostics_["reset_reason"]="trusted_update_timeout";
++  }
++  armors.remove_if([&](const Armor &a){return a.color!=enemy_color_;});
++  if(state_!="lost")target_.predict(t);
++  for(auto &a:armors) {
++    std::optional<double> hint;
++    if(state_!="lost") {
++      double best=80.;
++      for(const auto &plate:target_.armor_xyza_list()) {
++        const auto pixels=solver_.reproject_armor(plate.head<3>(),plate[3],target_.armor_type,target_.name);
++        cv::Point2f center(0,0);for(const auto &p:pixels)center+=p*.25;
++        const double distance=cv::norm(center-a.center);
++        if(distance<best) {best=distance;hint=plate[3];}
++      }
++    }
++    solver_.solve(a,hint);
++  }
++  auto quality=[&](const Armor &a) {
++    return a.pose_valid && a.xyz_in_world.allFinite() && a.ypr_in_world.allFinite()
++      && std::isfinite(a.reprojection_rms_px) && a.reprojection_rms_px<=continuity_.reprojection_max_px;
++  };
++  if(state_=="lost") {
++    armors.sort([&](const Armor &a,const Armor &b) {
++      if(quality(a)!=quality(b))return quality(a)>quality(b);
++      if(a.priority!=b.priority)return a.priority<b.priority;
++      if(a.confidence!=b.confidence)return a.confidence>b.confidence;
++      return a.center.x<b.center.x;
++    });
++    if(continuity_.robust_v3)armors.remove_if([&](const Armor &a){return a.confidence<=continuity_.strong_confidence;});
++    if(armors.empty() || !quality(armors.front())) { diagnostics_["state"]=state_;return {}; }
++    set_target(armors,t);
++    last_accepted_=t;++track_generation_;detect_count_=1;state_="detecting";
++    target_.generation=track_generation_;
++    pending_name_=target_.name;name_votes_=0;
++    identity_scores_.clear();identity_scores_[target_.name]=armors.front().confidence;
++    identity_until_=t+std::chrono::milliseconds(300);
++    diagnostics_["initialized"]=true;
++  } else {
++    struct Candidate {double cost;const Armor *armor;int id;};
++    std::vector<Candidate> candidates;
++    const auto ordinary=[](ArmorName n){return n!=ArmorName::outpost && n!=ArmorName::base && n!=ArmorName::not_armor;};
++    for(const auto &armor:armors) {
++      bool compatible=armor.type==target_.armor_type && (armor.name==target_.name ||
++        (ordinary(armor.name)&&ordinary(target_.name)));
++      auto observation=nlohmann::json{{"name",ARMOR_NAMES[armor.name]},
++        {"pose_valid",armor.pose_valid},{"reprojection_rms_px",armor.reprojection_rms_px},{"compatible",compatible}};
++      diagnostics_["observations"].push_back(observation);
++      if(!compatible) continue;
++      for(int id=0;id<target_.armor_count();++id) {
++        auto a=target_.assess(armor,id);
++        if(continuity_.robust_v3)diagnostics_["associations"].push_back({{"observation",diagnostics_["observations"].size()-1},
++          {"plate_id",id},{"reason",a.reason},{"nis_prior",a.innovation.nis},{"cost",a.cost}});
++        if(a.quality && (!continuity_.robust_v3 || armor.confidence>continuity_.strong_confidence || a.innovation.nis<=continuity_.innovation_limit)) candidates.push_back({a.cost+(armor.name==target_.name?0.:.1),&armor,id});
++      }
++    }
++    std::sort(candidates.begin(),candidates.end(),[](const Candidate &a,const Candidate &b) {
++      if(a.cost!=b.cost)return a.cost<b.cost;
++      if(a.id!=b.id)return a.id<b.id;
++      return a.armor->center.x<b.armor->center.x;
++    });
++    std::set<int> used_ids;std::set<const Armor *> used_armors;
++    std::vector<std::pair<Armor,int>> selected;
++    for(const auto &c:candidates) {
++      if(used_ids.count(c.id)||used_armors.count(c.armor))continue;
++      selected.emplace_back(*c.armor,c.id);used_ids.insert(c.id);used_armors.insert(c.armor);
++    }
++    const bool accepted=target_.update_robust(selected);
++    diagnostics_["filter"]=target_.continuity_diagnostics;
++    if(accepted) {
++      last_accepted_=t;
++      if(state_=="temp_lost")state_=detect_count_>=min_detect_count_?"tracking":"detecting";
++      if(state_=="detecting" && ++detect_count_>=min_detect_count_)state_="tracking";
++      if(continuity_.robust_v3) {
++        // Acquire the robot label briefly, then preserve its identity for this
++        // continuous geometric track. Ordinary classifier flicker is not a new robot.
++        if(t<=identity_until_) {
++          for(const auto &[armor,id]:selected)if(armor.confidence>continuity_.strong_confidence)
++            identity_scores_[armor.name]+=armor.confidence;
++          auto best=std::max_element(identity_scores_.begin(),identity_scores_.end(),[](const auto &a,const auto &b){return a.second<b.second;});
++          if(best!=identity_scores_.end())target_.name=best->first;
++        }
++        diagnostics_["identity_locked"]=t>identity_until_;
++      } else if(!selected.empty()) {
++        auto name=selected.front().first.name;
++        name_votes_=name==pending_name_?name_votes_+1:1;pending_name_=name;
++        if(name_votes_>=3) {target_.name=name;target_.priority=selected.front().first.priority;}
++      }
++    } else state_="temp_lost";
++  }
++  diagnostics_["generation"]=track_generation_;diagnostics_["state"]=state_;
++  diagnostics_["trusted_update_age_s"]=tools::delta_time(t,last_accepted_);
++  return {target_};
++}
++
+ std::tuple<omniperception::DetectionResult, std::list<Target>> Tracker::track(
+   const std::vector<omniperception::DetectionResult> & detection_queue, std::list<Armor> & armors,
+   std::chrono::steady_clock::time_point t, bool use_enemy_color)
+@@ -242,22 +350,22 @@ bool Tracker::set_target(std::list<Armor> & armors, std::chrono::steady_clock::t
+ 
+   if (is_balance) {
+     Eigen::VectorXd P0_dig{{1, 64, 1, 64, 1, 64, 0.4, 100, 1, 1, 1}};
+-    target_ = Target(armor, t, 0.2, 2, P0_dig);
++    target_ = Target(armor, t, 0.2, 2, P0_dig,continuity_);
+   }
+ 
+   else if (armor.name == ArmorName::outpost) {
+     Eigen::VectorXd P0_dig{{1, 64, 1, 64, 1, 81, 0.4, 100, 1e-4, 0, 0}};
+-    target_ = Target(armor, t, 0.2765, 3, P0_dig);
++    target_ = Target(armor, t, 0.2765, 3, P0_dig,continuity_);
+   }
+ 
+   else if (armor.name == ArmorName::base) {
+     Eigen::VectorXd P0_dig{{1, 64, 1, 64, 1, 64, 0.4, 100, 1e-4, 0, 0}};
+-    target_ = Target(armor, t, 0.3205, 3, P0_dig);
++    target_ = Target(armor, t, 0.3205, 3, P0_dig,continuity_);
+   }
+ 
+   else {
+     Eigen::VectorXd P0_dig{{1, 64, 1, 64, 1, 64, 0.4, 100, 1, 1, 1}};
+-    target_ = Target(armor, t, 0.2, 4, P0_dig);
++    target_ = Target(armor, t, 0.2, 4, P0_dig,continuity_);
+   }
+ 
+   return true;
+@@ -292,4 +400,4 @@ bool Tracker::update_target(std::list<Armor> & armors, std::chrono::steady_clock
+   return true;
+ }
+ 
+-}  // namespace auto_aim
+\ No newline at end of file
++}  // namespace auto_aim
+diff --git a/tasks/auto_aim/tracker.hpp b/tasks/auto_aim/tracker.hpp
+index 2c47de8..5c5fc66 100644
+--- a/tasks/auto_aim/tracker.hpp
++++ b/tasks/auto_aim/tracker.hpp
+@@ -1,6 +1,7 @@
+ #ifndef AUTO_AIM__TRACKER_HPP
+ #define AUTO_AIM__TRACKER_HPP
+ 
++#include <map>
+ #include <Eigen/Dense>
+ #include <chrono>
+ #include <list>
+@@ -20,6 +21,7 @@ public:
+   Tracker(const std::string & config_path, Solver & solver);
+ 
+   std::string state() const;
++  const nlohmann::json & diagnostics() const { return diagnostics_; }
+ 
+   std::list<Target> track(
+     std::list<Armor> & armors, std::chrono::steady_clock::time_point t,
+@@ -42,6 +44,15 @@ private:
+   Target target_;
+   std::chrono::steady_clock::time_point last_timestamp_;
+   ArmorPriority omni_target_priority_;
++  ContinuityConfig continuity_;
++  nlohmann::json diagnostics_;
++  std::chrono::steady_clock::time_point last_accepted_{};
++  unsigned track_generation_=0;
++  ArmorName pending_name_=ArmorName::not_armor;
++  int name_votes_=0;
++  std::map<ArmorName,double> identity_scores_;
++  std::chrono::steady_clock::time_point identity_until_{};
++  std::list<Target> track_robust(std::list<Armor> &armors,std::chrono::steady_clock::time_point t);
+ 
+   void state_machine(bool found);
+ 
+@@ -52,4 +63,4 @@ private:
+ 
+ }  // namespace auto_aim
+ 
+-#endif  // AUTO_AIM__TRACKER_HPP
+\ No newline at end of file
++#endif  // AUTO_AIM__TRACKER_HPP
+diff --git a/tasks/auto_aim/yolo.hpp b/tasks/auto_aim/yolo.hpp
+index 888e4a1..debbd23 100644
+--- a/tasks/auto_aim/yolo.hpp
++++ b/tasks/auto_aim/yolo.hpp
+@@ -2,6 +2,7 @@
+ #define AUTO_AIM__YOLO_HPP
+ 
+ #include <opencv2/opencv.hpp>
++#include <nlohmann/json.hpp>
+ 
+ #include "armor.hpp"
+ 
+@@ -10,6 +11,10 @@ namespace auto_aim
+ class YOLOBase
+ {
+ public:
++  virtual ~YOLOBase() = default;
++  virtual void enable_diagnostics(bool) {}
++  virtual nlohmann::json diagnostics() const { return nullptr; }
++  virtual nlohmann::json summary() const { return nullptr; }
+   virtual std::list<Armor> detect(const cv::Mat & img, int frame_count) = 0;
+ 
+   virtual std::list<Armor> postprocess(
+@@ -20,6 +25,9 @@ class YOLO
+ {
+ public:
+   YOLO(const std::string & config_path, bool debug = true);
++  void enable_diagnostics(bool enabled) { yolo_->enable_diagnostics(enabled); }
++  nlohmann::json diagnostics() const { return yolo_->diagnostics(); }
++  nlohmann::json summary() const { return yolo_->summary(); }
+ 
+   std::list<Armor> detect(const cv::Mat & img, int frame_count = -1);
+ 
+diff --git a/tasks/auto_aim/yolos/yolov5.cpp b/tasks/auto_aim/yolos/yolov5.cpp
+index eb01717..a71ba62 100644
+--- a/tasks/auto_aim/yolos/yolov5.cpp
++++ b/tasks/auto_aim/yolos/yolov5.cpp
+@@ -4,6 +4,7 @@
+ #include <yaml-cpp/yaml.h>
+ 
+ #include <filesystem>
++#include <algorithm>
+ 
+ #include "tools/img_tools.hpp"
+ #include "tools/logger.hpp"
+@@ -19,6 +20,10 @@ YOLOV5::YOLOV5(const std::string & config_path, bool debug)
+   device_ = yaml["device"].as<std::string>();
+   binary_threshold_ = yaml["threshold"].as<double>();
+   min_confidence_ = yaml["min_confidence"].as<double>();
++  const auto profile=yaml["algorithm_profile"] ? yaml["algorithm_profile"].as<std::string>() : "legacy";
++  allow_track_candidates_=profile=="tracking_v3" || profile=="tracking_fire_v3";
++  multi_scale_search_=allow_track_candidates_ && (!yaml["robustness_v3"] || !yaml["robustness_v3"]["multi_scale_search"] || yaml["robustness_v3"]["multi_scale_search"].as<bool>());
++  enemy_color_=yaml["enemy_color"].as<std::string>()=="red" ? Color::red : Color::blue;
+   int x = 0, y = 0, width = 0, height = 0;
+   x = yaml["roi"]["x"].as<int>();
+   y = yaml["roi"]["y"].as<int>();
+@@ -56,6 +61,8 @@ YOLOV5::YOLOV5(const std::string & config_path, bool debug)
+ 
+ std::list<Armor> YOLOV5::detect(const cv::Mat & raw_img, int frame_count)
+ {
++  diagnostic_=nullptr;summary_=nullptr;
++  if(diagnostic_enabled_) diagnostic_={{"schema_version",1},{"candidates",nlohmann::json::array()}};
+   if (raw_img.empty()) {
+     tools::logger()->warn("Empty img!, camera drop!");
+     return std::list<Armor>();
+@@ -96,14 +103,79 @@ std::list<Armor> YOLOV5::detect(const cv::Mat & raw_img, int frame_count)
+   auto output_shape = output_tensor.get_shape();
+   cv::Mat output(output_shape[1], output_shape[2], CV_32F, output_tensor.data());
+ 
+-  return parse(scale, output, raw_img, frame_count);
++  auto armors=parse(scale,output,raw_img,frame_count);
++  if(multi_scale_search_)summary_={{"passes",1},{"input_scale",scale},{"tile_roi",nullptr},{"full_output_count",armors.size()}};
++  const auto strong=[&](const std::list<Armor> &values) {
++    return std::any_of(values.begin(),values.end(),[&](const Armor &a){return a.color==enemy_color_ && a.confidence>min_confidence_;});
++  };
++  // Full-frame resizing loses small-object pixels. A bounded second inference
++  // scans image tiles on misses, then reuses the last successful image region.
++  // No tracker truth, target map position, lower threshold or extra hold enters it.
++  const bool strong_full=std::any_of(armors.begin(),armors.end(),[&](const Armor &a){return a.color==enemy_color_ && a.confidence>=.95;});
++  const bool have_cached=cached_roi_.area()>0 && cached_failures_<2;
++  if(multi_scale_search_ && !use_roi_ && !searching_tile_ && (search_index_==0 || have_cached || !strong_full)) {
++    const int width=std::min(640,raw_img.cols),height=std::min(640,raw_img.rows);
++    if(width<raw_img.cols || height<raw_img.rows) {
++      std::vector<cv::Rect> tiles;
++      const int xs[]={ (raw_img.cols-width)/2,0,raw_img.cols-width };
++      const int ys[]={ (raw_img.rows-height)/2,0,raw_img.rows-height };
++      for(int y:ys)for(int x:xs) {
++        const cv::Rect tile(x,y,width,height);
++        if(std::find(tiles.begin(),tiles.end(),tile)==tiles.end())tiles.push_back(tile);
++      }
++      const bool cached=cached_roi_.area()>0 && cached_roi_.x+cached_roi_.width<=raw_img.cols && cached_roi_.y+cached_roi_.height<=raw_img.rows && cached_failures_<2;
++      const auto chosen=cached?cached_roi_:tiles[search_index_++%tiles.size()];
++      const auto saved_roi=roi_;const auto saved_offset=offset_;const auto full_diagnostic=diagnostic_;const auto full_summary=summary_;
++      searching_tile_=true;use_roi_=true;roi_=chosen;offset_=cv::Point2f(chosen.x,chosen.y);
++      std::list<Armor> extra;
++      try {extra=detect(raw_img,frame_count);}
++      catch(...) {searching_tile_=false;use_roi_=false;roi_=saved_roi;offset_=saved_offset;throw;}
++      const auto tile_diagnostic=diagnostic_;
++      searching_tile_=false;use_roi_=false;roi_=saved_roi;offset_=saved_offset;
++      if(strong(extra)) {cached_roi_=chosen;cached_failures_=0;} else if(cached)++cached_failures_;
++      // For small objects, use native-resolution keypoints from a credible
++      // tile observation. An aliased full-frame confidence alone must not
++      // switch the measurement scale from one frame to the next.
++      for(const auto &fine:extra)if(fine.confidence>min_confidence_) {
++        const auto box=cv::boundingRect(fine.points);
++        if(box.width<=50 && box.height<=40)armors.remove_if([&](const Armor &coarse) {
++          const auto other=cv::boundingRect(coarse.points);const double intersection=(box&other).area();
++          return intersection/std::max(1.,double(box.area()+other.area())-intersection)>.3;
++        });
++      }
++      // Resolve duplicate physical observations across scales before association.
++      armors.splice(armors.end(),extra);
++      armors.sort([](const Armor &a,const Armor &b){return a.confidence>b.confidence;});
++      std::list<Armor> merged;
++      for(const auto &a:armors) {
++        const auto box=cv::boundingRect(a.points);bool duplicate=false;
++        for(const auto &b:merged) {
++          const auto other=cv::boundingRect(b.points);
++          const double intersection=(box&other).area();
++          if(intersection/std::max(1.,double(box.area()+other.area())-intersection)>.3) {duplicate=true;break;}
++        }
++        if(!duplicate)merged.push_back(a);
++      }
++      armors=std::move(merged);diagnostic_=full_diagnostic;summary_=full_summary;
++      summary_["passes"]=2;summary_["tile_roi"]={chosen.x,chosen.y,chosen.width,chosen.height};
++      summary_["cached_tile"]=cached;summary_["output_count"]=armors.size();
++      if(diagnostic_enabled_) {
++        diagnostic_["tile_roi"]={chosen.x,chosen.y,chosen.width,chosen.height};
++        diagnostic_["tile_pass"]=tile_diagnostic;diagnostic_["merged_output_count"]=armors.size();
++      }
++    }
++  }
++  return armors;
+ }
+ 
+ std::list<Armor> YOLOV5::parse(
+   double scale, cv::Mat & output, const cv::Mat & bgr_img, int frame_count)
+ {
+   // for each row: xywh + classess
+-  std::vector<int> color_ids, num_ids;
++  std::vector<int> color_ids, num_ids, rows;
++  auto points_json=[](const std::vector<cv::Point2f> &points) {
++    auto value=nlohmann::json::array(); for(const auto &p:points)value.push_back({p.x,p.y}); return value;
++  };
+   std::vector<float> confidences;
+   std::vector<cv::Rect> boxes;
+   std::vector<std::vector<cv::Point2f>> armors_key_points;
+@@ -111,6 +183,12 @@ std::list<Armor> YOLOV5::parse(
+     double score = output.at<float>(r, 8);
+     score = sigmoid(score);
+ 
++    if(diagnostic_enabled_ && score>=.05) {
++      auto scores=nlohmann::json::array();for(int k=9;k<22;++k)scores.push_back(output.at<float>(r,k));
++      auto points=nlohmann::json::array();for(int k=0;k<8;k+=2)points.push_back({output.at<float>(r,k)/scale+(use_roi_?offset_.x:0),output.at<float>(r,k+1)/scale+(use_roi_?offset_.y:0)});
++      diagnostic_["candidates"].push_back({{"candidate_id",r},{"confidence",score},{"raw_color_and_class_logits",scores},
++        {"raw_keypoints",points},{"reason",score<score_threshold_?"score_threshold":"nms"}});
++    }
+     if (score < score_threshold_) continue;
+ 
+     std::vector<cv::Point2f> armor_key_points;
+@@ -149,6 +227,7 @@ std::list<Armor> YOLOV5::parse(
+ 
+     cv::Rect rect(min_x, min_y, max_x - min_x, max_y - min_y);
+ 
++    rows.push_back(r);
+     color_ids.emplace_back(_color_id);
+     num_ids.emplace_back(_class_id);
+     boxes.emplace_back(rect);
+@@ -160,31 +239,33 @@ std::list<Armor> YOLOV5::parse(
+   cv::dnn::NMSBoxes(boxes, confidences, score_threshold_, nms_threshold_, indices);
+ 
+   std::list<Armor> armors;
++  tmp_img_ = bgr_img;
+   for (const auto & i : indices) {
+-    if (use_roi_) {
+-      armors.emplace_back(
+-        color_ids[i], num_ids[i], confidences[i], boxes[i], armors_key_points[i], offset_);
+-    } else {
+-      armors.emplace_back(color_ids[i], num_ids[i], confidences[i], boxes[i], armors_key_points[i]);
++    Armor armor = use_roi_ ? Armor(color_ids[i],num_ids[i],confidences[i],boxes[i],armors_key_points[i],offset_)
++      : Armor(color_ids[i],num_ids[i],confidences[i],boxes[i],armors_key_points[i]);
++    nlohmann::json *trace=nullptr;
++    if(diagnostic_enabled_) for(auto &c:diagnostic_["candidates"])if(c["candidate_id"]==rows[i]) {trace=&c;break;}
++    if(trace) {
++      (*trace)["color"]=COLORS.at(armor.color);(*trace)["name"]=ARMOR_NAMES.at(armor.name);
++      (*trace)["type"]=ARMOR_TYPES.at(armor.type);(*trace)["corners_before_refine"]=points_json(armor.points);
+     }
+-  }
+-
+-  tmp_img_ = bgr_img;
+-  for (auto it = armors.begin(); it != armors.end();) {
+-    if (!check_name(*it)) {
+-      it = armors.erase(it);
++    if (!check_name(armor) && !(allow_track_candidates_ && armor.name!=ArmorName::not_armor && armor.confidence>=score_threshold_)) {
++      if(trace)(*trace)["reason"]=armor.name==ArmorName::not_armor?"not_armor":"min_confidence";
+       continue;
+     }
+-
+-    if (!check_type(*it)) {
+-      it = armors.erase(it);
+-      continue;
++    if (!check_type(armor)) { if(trace)(*trace)["reason"]="type_class"; continue; }
++    if (use_traditional_) {
++      const bool refined=detector_.detect(armor,bgr_img);
++      if(trace) { (*trace)["refined"]=refined; (*trace)["refinement_reason"]=detector_.refinement_reason; }
+     }
+-    // 使用传统方法二次矫正角点
+-    if (use_traditional_) detector_.detect(*it, bgr_img);
+-
+-    it->center_norm = get_center_norm(bgr_img, it->center);
+-    ++it;
++    armor.center_norm=get_center_norm(bgr_img,armor.center);
++    if(trace) {(*trace)["reason"]="accepted";(*trace)["corners"]=points_json(armor.points);}
++    armors.push_back(armor);
++  }
++  if(diagnostic_enabled_) {
++    diagnostic_["output_count"]=armors.size();diagnostic_["network_rows"]=output.rows;
++    diagnostic_["log_score_floor"]=.05;diagnostic_["score_threshold"]=score_threshold_;
++    diagnostic_["min_confidence"]=min_confidence_;
+   }
+ 
+   if (debug_) draw_detections(bgr_img, armors, frame_count);
+diff --git a/tasks/auto_aim/yolos/yolov5.hpp b/tasks/auto_aim/yolos/yolov5.hpp
+index fcd0ea2..d7aa130 100644
+--- a/tasks/auto_aim/yolos/yolov5.hpp
++++ b/tasks/auto_aim/yolos/yolov5.hpp
+@@ -17,6 +17,9 @@ class YOLOV5 : public YOLOBase
+ {
+ public:
+   YOLOV5(const std::string & config_path, bool debug);
++  void enable_diagnostics(bool enabled) override { diagnostic_enabled_=enabled; }
++  nlohmann::json diagnostics() const override { return diagnostic_; }
++  nlohmann::json summary() const override { return summary_; }
+ 
+   std::list<Armor> detect(const cv::Mat & bgr_img, int frame_count) override;
+ 
+@@ -27,6 +30,12 @@ private:
+   std::string device_, model_path_;
+   std::string save_path_, debug_path_;
+   bool debug_, use_roi_, use_traditional_;
++  bool diagnostic_enabled_=false, allow_track_candidates_=false;
++  bool multi_scale_search_=false,searching_tile_=false;
++  int search_index_=0,cached_failures_=0;
++  cv::Rect cached_roi_;
++  int enemy_color_=1;
++  nlohmann::json diagnostic_,summary_;
+ 
+   const int class_num_ = 13;
+   const float nms_threshold_ = 0.3;
+diff --git a/tests/auto_aim_test.cpp b/tests/auto_aim_test.cpp
+index 78b7140..b8c5761 100644
+--- a/tests/auto_aim_test.cpp
++++ b/tests/auto_aim_test.cpp
+@@ -1,6 +1,8 @@
+ #include <fmt/core.h>
+ 
+ #include <chrono>
++#include <cmath>
++#include <filesystem>
+ #include <fstream>
+ #include <nlohmann/json.hpp>
+ #include <opencv2/opencv.hpp>
+@@ -20,6 +22,8 @@ const std::string keys =
+   "{config-path c  | configs/demo.yaml | yaml配置文件的路径}"
+   "{start-index s  | 0                 | 视频起始帧下标    }"
+   "{end-index e    | 0                 | 视频结束帧下标    }"
++  "{headless       | false             | 不打开图形窗口    }"
++  "{output o       |                   | 输出标注视频路径（AVI）}"
+   "{@input-path    | assets/demo/demo  | avi和txt文件的路径}";
+ 
+ int main(int argc, char * argv[])
+@@ -34,6 +38,16 @@ int main(int argc, char * argv[])
+   auto config_path = cli.get<std::string>("config-path");
+   auto start_index = cli.get<int>("start-index");
+   auto end_index = cli.get<int>("end-index");
++  auto headless = cli.get<bool>("headless");
++  auto output_path = cli.get<std::string>("output");
++  if (!cli.check()) {
++    cli.printErrors();
++    return 1;
++  }
++  if (start_index < 0 || end_index < 0 || (end_index > 0 && end_index < start_index)) {
++    tools::logger()->error("Invalid frame range: {} to {}", start_index, end_index);
++    return 1;
++  }
+ 
+   tools::Plotter plotter;
+   tools::Exiter exiter;
+@@ -42,8 +56,19 @@ int main(int argc, char * argv[])
+   auto text_path = fmt::format("{}.txt", input_path);
+   cv::VideoCapture video(video_path);
+   std::ifstream text(text_path);
++  if (!video.isOpened() || !text.is_open()) {
++    tools::logger()->error("Cannot open input video or timestamps: {} / {}", video_path, text_path);
++    return 1;
++  }
++  cv::VideoWriter output;
++  auto fps = video.get(cv::CAP_PROP_FPS);
++  if (!std::isfinite(fps) || fps <= 0) fps = 30;
++  if (!output_path.empty()) {
++    auto parent = std::filesystem::path(output_path).parent_path();
++    if (!parent.empty()) std::filesystem::create_directories(parent);
++  }
+ 
+-  auto_aim::YOLO yolo(config_path);
++  auto_aim::YOLO yolo(config_path, !headless);
+   auto_aim::Solver solver(config_path);
+   auto_aim::Tracker tracker(config_path, solver);
+   auto_aim::Aimer aimer(config_path);
+@@ -51,14 +76,17 @@ int main(int argc, char * argv[])
+   cv::Mat img, drawing;
+   auto t0 = std::chrono::steady_clock::now();
+ 
+-  auto_aim::Target last_target;
+-  io::Command last_command;
+-  double last_t = -1;
++  io::Command last_command{};
++  int processed_frames = 0, detection_frames = 0, tracking_frames = 0, control_frames = 0;
++  double pipeline_ms = 0;
+ 
+   video.set(cv::CAP_PROP_POS_FRAMES, start_index);
+   for (int i = 0; i < start_index; i++) {
+     double t, w, x, y, z;
+-    text >> t >> w >> x >> y >> z;
++    if (!(text >> t >> w >> x >> y >> z)) {
++      tools::logger()->error("Missing timestamp/attitude for frame {}", i);
++      return 1;
++    }
+   }
+ 
+   for (int frame_count = start_index; !exiter.exit(); frame_count++) {
+@@ -68,7 +96,10 @@ int main(int argc, char * argv[])
+     if (img.empty()) break;
+ 
+     double t, w, x, y, z;
+-    text >> t >> w >> x >> y >> z;
++    if (!(text >> t >> w >> x >> y >> z)) {
++      tools::logger()->error("Missing timestamp/attitude for frame {}", frame_count);
++      return 1;
++    }
+     auto timestamp = t0 + std::chrono::microseconds(int(t * 1e6));
+ 
+     /// 自瞄核心逻辑
+@@ -93,12 +124,27 @@ int main(int argc, char * argv[])
+     /// 调试输出
+ 
+     auto finish = std::chrono::steady_clock::now();
++    ++processed_frames;
++    detection_frames += !armors.empty();
++    tracking_frames += !targets.empty();
++    control_frames += command.control;
++    pipeline_ms += tools::delta_time(finish, yolo_start) * 1e3;
+     tools::logger()->info(
+       "[{}] yolo: {:.1f}ms, tracker: {:.1f}ms, aimer: {:.1f}ms", frame_count,
+       tools::delta_time(tracker_start, yolo_start) * 1e3,
+       tools::delta_time(aimer_start, tracker_start) * 1e3,
+       tools::delta_time(finish, aimer_start) * 1e3);
+ 
++    tools::draw_text(
++      img, fmt::format("frame {}  tracker: {}", frame_count, tracker.state()), {10, 30},
++      {255, 255, 255});
++    for (const auto & armor : armors) {
++      tools::draw_points(img, armor.points, {0, 255, 255});
++      tools::draw_text(
++        img, fmt::format("{} {:.2f}", auto_aim::ARMOR_NAMES[armor.name], armor.confidence),
++        armor.center, {0, 255, 255});
++    }
++
+     tools::draw_text(
+       img,
+       fmt::format(
+@@ -136,12 +182,6 @@ int main(int argc, char * argv[])
+     if (!targets.empty()) {
+       auto target = targets.front();
+ 
+-      if (last_t == -1) {
+-        last_target = target;
+-        last_t = t;
+-        continue;
+-      }
+-
+       std::vector<Eigen::Vector4d> armor_xyza_list;
+ 
+       // 当前帧target更新后
+@@ -189,10 +229,32 @@ int main(int argc, char * argv[])
+     plotter.plot(data);
+ 
+     cv::resize(img, img, {}, 0.5, 0.5);  // 显示时缩小图片尺寸
+-    cv::imshow("reprojection", img);
+-    auto key = cv::waitKey(30);
+-    if (key == 'q') break;
++    if (!output_path.empty()) {
++      if (!output.isOpened()) {
++        output.open(output_path, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), fps, img.size());
++        if (!output.isOpened()) {
++          tools::logger()->error("Cannot open output video: {}", output_path);
++          return 1;
++        }
++      }
++      output.write(img);
++    }
++    if (!headless) {
++      cv::imshow("reprojection", img);
++      auto key = cv::waitKey(30);
++      if (key == 'q') break;
++    }
++  }
++
++  if (processed_frames == 0) {
++    tools::logger()->error("No frames processed");
++    return 1;
+   }
++  tools::logger()->info(
++    "Processed {} frames; detection={}, tracking={}, control={}; mean pipeline {:.2f}ms",
++    processed_frames, detection_frames, tracking_frames, control_frames,
++    pipeline_ms / processed_frames);
++  if (!output_path.empty()) tools::logger()->info("Annotated video: {}", output_path);
+ 
+   return 0;
+-}
+\ No newline at end of file
++}
+diff --git a/tools/extended_kalman_filter.cpp b/tools/extended_kalman_filter.cpp
+index b73f40f..20aa3cf 100644
+--- a/tools/extended_kalman_filter.cpp
++++ b/tools/extended_kalman_filter.cpp
+@@ -4,6 +4,40 @@
+ 
+ namespace tools
+ {
++Innovation ExtendedKalmanFilter::innovation(const Eigen::VectorXd &z,
++  const Eigen::MatrixXd &H, const Eigen::MatrixXd &R,
++  std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h,
++  std::function<Eigen::VectorXd(const Eigen::VectorXd &,const Eigen::VectorXd &)> subtract) const
++{
++  Innovation a;
++  a.residual=subtract(z,h(x)); a.covariance=H*P*H.transpose()+R;
++  if(!a.residual.allFinite()||!a.covariance.allFinite()) return a;
++  Eigen::LDLT<Eigen::MatrixXd> factor(a.covariance);
++  if(factor.info()!=Eigen::Success||!factor.isPositive()) return a;
++  a.nis=a.residual.dot(factor.solve(a.residual));
++  a.valid=std::isfinite(a.nis)&&a.nis>=0;
++  return a;
++}
++
++bool ExtendedKalmanFilter::correct(const Eigen::MatrixXd &H,
++  const Eigen::MatrixXd &R,const Innovation &a)
++{
++  if(!a.valid) return false;
++  Eigen::LDLT<Eigen::MatrixXd> factor(a.covariance);
++  if(factor.info()!=Eigen::Success||!factor.isPositive()) return false;
++  Eigen::MatrixXd K=factor.solve(H*P).transpose();
++  Eigen::VectorXd next=x_add(x,K*a.residual);
++  Eigen::MatrixXd A=I-K*H;
++  Eigen::MatrixXd nextP=A*P*A.transpose()+K*R*K.transpose();
++  nextP=(nextP+nextP.transpose()).eval()*.5;
++  if(!next.allFinite()||!nextP.allFinite()) return false;
++  x=next; P=nextP; last_nis=a.nis;
++  data["nis_prior"]=a.nis;
++  data["residual_yaw_prior"]=a.residual[0]; data["residual_pitch_prior"]=a.residual[1];
++  data["residual_distance_prior"]=a.residual[2]; data["residual_angle_prior"]=a.residual[3];
++  return true;
++}
++
+ ExtendedKalmanFilter::ExtendedKalmanFilter(
+   const Eigen::VectorXd & x0, const Eigen::MatrixXd & P0,
+   std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> x_add)
+@@ -91,4 +125,4 @@ Eigen::VectorXd ExtendedKalmanFilter::update(
+   return x;
+ }
+ 
+-}  // namespace tools
+\ No newline at end of file
++}  // namespace tools
+diff --git a/tools/extended_kalman_filter.hpp b/tools/extended_kalman_filter.hpp
+index 2fed923..e95f2d8 100644
+--- a/tools/extended_kalman_filter.hpp
++++ b/tools/extended_kalman_filter.hpp
+@@ -5,9 +5,16 @@
+ #include <deque>
+ #include <functional>
+ #include <map>
++#include <limits>
+ 
+ namespace tools
+ {
++struct Innovation {
++  Eigen::VectorXd residual;
++  Eigen::MatrixXd covariance;
++  double nis=std::numeric_limits<double>::infinity();
++  bool valid=false;
++};
+ class ExtendedKalmanFilter
+ {
+ public:
+@@ -43,6 +50,11 @@ public:
+   size_t window_size = 100;
+   double last_nis;
+ 
++  Innovation innovation(const Eigen::VectorXd &z, const Eigen::MatrixXd &H,
++    const Eigen::MatrixXd &R, std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h,
++    std::function<Eigen::VectorXd(const Eigen::VectorXd &,const Eigen::VectorXd &)> subtract) const;
++  bool correct(const Eigen::MatrixXd &H, const Eigen::MatrixXd &R, const Innovation &assessment);
++
+ private:
+   Eigen::MatrixXd I;
+   std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> x_add;
+@@ -54,4 +66,4 @@ private:
+ 
+ }  // namespace tools
+ 
+-#endif  // TOOLS__EXTENDED_KALMAN_FILTER_HPP
+\ No newline at end of file
++#endif  // TOOLS__EXTENDED_KALMAN_FILTER_HPP

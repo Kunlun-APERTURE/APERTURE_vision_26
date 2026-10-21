@@ -1,0 +1,69 @@
+name: rm26-daedalus
+
+services:
+  daedalus:
+    image: daedalus:rm26-ros2
+    container_name: vision_simulator_26
+    build:
+      context: ../../vision_simulator_26
+      dockerfile: Dockerfile
+      target: runtime
+      network: host
+      entitlements:
+        - network.host
+      args:
+        ROS_DISTRO: jazzy
+        CARGO_FEATURES: ros2
+        HTTP_PROXY: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        HTTPS_PROXY: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        http_proxy: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        https_proxy: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        NO_PROXY: localhost,127.0.0.1,::1
+        no_proxy: localhost,127.0.0.1,::1
+    labels:
+      rm26.workspace: /home/rm/rm26/vision_simulator_26
+    init: true
+    restart: "no"
+    stop_grace_period: 15s
+    network_mode: host
+    ipc: host
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: graphics,display,utility,compute
+      DISPLAY: ":20"
+      XAUTHORITY: /run/daedalus-display/Xauthority
+      XDG_RUNTIME_DIR: /tmp/daedalus-runtime
+      HOME: /tmp/daedalus-home
+      WGPU_BACKEND: vulkan
+      ROS_DOMAIN_ID: "0"
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      RUST_LOG: info
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${RM26_GPU_UUID:?Run manage.sh to select the NVIDIA GPU}"]
+              capabilities: [gpu]
+    volumes:
+      - type: bind
+        source: ../../vision_simulator_26/config.toml
+        target: /app/config.toml
+        read_only: true
+      - type: bind
+        source: ./.runtime
+        target: /run/daedalus-display
+        read_only: true
+      - type: bind
+        source: ./run.sh
+        target: /opt/daedalus-ops/run.sh
+        read_only: true
+      - type: bind
+        source: ./probe_ros.py
+        target: /opt/daedalus-ops/probe_ros.py
+        read_only: true
+    command: [bash, /opt/daedalus-ops/run.sh]
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "3"

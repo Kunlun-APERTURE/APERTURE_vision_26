@@ -1,0 +1,274 @@
+{
+  "radial_candidate": 3.0,
+  "fire_stable_time_s": 0.02,
+  "velocity_bootstrap": false,
+  "reason": "Full joint constrained pose + radial=3 passed the original recovery gate in fixed-image development (P90 0.1864s). Size-bounded 18px variant failed the same gate (P90 0.4177s); retain full variant. Closed-loop and independent validation pending.",
+  "radial": [
+    {
+      "radial": 0.3,
+      "runs": 14,
+      "recovery_p90_s": 0.453777914,
+      "recovery_max_s": 1.070635537,
+      "slow_events": 8,
+      "jump_frames": 57,
+      "velocity_error_p95_mps": 0.406418114996798
+    },
+    {
+      "radial": 3.0,
+      "runs": 14,
+      "recovery_p90_s": 0.24803476100000002,
+      "recovery_max_s": 0.48455693600000005,
+      "slow_events": 1,
+      "jump_frames": 60,
+      "velocity_error_p95_mps": 0.5080311434916761
+    },
+    {
+      "radial": 10.0,
+      "runs": 14,
+      "recovery_p90_s": 0.276274799,
+      "recovery_max_s": 0.589153724,
+      "slow_events": 3,
+      "jump_frames": 55,
+      "velocity_error_p95_mps": 0.6870529012346362
+    },
+    {
+      "radial": 30.0,
+      "runs": 14,
+      "recovery_p90_s": 0.522819433,
+      "recovery_max_s": 1.1330496840000002,
+      "slow_events": 7,
+      "jump_frames": 58,
+      "velocity_error_p95_mps": 0.8916392119115158
+    }
+  ],
+  "bootstrap": [
+    {
+      "radial": 0.3,
+      "runs": 14,
+      "recovery_p90_s": 0.453777914,
+      "recovery_max_s": 1.070635537,
+      "slow_events": 8,
+      "jump_frames": 54,
+      "velocity_error_p95_mps": 0.406418114996798
+    },
+    {
+      "radial": 3.0,
+      "runs": 14,
+      "recovery_p90_s": 0.24803476100000002,
+      "recovery_max_s": 0.48455693600000005,
+      "slow_events": 1,
+      "jump_frames": 60,
+      "velocity_error_p95_mps": 0.5080315894353001
+    },
+    {
+      "radial": 10.0,
+      "runs": 14,
+      "recovery_p90_s": 0.31340732800000004,
+      "recovery_max_s": 0.589153724,
+      "slow_events": 4,
+      "jump_frames": 56,
+      "velocity_error_p95_mps": 0.667819514087802
+    },
+    {
+      "radial": 30.0,
+      "runs": 14,
+      "recovery_p90_s": 0.522819433,
+      "recovery_max_s": 1.1330496840000002,
+      "slow_events": 7,
+      "jump_frames": 58,
+      "velocity_error_p95_mps": 0.8916392119115158
+    }
+  ],
+  "fire": [
+    {
+      "stable_time_s": 0.02,
+      "frames": 9664,
+      "eligible_frames": 6249,
+      "candidate_requests": 1285
+    },
+    {
+      "stable_time_s": 0.04,
+      "frames": 9664,
+      "eligible_frames": 5608,
+      "candidate_requests": 1212
+    },
+    {
+      "stable_time_s": 0.06,
+      "frames": 9664,
+      "eligible_frames": 5607,
+      "candidate_requests": 1212
+    }
+  ],
+  "selection_is_diagnostic_until_closed_loop": false,
+  "constrained_pose": true,
+  "constrained_pose_max_lightbar_px": 0,
+  "color_refinement_max_lightbar_px": 0,
+  "selected_pose": {
+    "selected": {
+      "label": "constraint-true_radial-3",
+      "constrained_pose": true,
+      "radial": 3.0,
+      "runs": 17,
+      "original_event_recovery_p90_s": 0.18637287300000002,
+      "original_event_slow": 2,
+      "jump_frames": 66,
+      "median_position_p95_m": 0.3558575966333135,
+      "median_velocity_p95_mps": 0.31834960800010587,
+      "novelty": {
+        "20261020T170215_distance_8_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b5ec20b5": {
+          "quantile_method": "nearest_rank",
+          "frames": 173,
+          "correct_tracking_fraction": 0.8265895953757225,
+          "center_error_p95_m": 0.47765369739414826,
+          "velocity_error_p95_mps": 0.6922805217071198,
+          "steady_angle_residual_p95_deg": 0.15069639893272302,
+          "steady_angle_gt_1deg_frames": 0,
+          "steady_angle_samples": 171,
+          "recovery_events": [],
+          "recovery_p90_s": null
+        },
+        "20261020T170411_random_both_10_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_179ea517": {
+          "quantile_method": "nearest_rank",
+          "frames": 513,
+          "correct_tracking_fraction": 0.9727095516569201,
+          "center_error_p95_m": 0.30824393183825727,
+          "velocity_error_p95_mps": 1.16663613183423,
+          "steady_angle_residual_p95_deg": 0.6285521304598517,
+          "steady_angle_gt_1deg_frames": 13,
+          "steady_angle_samples": 511,
+          "recovery_events": [
+            {
+              "stamp_ns": 1792515860964957568,
+              "recovery_s": 0.24374415500000002,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515861516437836,
+              "recovery_s": 0.104457907,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515865921215392,
+              "recovery_s": 0.10259809900000001,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515866571043007,
+              "recovery_s": 0.135652708,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515867192523147,
+              "recovery_s": 0.096113211,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515868458674412,
+              "recovery_s": 0.13096395300000002,
+              "censored_at_s": null
+            }
+          ],
+          "recovery_p90_s": 0.24374415500000002
+        },
+        "20261020T170444_spin_move_ego_15_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9413243c": {
+          "quantile_method": "nearest_rank",
+          "frames": 511,
+          "correct_tracking_fraction": 0.7338551859099804,
+          "center_error_p95_m": 1.3210661860541983,
+          "velocity_error_p95_mps": 1.909847099681857,
+          "steady_angle_residual_p95_deg": 4.158542742690876,
+          "steady_angle_gt_1deg_frames": 52,
+          "steady_angle_samples": 509,
+          "recovery_events": [
+            {
+              "stamp_ns": 1792515893545612368,
+              "recovery_s": null,
+              "censored_at_s": 2.0
+            },
+            {
+              "stamp_ns": 1792515894091908834,
+              "recovery_s": null,
+              "censored_at_s": 2.0
+            },
+            {
+              "stamp_ns": 1792515895858928845,
+              "recovery_s": 1.648943209,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515896971931589,
+              "recovery_s": 0.535940465,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515898322790967,
+              "recovery_s": 1.041498899,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515899016680394,
+              "recovery_s": 0.34760947200000003,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515899793675169,
+              "recovery_s": 1.121569534,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515901070744767,
+              "recovery_s": 1.149216363,
+              "censored_at_s": null
+            },
+            {
+              "stamp_ns": 1792515904809296926,
+              "recovery_s": null,
+              "censored_at_s": 2.0
+            }
+          ],
+          "recovery_p90_s": 2
+        }
+      },
+      "config_sha256": "2107d23f43da4a498d357ff94b284e014a215c9e4e380e242a65ca71eb4618a4",
+      "binary_sha256": "3128fe06312faf93f0c0cdee54638537d36e3120b7cdc5153618e1bbfc68fd94"
+    },
+    "selection_gate_passed": true,
+    "policy": "Fixed-image development selection. Existing thresholds retained. Novel live-C recordings used only for development; independent seed validation remains required.",
+    "runs": [
+      "20261020T113444_ego_sweep_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_81f70046",
+      "20261020T114501_ego_sweep_reverse_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_5e14f352",
+      "20261020T114840_ego_sweep_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_571688fe",
+      "20261020T114957_ego_sweep_reverse_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_bd4f6468",
+      "20261020T115257_line_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_2158f5fd",
+      "20261020T115414_ego_sweep_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_737b12e6",
+      "20261020T120028_ego_sweep_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_6ca9544c",
+      "20261020T120145_ego_sweep_reverse_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_df12d5ce",
+      "20261020T120445_line_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_542fd962",
+      "20261020T120602_ego_sweep_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_fd9f1bd6",
+      "20261020T120720_ego_sweep_reverse_shoot_muzzle_no-drag_25p0_25p0_feedforward_5hz_tracking_v2_0133280d",
+      "20261020T120941_line_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_ae4e38ec",
+      "20261020T121058_ego_sweep_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_f8136bdf",
+      "20261020T121215_ego_sweep_reverse_shoot_muzzle_drag_25p0_25p0_feedforward_5hz_tracking_v2_5a478dcc",
+      "20261020T170215_distance_8_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b5ec20b5",
+      "20261020T170411_random_both_10_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_179ea517",
+      "20261020T170444_spin_move_ego_15_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9413243c"
+    ]
+  },
+  "rejected_size_bounded_pose": {
+    "recovery_p90_s": 0.417702683,
+    "slow": 5,
+    "jumps": 11
+  },
+  "final_frozen_manifest": "validation-frozen/manifest.json",
+  "final_configuration": "validation-frozen/simulator.yaml",
+  "final_configuration_sha256": "e5c3bece713e03ecec2cafb96a64d24bc7842a201a4d37781df9a1215df7f31f",
+  "fire_stability_requires_alignment": false,
+  "fire_measurement_hold_s": 0.1,
+  "rejected_visible_plate_window": "rejected-visible-plate-window/decision.json",
+  "gate_exact_replay": "gate-independent-ablation.json",
+  "independent_validation": "complete",
+  "baseline_promoted": false,
+  "visual_review": "pending",
+  "independent_validation_runs": 228,
+  "rule_acceptance_passed": false
+}

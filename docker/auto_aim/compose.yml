@@ -1,0 +1,115 @@
+name: rm26-daedalus
+services:
+  daedalus:
+    image: daedalus:rm26-integration
+    container_name: vision_simulator_26
+    build:
+      context: ../../vision_simulator_26
+      dockerfile: Dockerfile
+      target: runtime
+      network: host
+      entitlements: [network.host]
+      args:
+        CARGO_FEATURES: "ros2 bench"
+        HTTP_PROXY: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        HTTPS_PROXY: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        http_proxy: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        https_proxy: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        NO_PROXY: localhost,127.0.0.1,::1
+    labels:
+      rm26.workspace: /home/rm/rm26/vision_simulator_26
+      rm26.integration: "true"
+    init: true
+    restart: "no"
+    stop_grace_period: 15s
+    network_mode: host
+    ipc: host
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: graphics,display,utility,compute
+      DISPLAY: ":20"
+      XAUTHORITY: /run/daedalus-display/Xauthority
+      XDG_RUNTIME_DIR: /tmp/daedalus-runtime
+      HOME: /tmp/daedalus-home
+      WGPU_BACKEND: vulkan
+      ROS_DOMAIN_ID: "0"
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      RUST_LOG: info
+      DAEDALUS_AUTO_AIM: "1"
+      DAEDALUS_INTEGRATION: "1"
+      DAEDALUS_PROJECTILE_VISIBLE: ${RM26_PROJECTILE_VISIBLE:-on}
+      DAEDALUS_INTEGRATION_FIRE: ${RM26_FIRE_MODE:-off}
+      DAEDALUS_BENCH_FIRE_POLICY: ${RM26_FIRE_POLICY:-advice}
+      DAEDALUS_ALGORITHM_PROFILE: ${RM26_ALGORITHM_PROFILE:-legacy}
+      DAEDALUS_INTEGRATION_FIRE_RATE_HZ: ${RM26_FIRE_RATE_HZ:-5}
+      DAEDALUS_GIMBAL_CMD_TIMEOUT_MS: "250"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${RM26_GPU_UUID:?Use sim.sh}"]
+              capabilities: [gpu]
+    volumes:
+      - ./.runtime/config.toml:/app/config.toml:ro
+      - ../daedalus/.runtime:/run/daedalus-display:ro
+      - ../daedalus/run.sh:/opt/daedalus-ops/run.sh:ro
+      - ./scenarios:/scenarios:ro
+      - ./.runtime/scenarios:/run/rm26-scenarios:ro
+    command: [bash, /opt/daedalus-ops/run.sh]
+    logging:
+      driver: json-file
+      options: {max-size: 20m, max-file: "3"}
+  bridge:
+    image: daedalus:rm26-integration
+    container_name: sp_vision_ros_bridge
+    init: true
+    restart: "no"
+    network_mode: host
+    ipc: host
+    stop_grace_period: 5s
+    labels:
+      rm26.integration: "true"
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      RM26_COMMAND_SCRIPT: ${RM26_COMMAND_SCRIPT:-}
+    volumes:
+      - ./bridge.py:/opt/rm26/bridge.py:ro
+      - ./observer.py:/opt/rm26/observer.py:ro
+      - ./scenario_catalog.py:/opt/rm26/scenario_catalog.py:ro
+      - ./command_script.py:/opt/rm26/command_script.py:ro
+      - ./.runtime:/run/rm26-sim
+    command: [python3, -u, /opt/rm26/bridge.py, --port, "18726", --fps, "30", --bullet-speed, "${RM26_REPORTED_BULLET_SPEED:-25}", --actual-bullet-speed, "${RM26_BULLET_SPEED:-25}", --fire, "${RM26_FIRE_MODE:-off}", --physics, "${RM26_PHYSICS:-no-drag}", --fire-policy, "${RM26_FIRE_POLICY:-advice}", --fire-rate-hz, "${RM26_FIRE_RATE_HZ:-5}", --algorithm-profile, "${RM26_ALGORITHM_PROFILE:-legacy}"]
+    logging:
+      driver: json-file
+      options: {max-size: 20m, max-file: "3"}
+  evaluator:
+    image: daedalus:rm26-evaluator
+    profiles: [experiment]
+    build:
+      context: .
+      dockerfile: Evaluator.Dockerfile
+      network: host
+      entitlements: [network.host]
+      args:
+        INTEGRATION_IMAGE_ID: ${RM26_INTEGRATION_IMAGE_ID:-unknown}
+        EVALUATOR_BASE: ${RM26_EVALUATOR_BASE:-daedalus:rm26-integration}
+        HTTP_PROXY: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+        HTTPS_PROXY: ${RM26_BUILD_PROXY-http://127.0.0.1:7890}
+    init: true
+    user: "${RM26_RUN_UID:-1000}:${RM26_RUN_GID:-1000}"
+    restart: "no"
+    network_mode: host
+    ipc: host
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      MPLCONFIGDIR: /tmp/matplotlib
+      FASTDDS_BUILTIN_TRANSPORTS: UDPv4
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    volumes:
+      - ./:/opt/rm26:ro
+      - ./.runtime:/run/rm26-sim:ro
+      - ./experiments:/experiments
+    command: [python3, -u, /opt/rm26/evaluator.py]

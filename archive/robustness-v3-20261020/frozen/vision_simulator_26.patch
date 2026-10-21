@@ -1,0 +1,1146 @@
+diff --git a/rm_interfaces/msg/SimArmorState.msg b/rm_interfaces/msg/SimArmorState.msg
+index 8b5fc97..0edc578 100644
+--- a/rm_interfaces/msg/SimArmorState.msg
++++ b/rm_interfaces/msg/SimArmorState.msg
+@@ -14,3 +14,5 @@ float32[3] pos              # plate centre, map frame, meters
+ float32[3] normal           # plate normal, pointing out of the vehicle
+ float32 plate_w             # plate width (m)
+ float32 plate_h             # plate height (m)
++bool line_of_sight_clear    # physics ray to plate centre, ignoring ego and target's own collision envelope
++bool visibility_valid      # camera and physics query were available; FOV/front-face tested by evaluator
+diff --git a/src/bench/events.rs b/src/bench/events.rs
+index f27e571..7b7e8ea 100644
+--- a/src/bench/events.rs
++++ b/src/bench/events.rs
+@@ -622,6 +622,7 @@ pub fn handle_shot_end(
+     armor_contacts: Res<ArmorContactSet>,
+     mut resolved: ResMut<ResolvedShots>,
+ ) {
++    if crate::bench::strict_hits::enabled() { return; }
+     let projectile_body1 = event.body1.and_then(|body| projectiles.get(body).ok());
+     let projectile_body2 = event.body2.and_then(|body| projectiles.get(body).ok());
+     // Pick the *other* collider from the side that is **not** the projectile.
+diff --git a/src/bench/gt.rs b/src/bench/gt.rs
+index 1a72cd5..0f46565 100644
+--- a/src/bench/gt.rs
++++ b/src/bench/gt.rs
+@@ -281,6 +281,8 @@ pub fn publish_armor_gt(
+     child_of: Query<&ChildOf>,
+     hierarchy: HierarchyQuery,
+     centers: Query<&GlobalTransform>,
++    camera: Query<&GlobalTransform, With<crate::capture::CaptureSource>>,
++    spatial: avian3d::prelude::SpatialQuery,
+ ) {
+     let sim_time_ns = scenario_time_ns(scenario.as_deref());
+     // Same one-frame leak as `/sim/gt/robots`: a robot that is declared absent
+@@ -320,6 +322,20 @@ pub fn publish_armor_gt(
+             .mul_vec3(Vec3::X);
+         let (plate_w, plate_h) = plate_size(armor.spec.armor_type());
+ 
++        let camera_transform = camera.iter().next();
++        let line_of_sight_clear = camera_transform.is_some_and(|camera| {
++            let delta = center.translation - camera.translation();
++            let distance = delta.length();
++            let Ok(direction) = Dir3::new(delta) else { return false; };
++            // Vehicle root colliders are envelopes, not optical meshes. Ignore
++            // ego and this target's envelope; plate facing handles the convex
++            // target itself. Environment/other robots can occlude the sightline.
++            spatial.cast_ray_predicate(camera.translation(), direction,
++                (distance - 0.02).max(0.0), true,
++                &avian3d::prelude::SpatialQueryFilter::default(),
++                &|collider| !robot_of(collider, &robot_ids, &child_of)
++                    .is_some_and(|owner| owner.0 == 0 || owner == robot_id)).is_none()
++        });
+         armors.push(SimArmorState {
+             header: header(&stamp),
+             sim_time_ns,
+@@ -334,6 +350,8 @@ pub fn publish_armor_gt(
+             normal: ros_vec3(to_ros_vec3(normal_bevy)),
+             plate_w,
+             plate_h,
++            line_of_sight_clear,
++            visibility_valid: camera_transform.is_some(),
+         });
+     }
+ 
+diff --git a/src/bench/mod.rs b/src/bench/mod.rs
+index 43ffffc..31f6cf6 100644
+--- a/src/bench/mod.rs
++++ b/src/bench/mod.rs
+@@ -32,11 +32,13 @@ use crate::config::SimulationConfig;
+ use crate::ros2::plugin::capture_rune;
+ 
+ pub mod events;
++pub mod continuous_fire;
+ pub mod gt;
+ pub mod motion;
+ pub mod scenario;
+ pub mod services;
+ pub mod servo;
++pub mod strict_hits;
+ 
+ /// `[bench] enabled`, read every frame so a hot-reloaded `config.toml` can still
+ /// turn the benchmark off (or on) between runs.
+@@ -69,6 +71,8 @@ impl Plugin for BenchPlugin {
+             .add_observer(events::track_armor_contact_end);
+ 
+         app.init_resource::<gt::ArmorIndex>()
++            .init_resource::<continuous_fire::ContinuousFire>()
++            .add_systems(PostUpdate, continuous_fire::fire.after(capture_rune).run_if(bench_enabled))
+             .init_resource::<gt::ChassisYawTracker>()
+             .init_resource::<servo::SpeedServoStates>()
+             .insert_resource(gt::GtRobotsLimiter::new(config.bench.gt_robots_period()))
+@@ -110,9 +114,7 @@ impl Plugin for BenchPlugin {
+             // Plate slots/counts must exist before the first GT frame.
+             .add_systems(
+                 Update,
+-                gt::build_armor_index
+-                    .before(gt::publish_armor_gt)
+-                    .run_if(bench_enabled),
++                gt::build_armor_index.run_if(bench_enabled),
+             )
+             // The scenario writes the scripted robots' inputs between the
+             // keyboard routing and the vehicle system, so both drivers end up in
+@@ -147,8 +149,9 @@ impl Plugin for BenchPlugin {
+             // Ground truth reuses `/tf`'s stamp, so it must run after the system
+             // that samples the clock and builds the TF tree.
+             .add_systems(
+-                Update,
++                PostUpdate,
+                 (
++                    crate::systems::publish_gimbal_control_trace.after(capture_rune),
+                     gt::publish_armor_gt.after(capture_rune),
+                     gt::publish_robot_gt.after(capture_rune),
+                     scenario::publish_scenario_status.after(capture_rune),
+@@ -165,8 +168,11 @@ impl Plugin for BenchPlugin {
+             // publish a contact point instead of a post-bounce position.
+             .add_systems(
+                 FixedPostUpdate,
+-                events::record_shot_contacts.run_if(bench_enabled),
+-            );
++                events::record_shot_contacts.run_if(bench_enabled).run_if(|| !strict_hits::enabled()),
++            )
++            .add_systems(avian3d::prelude::PhysicsSchedule,
++                strict_hits::contacts.in_set(avian3d::prelude::PhysicsStepSystems::Last)
++                    .run_if(bench_enabled).run_if(strict_hits::enabled));
+ 
+         if config.bench.enabled {
+             match config.bench.scenario_path() {
+diff --git a/src/bench/motion.rs b/src/bench/motion.rs
+index fd9b050..a9ef953 100644
+--- a/src/bench/motion.rs
++++ b/src/bench/motion.rs
+@@ -114,6 +114,8 @@ pub enum Primitive {
+     Line { v: f32, dir_deg: f32 },
+     /// Mecanum sidestep at `v` along `dir_deg`, body heading unchanged.
+     Strafe { v: f32, dir_deg: f32 },
++    /// World translation and independent chassis rotation through vehicle controls.
++    StrafeSpin { v: f32, dir_deg: f32, omega: f32 },
+     /// Near-perpendicular crossing of the line of sight: the same slide as
+     /// [`Primitive::Strafe`] (mecanum, body heading unchanged, so the armour
+     /// ring does *not* swing with the travel direction and the crossing factor
+@@ -204,6 +206,7 @@ impl Primitive {
+             Self::Static => "static",
+             Self::Line { .. } => "line",
+             Self::Strafe { .. } => "strafe",
++            Self::StrafeSpin { .. } => "strafe_spin",
+             Self::CrossLos { .. } => "cross_los",
+             Self::Spin { .. } => "spin",
+             // The sweep is authored as `type = "spin"` plus `yaw_amp_deg` and a
+@@ -237,6 +240,10 @@ impl Primitive {
+                     clamped(self.v().unwrap_or(0.0), v),
+                 )
+             }
++            Self::StrafeSpin { v, dir_deg, omega } => {
++                let new_v=clamp(v);let new_omega=omega.clamp(-max_omega,max_omega);
++                (Self::StrafeSpin {v:new_v,dir_deg,omega:new_omega},clamped(v,new_v)||clamped(omega,new_omega))
++            }
+             Self::Spin { omega } => {
+                 let omega = omega.clamp(-max_omega, max_omega);
+                 (
+@@ -351,6 +358,7 @@ impl Primitive {
+         match *self {
+             Self::Line { v, .. }
+             | Self::Strafe { v, .. }
++            | Self::StrafeSpin { v, .. }
+             | Self::CrossLos { v, .. }
+             | Self::Weave { v, .. }
+             | Self::Sine { v, .. } => Some(v),
+@@ -362,6 +370,7 @@ impl Primitive {
+         match *self {
+             Self::Line { dir_deg, .. }
+             | Self::Strafe { dir_deg, .. }
++            | Self::StrafeSpin { dir_deg, .. }
+             | Self::CrossLos { dir_deg, .. }
+             | Self::Weave { dir_deg, .. }
+             | Self::Sine { dir_deg, .. } => Some(dir_deg),
+@@ -374,7 +383,7 @@ impl Primitive {
+     /// (use [`Primitive::sweep_peak_omega`] for its peak).
+     pub const fn omega(&self) -> Option<f32> {
+         match *self {
+-            Self::Spin { omega } => Some(omega),
++            Self::Spin { omega } | Self::StrafeSpin {omega,..} => Some(omega),
+             _ => None,
+         }
+     }
+@@ -436,7 +445,7 @@ impl Primitive {
+     pub fn nominal_velocity(&self, t_local: f32) -> Vec3 {
+         match *self {
+             Self::Static => Vec3::ZERO,
+-            Self::Line { v, dir_deg } | Self::Strafe { v, dir_deg } => {
++            Self::Line { v, dir_deg } | Self::Strafe { v, dir_deg } | Self::StrafeSpin {v,dir_deg,..} => {
+                 MotionFrame::world_direction(dir_deg.to_radians()) * v
+             }
+             Self::CrossLos {
+@@ -488,7 +497,7 @@ impl Primitive {
+         let dt = to - from;
+         match *self {
+             Self::Static | Self::Spin { .. } | Self::SpinSweep { .. } => Vec3::ZERO,
+-            Self::Line { v, dir_deg } | Self::Strafe { v, dir_deg } => {
++            Self::Line { v, dir_deg } | Self::Strafe { v, dir_deg } | Self::StrafeSpin {v,dir_deg,..} => {
+                 MotionFrame::world_direction(dir_deg.to_radians()) * (v * dt)
+             }
+             Self::CrossLos {
+@@ -551,7 +560,7 @@ impl Primitive {
+         let max_speed = limits.max_speed.max(1e-3);
+         match *self {
+             Self::Static => MotionCommand::default(),
+-            Self::Line { v, dir_deg } | Self::Strafe { v, dir_deg } => {
++            Self::Line { v, dir_deg } | Self::Strafe { v, dir_deg } | Self::StrafeSpin {v,dir_deg,..} => {
+                 let heading = dir_deg.to_radians();
+                 let direction = MotionFrame::world_direction(heading);
+                 // Signed: `v = -2` is the same heading driven backwards, and the
+@@ -562,6 +571,7 @@ impl Primitive {
+                 // keeps the body still and slides (that is the mecanum case the
+                 // primitive exists for).
+                 let chassis = match *self {
++                    Self::StrafeSpin {omega,..} => (omega/limits.rotation_speed.abs().max(1e-3)).clamp(-1.0,1.0),
+                     Self::Line { .. } => {
+                         yaw_input_towards(chassis_yaw, heading, limits.rotation_speed)
+                     }
+diff --git a/src/bench/scenario.rs b/src/bench/scenario.rs
+index 1769c90..6654ab7 100644
+--- a/src/bench/scenario.rs
++++ b/src/bench/scenario.rs
+@@ -158,6 +158,8 @@ pub enum ScenarioCommand {
+     Reset,
+     /// Full restart: same physical reset, then `Running` at `t_scenario = 0`.
+     Restart,
++    /// Start the clock on a prepared, settled Idle scene without teleporting.
++    Begin,
+ }
+ 
+ impl ScenarioCommand {
+@@ -167,6 +169,7 @@ impl ScenarioCommand {
+             Self::Load => "load",
+             Self::Reset => "reset",
+             Self::Restart => "restart",
++            Self::Begin => "begin",
+         }
+     }
+ }
+@@ -420,6 +423,9 @@ impl SegmentSpec {
+                 v: self.required("v", self.v)?,
+                 dir_deg: self.required("dir_deg", self.dir_deg)?,
+             }),
++            "strafe_spin" => Ok(Primitive::StrafeSpin {
++                v:self.required("v",self.v)?,dir_deg:self.required("dir_deg",self.dir_deg)?,omega:self.required("omega",self.omega)?,
++            }),
+             "strafe" => Ok(Primitive::Strafe {
+                 v: self.required("v", self.v)?,
+                 dir_deg: self.required("dir_deg", self.dir_deg)?,
+@@ -885,6 +891,19 @@ impl Scenario {
+     /// in [`scenario_control`], which owns those queries; this only touches the
+     /// scenario's own state, so the two halves cannot drift apart.
+     pub fn apply_command(&mut self, command: ScenarioCommand, fixed_now: f64) {
++        if command == ScenarioCommand::Begin {
++            self.origin_fixed_secs = Some(fixed_now);
++            self.t_scenario = 0.0;
++            self.phase = Phase::Running;
++            self.auto_start_suppressed = false;
++            self.max_track_deviation_m = 0.0;
++            self.max_along_track_m = 0.0;
++            for robot in &mut self.robots {
++                robot.origin = None;
++                robot.deviation_skip_frames = SPAWN_DEVIATION_SKIP_FRAMES;
++            }
++            return;
++        }
+         let restart = command == ScenarioCommand::Restart;
+         self.origin_fixed_secs = if restart { Some(fixed_now) } else { None };
+         self.t_scenario = 0.0;
+@@ -1210,6 +1229,22 @@ fn apply_runtime_command(
+     scripted: &Query<(Entity, &RobotId), (With<Infantry>, With<MotionSource>)>,
+     robot_inputs: &mut RobotInputs,
+ ) {
++    if command == ScenarioCommand::Begin {
++        // Preparation has already placed and settled the bodies and homed the
++        // gimbal. Preserve that state and only arm the scripted motion/clock.
++        for (entity, id, ..) in roots.iter_mut() {
++            if scenario.robots.iter().any(|robot| robot.id == *id) {
++                commands.entity(entity).insert(MotionSource::SCRIPTED);
++                commands.entity(entity).remove::<ActiveSlapper>();
++                for descendant in children.iter_descendants(entity) {
++                    commands.entity(descendant).remove::<ActiveSlapper>();
++                }
++                robot_inputs.remove(*id);
++            }
++        }
++        scenario.apply_command(command, fixed_now);
++        return;
++    }
+     // 1. Drop every scripted driver in the world.
+     for (entity, id) in scripted.iter() {
+         commands.entity(entity).remove::<MotionSource>();
+diff --git a/src/bench/services.rs b/src/bench/services.rs
+index 3f8a0a9..bac4e96 100644
+--- a/src/bench/services.rs
++++ b/src/bench/services.rs
+@@ -65,6 +65,7 @@ use crate::ros2::prelude::AverageRateLimiter;
+ 
+ pub const LOAD_SERVICE: &str = "/sim/scenario/load";
+ pub const START_SERVICE: &str = "/sim/scenario/start";
++pub const BEGIN_SERVICE: &str = "/sim/scenario/begin";
+ pub const RESET_SERVICE: &str = "/sim/scenario/reset";
+ 
+ /// One queued service call. Holds the reply handle so the answer is sent from the
+@@ -78,6 +79,9 @@ pub enum ScenarioRequest {
+     Start {
+         reply: r2r::ServiceRequest<SimScenarioStart::Service>,
+     },
++    Begin {
++        reply: r2r::ServiceRequest<SimScenarioStart::Service>,
++    },
+     Reset {
+         reply: r2r::ServiceRequest<SimScenarioReset::Service>,
+     },
+@@ -163,7 +167,22 @@ pub fn register_services(signal: Arc<AtomicBool>, app: &mut App, node: &mut r2r:
+         Err(error) => error!("[bench] cannot create {RESET_SERVICE}: {error}"),
+     }
+ 
+-    info!("[bench] scenario services up: {LOAD_SERVICE}, {START_SERVICE}, {RESET_SERVICE}");
++    // Same empty request/status response as start, with a separate endpoint so
++    // the existing full-reset contract of /start remains unchanged.
++    match node.create_service::<SimScenarioStart::Service>(BEGIN_SERVICE, QosProfile::default()) {
++        Ok(mut stream) => {
++            let queue = queue.clone();
++            let signal = signal.clone();
++            std::thread::spawn(move || {
++                while !signal.load(Ordering::Acquire) {
++                    let Some(request) = block_on(futures_lite::StreamExt::next(&mut stream)) else { break; };
++                    queue.push(ScenarioRequest::Begin { reply: request });
++                }
++            });
++        }
++        Err(error) => error!("[bench] cannot create {BEGIN_SERVICE}: {error}"),
++    }
++    info!("[bench] scenario services up: {LOAD_SERVICE}, {START_SERVICE}, {RESET_SERVICE}, {BEGIN_SERVICE}");
+ }
+ 
+ /// Applies queued service calls, ordered before `scenario_control`.
+@@ -297,6 +316,18 @@ pub fn poll_scenario_services(
+                     },
+                 );
+             }
++            ScenarioRequest::Begin { reply } => {
++                let (scenario_id, _, _, spawn_applied) = snapshot(scenario.as_deref());
++                let (success, message, phase) = match scenario.as_mut() {
++                    Some(scene) if scene.phase == Phase::Idle && scene.ready()
++                        && scene.pending == scenario::ScenarioCommand::None => {
++                        scene.pending = scenario::ScenarioCommand::Begin;
++                        (true, String::new(), Phase::Running.wire())
++                    }
++                    _ => (false, "begin requires a ready Idle scene; load and prepare it first".to_string(), Phase::Idle.wire()),
++                };
++                respond(reply, SimScenarioStart::Response { success, message, scenario_id, phase, spawn_applied });
++            }
+             ScenarioRequest::Reset { reply } => {
+                 // Idempotent: with no scenario running this still succeeds.
+                 let (scenario_id, phase, spawn_applied) = match scenario.as_mut() {
+diff --git a/src/config.rs b/src/config.rs
+index 38c040b..08a4e89 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -308,11 +308,24 @@ impl Default for VehicleConfig {
+ pub struct GimbalPidConfig {
+     pub yaw: GimbalAxisPidConfig,
+     pub pitch: GimbalAxisPidConfig,
++    /// Opt-in controller experiments; defaults preserve the render-frame loop.
++    pub fixed_update: bool,
++    pub feedforward_gain: f32,
++    pub feedforward_tau_s: f32,
++    pub feedforward_max_rate: f32,
++    pub feedforward_reset_gap_s: f32,
++    pub feedforward_max_step_rad: f32,
+ }
+ 
+ impl Default for GimbalPidConfig {
+     fn default() -> Self {
+         Self {
++            fixed_update: false,
++            feedforward_gain: 0.0,
++            feedforward_tau_s: 0.06,
++            feedforward_max_rate: 0.6,
++            feedforward_reset_gap_s: 0.15,
++            feedforward_max_step_rad: 0.06,
+             yaw: GimbalAxisPidConfig {
+                 kp: 12.0,
+                 ki: 0.5,
+diff --git a/src/main.rs b/src/main.rs
+index c2c36b2..cba0aa4 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -230,8 +230,8 @@ fn main() {
+                     route_robot_inputs,
+                     robot_vehicle_controls,
+                     gimbal_controls,
+-                    gimbal_pid_controls.run_if(|enabled: Res<SubscribeAutoAim>| {
+-                        enabled.load(std::sync::atomic::Ordering::Acquire)
++                    gimbal_pid_controls.run_if(|enabled: Res<SubscribeAutoAim>, config: Res<SimulationConfig>| {
++                        enabled.load(std::sync::atomic::Ordering::Acquire) && !config.vehicle.gimbal_pid.fixed_update
+                     }),
+                     remote_gimbal_controls,
+                 )
+@@ -279,7 +279,11 @@ fn main() {
+                 .run_if(controller_dart_just_pressed),
+         )
+         .add_systems(PostUpdate, uav_launch.after(TransformSystems::Propagate))
+-        .add_systems(FixedUpdate, projectile_aerodynamics);
++        .add_systems(FixedUpdate, projectile_aerodynamics)
++        .add_systems(FixedUpdate, gimbal_pid_controls.run_if(
++            |enabled: Res<SubscribeAutoAim>, config: Res<SimulationConfig>| {
++                enabled.load(std::sync::atomic::Ordering::Acquire) && config.vehicle.gimbal_pid.fixed_update
++            }));
+ 
+     // Always registered: the FPS overlay reads these diagnostics even when the
+     // console logger (`debug.diagnostics`) is off.
+diff --git a/src/robomaster/armor/collision.rs b/src/robomaster/armor/collision.rs
+index 7d906c8..5de85fe 100644
+--- a/src/robomaster/armor/collision.rs
++++ b/src/robomaster/armor/collision.rs
+@@ -13,6 +13,9 @@ fn handle_armor_collision(
+     armors: Query<(), With<Armor>>,
+     child_of: Query<&ChildOf>,
+ ) {
++    // Integration hit events and statistics come from actual contact manifolds,
++    // never CollisionEnd (which can close a speculative, non-touching pair).
++    if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|v| v == "1") { return; }
+     let projectile_body1 = event.body1.and_then(|body| projectiles.get(body).ok());
+     let projectile_body2 = event.body2.and_then(|body| projectiles.get(body).ok());
+ 
+diff --git a/src/robomaster/armor/construct.rs b/src/robomaster/armor/construct.rs
+index a78c572..6bd335b 100644
+--- a/src/robomaster/armor/construct.rs
++++ b/src/robomaster/armor/construct.rs
+@@ -244,6 +244,9 @@ impl ArmorConstructor<'_, '_> {
+                         spec: armor_data.spec,
+                         label: armor_data.spec.label(),
+                     });
++                    if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|v| v == "1") {
++                        self.commands.entity(armor_elem).insert(avian3d::prelude::SpeculativeMargin::ZERO);
++                    }
+                 });
+         }
+         //let _base = query!(root_query, .."BASE")?;
+diff --git a/src/ros2.rs b/src/ros2.rs
+index 5a99876..612f2ff 100644
+--- a/src/ros2.rs
++++ b/src/ros2.rs
+@@ -2,5 +2,6 @@ pub mod capture;
+ pub mod image;
+ pub mod livox;
+ pub mod plugin;
++pub mod fire_eligibility;
+ pub mod prelude;
+ pub mod topic;
+diff --git a/src/ros2/capture.rs b/src/ros2/capture.rs
+index c98fbf4..873355c 100644
+--- a/src/ros2/capture.rs
++++ b/src/ros2/capture.rs
+@@ -215,9 +215,9 @@ impl GpuCaptureHandler for RosSnapshotCreator {
+         }
+ 
+         Some(Box::new(RosSnapshotSync {
+-            stamp: RefCell::new(Clock::to_builtin_time(
+-                &ctx.clock.lock().unwrap().get_now().unwrap(),
+-            )),
++            // Extracted with this render world's transforms. Do not sample the
++            // clock here: GPU readback and JPEG publication happen much later.
++            stamp: RefCell::new(world.resource::<crate::ros2::plugin::RosFrameStamp>().0.clone()),
+             want_camera_info,
+             slot,
+         }))
+diff --git a/src/ros2/plugin.rs b/src/ros2/plugin.rs
+index 56bd7dc..6b6616d 100644
+--- a/src/ros2/plugin.rs
++++ b/src/ros2/plugin.rs
+@@ -19,6 +19,7 @@ use bevy::ecs::system::RunSystemOnce;
+ use bevy::image::BevyDefault;
+ use bevy::prelude::*;
+ use bevy::render::render_resource::TextureFormat;
++use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
+ use r2r::ClockType::SystemTime;
+ use r2r::geometry_msgs::msg::{Point, Pose, Vector3};
+ use r2r::std_msgs::msg::{ColorRGBA, String as RosString};
+@@ -58,9 +59,37 @@ pub struct RoboMasterClock(pub Arc<Mutex<Clock>>);
+ /// GT message and the TF frame describing the *same world state* carry bitwise
+ /// equal stamps (`IMPLEMENTATION_PLAN.md` §3.4.1) — which is what turns
+ /// "GT vs `/tf armor_<N>`" into a real cross-check.
+-#[derive(Resource, Clone)]
++#[derive(Resource, Clone, ExtractResource)]
+ pub struct RosFrameStamp(pub r2r::builtin_interfaces::msg::Time);
+ 
++/// Opt-in timeout for unattended integration runs; ordinary runs keep their
++/// existing command lifetime. Wall time also covers a paused/slow simulation.
++#[derive(Resource)]
++struct GimbalCommandWatchdog {
++    timeout: Option<Duration>,
++    last: Option<std::time::Instant>,
++    no_fire: bool,
++}
++
++fn expire_gimbal_command(
++    mut commands: Commands,
++    mut watchdog: ResMut<GimbalCommandWatchdog>,
++    mut pending_fire: ResMut<PendingFire>,
++    gimbals: Query<Entity, (With<Controlled>, With<InfantryGimbal>, With<GimbalAimTracker>)>,
++) {
++    if let (Some(timeout), Some(last)) = (watchdog.timeout, watchdog.last) {
++        if last.elapsed() >= timeout {
++            for entity in &gimbals {
++                commands.entity(entity).remove::<GimbalAimTracker>();
++            }
++            watchdog.last = None;
++            if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|v| v == "1") {
++                pending_fire.reset();
++            }
++        }
++    }
++}
++
+ /// Set the first time a solver solution arrives on `/rm_gimbal/cmd`.
+ ///
+ /// A benchmark scenario with `trigger = "on_first_gimbal_cmd"` uses this as its
+@@ -183,8 +212,20 @@ pub(crate) fn capture_rune(
+ 
+     let cam_transform = camera.into_inner();
+     let gimbal = gimbal.into_inner();
+-    let cam_rel = cam_transform.reparented_to(gimbal);
+-    let muzzle_rel = muzzle_offset.0.reparented_to(gimbal);
++    // gimbal_link uses the corrected view/aim basis, not the asset's raw
++    // GIMBAL node basis. Translations must be expressed in that same basis.
++    let gimbal_frame = GlobalTransform::from(Transform {
++        translation: gimbal.translation(),
++        rotation: (gimbal.rotation() * muzzle_offset.1.rotation
++            * Quat::from_euler(EulerRot::ZYX, 0.0, 0.0, PI / 2.0)).normalize(),
++        ..default()
++    });
++    let cam_rel = cam_transform.reparented_to(&gimbal_frame);
++    let muzzle_rel = muzzle_offset.0.reparented_to(&gimbal_frame);
++    // After transform() conjugates by ALIGN, this becomes ALIGN * Rx(pi):
++    // optical +X right, +Y down, +Z forward, relative to camera_link's FLU.
++    let optical_rotation = Quat::from_rotation_x(PI)
++        * Quat::from_mat3(&crate::util::gt::ALIGN);
+ 
+     // Avoid per-frame `info!` logging (it will cap FPS under ROS2 builds).
+     debug!(
+@@ -258,12 +299,12 @@ pub(crate) fn capture_rune(
+ 
+         "map" {
+             "odom" as (gimbal.translation(), Quat::IDENTITY) for odom_pose_pub {
+-                "gimbal_link" as (Vec3::ZERO, gimbal.rotation() * muzzle_offset.1.rotation * Quat::from_euler(EulerRot::ZYX, 0.0, 0.0, PI / 2.0)) for gimbal_pose_pub {
++                "gimbal_link" as (Vec3::ZERO, gimbal_frame.rotation()) for gimbal_pose_pub {
+                     "muzzle" as (muzzle_rel.translation, Quat::IDENTITY) {
+                         "muzzle_link" as (Vec3::ZERO, Quat::IDENTITY) for muzzle_pose_pub{}
+                     }
+-                    "camera_link" as (cam_rel.translation, Quat::IDENTITY) for camera_pose_pub {
+-                        "camera_optical_frame" as (Vec3::ZERO, Quat::from_euler(EulerRot::ZYX, -PI / 2.0, PI, PI / 2.0)) {}
++                    "camera_link" as (cam_rel.translation, cam_rel.rotation) for camera_pose_pub {
++                        "camera_optical_frame" as (Vec3::ZERO, optical_rotation) {}
+                     }
+                 }
+             }
+@@ -367,6 +408,7 @@ pub(crate) struct PendingFire {
+     /// attempts, so a much larger count means the attempt never launches (e.g. the
+     /// fire path was disabled) and retrying would only burn limiter tickets.
+     attempts: u32,
++    stamp_ns: i128,
+ }
+ 
+ impl PendingFire {
+@@ -382,9 +424,48 @@ impl PendingFire {
+ /// couple of attempts.
+ const MAX_FIRE_ATTEMPTS: u32 = 10;
+ 
++/// Timing experiment: defer ROS launch until the current muzzle pose is propagated.
++#[derive(Resource, Default)]
++struct ScheduledGimbalShot(Option<i128>);
++
++#[derive(Resource, Default, Deref, DerefMut)]
++struct FireEligibility(crate::ros2::fire_eligibility::FireEligibility);
++
++fn requires_fire_eligibility() -> bool {
++    matches!(std::env::var("DAEDALUS_ALGORITHM_PROFILE").as_deref(),Ok("tracking_fire_v2")|Ok("tracking_fire_v3"))
++}
++
++fn eligibility_allows(world: &World, stamp_ns: i128) -> bool {
++    if !requires_fire_eligibility() { return true; }
++    let gate=world.resource::<FireEligibility>();
++    let now=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
++        .unwrap_or_default().as_nanos() as i128;
++    gate.allows(stamp_ns,now)
++}
++
++fn launch_scheduled_gimbal_shot(world: &mut World) {
++    let Some(stamp_ns) = world.resource_mut::<ScheduledGimbalShot>().0.take() else { return; };
++    if !world.resource::<PendingFire>().requested || world.resource::<PendingFire>().stamp_ns != stamp_ns
++        || world.resource::<GimbalCommandWatchdog>().no_fire
++        || world.resource::<GimbalCommandWatchdog>().last.is_none() { return; }
++    if !eligibility_allows(world,stamp_ns) { return; }
++    {
++        let mut permit = world.resource_mut::<crate::systems::IntegrationShotPermit>();
++        permit.authorized = true;
++        permit.stamp_ns = stamp_ns;
++    }
++    world.run_system_once(projectile_launch).unwrap();
++    world.resource_mut::<crate::systems::IntegrationShotPermit>().authorized = false;
++}
++
+ fn process_subscription(
+     time: Res<Time>,
++    config: Res<SimulationConfig>,
++    mut scheduled: ResMut<ScheduledGimbalShot>,
++    mut eligibility: ResMut<FireEligibility>,
++    eligibility_sub: Res<TopicSubscriber<FireEligibilityTopic>>,
+     mut commands: Commands,
++    mut watchdog: ResMut<GimbalCommandWatchdog>,
+     gimbal_cmd: ResMut<TopicSubscriber<GimbalCmdTopic>>,
+     first_cmd: Res<FirstGimbalCmd>,
+     mut fire_rate_limiter: ResMut<FireRateLimiter>,
+@@ -401,8 +482,21 @@ fn process_subscription(
+         ),
+     >,
+ ) {
++    let integration = std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|v| v == "1");
+     let (gimbal_entity, mut tracker) = gimbal.into_inner();
+     fire_rate_limiter.tick(time.delta());
++    if requires_fire_eligibility() {
++        while let Some(message)=eligibility_sub.try_recv() {
++            if let Ok(value)=serde_json::from_str::<serde_json::Value>(&message.data) {
++                let stamp=value["command_stamp_ns"].as_i64().unwrap_or(0) as i128;
++                if value["issued_ns"].as_i64().unwrap_or(0) as i128 >=eligibility.issued_ns {
++                    eligibility.command_stamp_ns=stamp;
++                    eligibility.issued_ns=value["issued_ns"].as_i64().unwrap_or(0) as i128;
++                    eligibility.enabled=value["enabled"].as_bool().unwrap_or(false);
++                }
++            } else {eligibility.enabled=false;}
++        }
++    }
+ 
+     // A launch after the request was latched means the shot is out: stop retrying.
+     if pending_fire.requested && statistics.launch_count > pending_fire.launches_at_request {
+@@ -419,24 +513,41 @@ fn process_subscription(
+         // No solution from the solver: drop the target so the PID loop stops driving.
+         // The latched request survives: a brief `distance == -1` is a state update,
+         // not a cancellation of an order the solver itself just issued.
+-        if cmd.distance == -1.0 {
++        let stale = watchdog.timeout.is_some_and(|timeout| {
++            let command_ns = i128::from(cmd.header.stamp.sec) * 1_000_000_000
++                + i128::from(cmd.header.stamp.nanosec);
++            let now_ns = std::time::SystemTime::now()
++                .duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos() as i128;
++            now_ns - command_ns > timeout.as_nanos() as i128 || command_ns > now_ns + 10_000_000
++        });
++        if cmd.distance == -1.0 || stale || !cmd.yaw.is_finite()
++            || !cmd.pitch.is_finite() || !cmd.distance.is_finite() {
+             commands.entity(gimbal_entity).remove::<GimbalAimTracker>();
++            watchdog.last = None;
++            if integration { pending_fire.reset(); }
+             break;
+         }
++        watchdog.last = Some(std::time::Instant::now());
+         first_cmd.mark();
+-        if cmd.fire_advice && !pending_fire.requested {
++        if cmd.fire_advice && !watchdog.no_fire && !pending_fire.requested {
+             pending_fire.requested = true;
+             pending_fire.launches_at_request = statistics.launch_count;
+             pending_fire.attempts = 0;
++            pending_fire.stamp_ns = i128::from(cmd.header.stamp.sec) * 1_000_000_000
++                + i128::from(cmd.header.stamp.nanosec);
+         }
+ 
+         let target = GimbalAimTarget::from_solver_degrees(cmd.yaw as f32, cmd.pitch as f32);
+         match tracker.as_mut() {
+-            Some(tracker) => tracker.retarget(target),
++            Some(tracker) => tracker.retarget_stamped(target,
++                i128::from(cmd.header.stamp.sec)*1_000_000_000+i128::from(cmd.header.stamp.nanosec),&config.vehicle.gimbal_pid),
+             None => {
++                let mut tracker = GimbalAimTracker::new(target);
++                tracker.retarget_stamped(target,
++                    i128::from(cmd.header.stamp.sec)*1_000_000_000+i128::from(cmd.header.stamp.nanosec),&config.vehicle.gimbal_pid);
+                 commands
+                     .entity(gimbal_entity)
+-                    .insert(GimbalAimTracker::new(target));
++                    .insert(tracker);
+             }
+         }
+     }
+@@ -448,7 +559,24 @@ fn process_subscription(
+     // pending. The Gamepad path is untouched — it has no request, so nothing ticks
+     // the cooldown here and its own per-frame call keeps its cadence — and the
+     // limiter below stays the binding gate, so the <=10 Hz contract is unchanged.
+-    if pending_fire.requested {
++    if integration && pending_fire.requested {
++        let now_ns = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
++            .unwrap_or_default().as_nanos() as i128;
++        if now_ns - pending_fire.stamp_ns > 250_000_000 || watchdog.last.is_none() {
++            pending_fire.reset();
++        }
++        if requires_fire_eligibility() {
++            if eligibility.cancels(pending_fire.stamp_ns,now_ns) {
++                pending_fire.reset();
++            }
++            // Topics have independent delivery ordering. Await the matching
++            // qualification instead of consuming a command that arrived first.
++            if eligibility.command_stamp_ns<pending_fire.stamp_ns { return; }
++        }
++    }
++    // Mechanical cooldown measures elapsed time even between advice pulses.
++    // Otherwise every new request waits an extra cooldown/limiter cycle.
++    if integration || pending_fire.requested {
+         cooldown.tick(time.delta());
+     }
+ 
+@@ -460,8 +588,22 @@ fn process_subscription(
+         if pending_fire.attempts > MAX_FIRE_ATTEMPTS {
+             pending_fire.requested = false;
+         } else {
+-            commands.queue(|w: &mut World| {
++            let stamp_ns = pending_fire.stamp_ns;
++            if integration && config.vehicle.gimbal_pid.fixed_update {
++                scheduled.0 = Some(stamp_ns);
++                return;
++            }
++            commands.queue(move |w: &mut World| {
++                if !eligibility_allows(w,stamp_ns) { return; }
++                if integration {
++                    let mut permit = w.resource_mut::<crate::systems::IntegrationShotPermit>();
++                    permit.authorized = true;
++                    permit.stamp_ns = stamp_ns;
++                }
+                 w.run_system_once(projectile_launch).unwrap();
++                if integration {
++                    w.resource_mut::<crate::systems::IntegrationShotPermit>().authorized = false;
++                }
+             });
+         }
+     }
+@@ -535,6 +677,8 @@ impl Plugin for ROS2Plugin {
+         // this plugin) only consumes the publisher resources.
+         #[cfg(feature = "bench")]
+         crate::ros2::topic::bench_topics::register_pub(signal_arc.clone(), app, &mut node);
++        #[cfg(feature = "bench")]
++        crate::ros2::topic::bench_topics::register_sub(signal_arc.clone(), app, &mut node);
+ 
+         let camera_info = app
+             .world_mut()
+@@ -611,9 +755,21 @@ impl Plugin for ROS2Plugin {
+                 nanosec: 0,
+             }))
+             .insert_resource(FirstGimbalCmd::default())
++            .insert_resource(GimbalCommandWatchdog {
++                timeout: std::env::var("DAEDALUS_GIMBAL_CMD_TIMEOUT_MS").ok()
++                    .and_then(|value| value.parse::<u64>().ok())
++                    .filter(|value| *value > 0).map(Duration::from_millis),
++                last: None,
++                no_fire: std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|v| v == "1")
++                    && std::env::var("DAEDALUS_INTEGRATION_FIRE").as_deref() != Ok("auto"),
++            })
++            .add_plugins(ExtractResourcePlugin::<RosFrameStamp>::default())
+             .insert_resource(StopSignal(signal_arc.clone()))
+             .insert_resource(FireRateLimiter(AverageRateLimiter::from_hz(FIRE_RATE_HZ)))
+             .init_resource::<PendingFire>()
++            .init_resource::<ScheduledGimbalShot>()
++            .init_resource::<FireEligibility>()
++            .init_resource::<crate::systems::IntegrationShotPermit>()
+             .insert_resource(TechCoreStateRateLimiter(AverageRateLimiter::from_hz(20.0)))
+             .add_plugins(RosCapturePlugin {
+                 config: color_capture_config,
+@@ -661,9 +817,16 @@ impl Plugin for ROS2Plugin {
+             .add_systems(
+                 Update,
+                 process_subscription
+-                    .run_if(|enabled: Res<SubscribeAutoAim>| enabled.load(Ordering::Acquire)),
++                    .before(crate::systems::gimbal_pid_controls)
++                    .run_if(|enabled: Res<SubscribeAutoAim>, config: Res<SimulationConfig>| enabled.load(Ordering::Acquire) && !config.vehicle.gimbal_pid.fixed_update),
+             )
+-            .add_systems(Update, capture_rune.after(TransformSystems::Propagate))
++            .add_systems(Update, expire_gimbal_command.after(process_subscription)
++                .before(crate::systems::gimbal_pid_controls))
++            .add_systems(FixedUpdate, (process_subscription,expire_gimbal_command).chain()
++                .before(crate::systems::gimbal_pid_controls)
++                .run_if(|enabled: Res<SubscribeAutoAim>, config: Res<SimulationConfig>| enabled.load(Ordering::Acquire) && config.vehicle.gimbal_pid.fixed_update))
++            .add_systems(PostUpdate, capture_rune.after(TransformSystems::Propagate))
++            .add_systems(PostUpdate, launch_scheduled_gimbal_shot.after(capture_rune))
+             .add_systems(Update, publish_tech_core_state)
+             .insert_resource(SpinThreadHandle(Some(thread::spawn(move || {
+                 while !signal_arc.load(Ordering::Acquire) {
+diff --git a/src/ros2/topic.rs b/src/ros2/topic.rs
+index 236e92f..392ea64 100644
+--- a/src/ros2/topic.rs
++++ b/src/ros2/topic.rs
+@@ -265,7 +265,7 @@ macro_rules! topic {
+         )*
+ 
+         pub fn register_sub(atomic:Arc<AtomicBool>, app:&mut App, node:&mut Node) {
+-            $crate::subscriber!(atomic, app, node, $($topic,)*);
++            $crate::subscriber!(atomic.clone(), app, node, $($topic,)*);
+         }
+         topic!($($remaining)*);
+     };
+@@ -311,6 +311,7 @@ topic!(
+         // stream, i.e. every pulse survives a frame; on overflow the oldest goes
+         // first and `TopicSubscriber::dropped()` counts it.
+         "/rm_gimbal/cmd" as GimbalCmd as GimbalCmdTopic queue 32 with QosProfile::sensor_data();
++        "/sim/aim/fire_eligibility" as RosString as FireEligibilityTopic queue 32 with QosProfile::sensor_data();
+     }
+ );
+ 
+@@ -347,9 +348,17 @@ pub mod bench_topics {
+                 with QosProfile::default().reliable().keep_last(32);
+             "/sim/events/hit" as SimEvent as SimHitEventTopic queue 32
+                 with QosProfile::default().reliable().keep_last(32);
++            "/sim/projectiles/trace" as r2r::std_msgs::msg::String as SimProjectileTraceTopic queue 32
++                with QosProfile::default().reliable().keep_last(32);
++            "/sim/gimbal/trace" as r2r::std_msgs::msg::String as SimGimbalTraceTopic queue 8
++                with QosProfile::sensor_data().best_effort().keep_last(8);
+             "/sim/scenario/status" as SimScenarioStatus as SimScenarioStatusTopic queue 4
+                 with QosProfile::sensor_data().best_effort().keep_last(4);
+         }
++        sub {
++            "/sim/bench/continuous_fire" as r2r::std_msgs::msg::String as SimContinuousFireTopic queue 4
++                with QosProfile::sensor_data().best_effort().keep_last(4);
++        }
+     );
+ }
+ 
+diff --git a/src/systems/camera.rs b/src/systems/camera.rs
+index e709234..baa4824 100644
+--- a/src/systems/camera.rs
++++ b/src/systems/camera.rs
+@@ -16,6 +16,10 @@ use crate::systems::ControllerState;
+ const INSET_BORDER_COLOR: Color = Color::srgba(1.0, 1.0, 1.0, 0.35);
+ 
+ pub fn following_controls(mut mode: ResMut<CameraMode>, controller: Res<ControllerState>) {
++    if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|value| value == "1") {
++        mode.0 = FollowingType::Robot;
++        return;
++    }
+     if controller.controlled.switch_camera_just_pressed {
+         mode.0 = match mode.0 {
+             FollowingType::Free => FollowingType::Robot,
+@@ -26,6 +30,10 @@ pub fn following_controls(mut mode: ResMut<CameraMode>, controller: Res<Controll
+ }
+ 
+ pub fn focus_controls(controller: Res<ControllerState>, mut focus: ResMut<CameraFocus>) {
++    if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|value| value == "1") {
++        *focus = CameraFocus::Own;
++        return;
++    }
+     if controller.controlled.switch_focus_just_pressed {
+         focus.toggle();
+     }
+diff --git a/src/systems/controller.rs b/src/systems/controller.rs
+index 48cec17..77640d7 100644
+--- a/src/systems/controller.rs
++++ b/src/systems/controller.rs
+@@ -368,7 +368,10 @@ pub fn update_auto_aim_subscription(
+     controller: Res<ControllerState>,
+     enabled: Res<SubscribeAutoAim>,
+ ) {
+-    let active = controller.auto_aim_active();
++    // Integration owns the switch through valid/invalid ROS commands. A stray
++    // F5 press must not make the argument-based control interface ineffective.
++    let active = std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|value| value == "1")
++        || controller.auto_aim_active();
+     if enabled.swap(active, Ordering::AcqRel) != active {
+         info!(
+             "Auto-aim subscription is now {}.",
+diff --git a/src/systems/gimbal_pid.rs b/src/systems/gimbal_pid.rs
+index ba3f372..4002aff 100644
+--- a/src/systems/gimbal_pid.rs
++++ b/src/systems/gimbal_pid.rs
+@@ -1,7 +1,8 @@
+ use bevy::prelude::*;
++use bevy::transform::helper::TransformHelper;
+ 
+ use crate::components::{Controlled, InfantryChassis, InfantryGimbal, InfantryLaunchOffset};
+-use crate::config::{GimbalAxisPidConfig, SimulationConfig};
++use crate::config::{GimbalAxisPidConfig, GimbalPidConfig, SimulationConfig};
+ 
+ /// Absolute muzzle-frame aim target produced by an external auto-aim solver.
+ #[derive(Clone, Copy, Debug, PartialEq)]
+@@ -67,6 +68,15 @@ pub struct GimbalAimTracker {
+     target: GimbalAimTarget,
+     yaw: AxisPid,
+     pitch: AxisPid,
++    command_stamp_ns: Option<i128>,
++    accepted_wall_ns: i128,
++    last_command_at: Option<std::time::Instant>,
++    feedforward: Vec2,
++    control_steps: u64,
++    last_dt: f32,
++    last_error: Vec2,
++    last_feedback: Vec2,
++    last_feedforward: Vec2,
+ }
+ 
+ impl GimbalAimTracker {
+@@ -75,6 +85,15 @@ impl GimbalAimTracker {
+             target,
+             yaw: AxisPid::default(),
+             pitch: AxisPid::default(),
++            command_stamp_ns: None,
++            accepted_wall_ns: 0,
++            last_command_at: None,
++            feedforward: Vec2::ZERO,
++            control_steps: 0,
++            last_dt: 0.0,
++            last_error: Vec2::ZERO,
++            last_feedback: Vec2::ZERO,
++            last_feedforward: Vec2::ZERO,
+         }
+     }
+ 
+@@ -87,6 +106,38 @@ impl GimbalAimTracker {
+     pub fn retarget(&mut self, target: GimbalAimTarget) {
+         self.target = target;
+     }
++
++    /// Feedforward uses only timestamped solver angles, never simulator truth.
++    pub fn retarget_stamped(&mut self, target: GimbalAimTarget, stamp_ns: i128, config: &GimbalPidConfig) {
++        let delta = Vec2::new(wrap_angle(target.yaw-self.target.yaw), wrap_angle(target.pitch-self.target.pitch));
++        if let Some(previous) = self.command_stamp_ns {
++            let dt = (stamp_ns-previous) as f32 * 1e-9;
++            if dt > 0.001 && dt <= config.feedforward_reset_gap_s
++                && delta.abs().max_element() <= config.feedforward_max_step_rad {
++                let limit = config.feedforward_max_rate.max(0.0);
++                let raw = (delta/dt).clamp(Vec2::splat(-limit), Vec2::splat(limit));
++                let alpha = 1.0-(-dt/config.feedforward_tau_s.max(0.001)).exp();
++                self.feedforward += (raw-self.feedforward)*alpha;
++            } else {
++                self.feedforward = Vec2::ZERO;
++            }
++        }
++        self.command_stamp_ns = Some(stamp_ns);
++        self.accepted_wall_ns = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
++            .unwrap_or_default().as_nanos() as i128;
++        self.last_command_at = Some(std::time::Instant::now());
++        self.retarget(target);
++    }
++
++    pub fn diagnostic(&self) -> serde_json::Value {
++        serde_json::json!({"command_stamp_ns":self.command_stamp_ns,
++            "accepted_wall_ns":self.accepted_wall_ns,"target_yaw_rad":self.target.yaw,
++            "target_pitch_rad":self.target.pitch,"control_steps":self.control_steps,
++            "dt_s":self.last_dt,"error_local_rad":self.last_error.to_array(),
++            "feedback_local_rad_s":self.last_feedback.to_array(),
++            "feedforward_world_rad_s":self.feedforward.to_array(),
++            "feedforward_local_rad_s":self.last_feedforward.to_array()})
++    }
+ }
+ 
+ fn wrap_angle(angle: f32) -> f32 {
+@@ -124,8 +175,10 @@ fn tracking_error(
+ pub fn gimbal_pid_controls(
+     time: Res<Time>,
+     config: Res<SimulationConfig>,
+-    gimbal: Option<
+-        Single<
++    ids: Query<Entity, (With<Controlled>, With<InfantryGimbal>)>,
++    mut transforms: ParamSet<(
++        TransformHelper,
++        Query<
+             (
+                 &mut Transform,
+                 &GlobalTransform,
+@@ -138,31 +191,58 @@ pub fn gimbal_pid_controls(
+                 Without<InfantryLaunchOffset>,
+             ),
+         >,
+-    >,
+-    muzzle: Option<Single<&GlobalTransform, (With<InfantryLaunchOffset>, With<Controlled>)>>,
++    )>,
++    muzzle: Option<Single<(Entity, &GlobalTransform), (With<InfantryLaunchOffset>, With<Controlled>)>>,
+ ) {
+-    let (Some(gimbal), Some(muzzle)) = (gimbal, muzzle) else {
+-        return;
+-    };
++    let (Ok(entity), Some(muzzle)) = (ids.single(), muzzle) else { return; };
++    let (muzzle_entity, muzzle_global) = muzzle.into_inner();
+     let dt = time.delta_secs();
+     if dt <= 0.0 {
+         return;
+     }
+ 
+-    let (mut gimbal_transform, gimbal_global, mut gimbal_data, mut tracker) = gimbal.into_inner();
++    let fresh = if config.vehicle.gimbal_pid.fixed_update {
++        let helper = transforms.p0();
++        let (Ok(gimbal), Ok(muzzle)) = (helper.compute_global_transform(entity), helper.compute_global_transform(muzzle_entity)) else { return; };
++        Some((gimbal.rotation(), muzzle.rotation()))
++    } else { None };
++    let mut query = transforms.p1();
++    let Ok((mut gimbal_transform, gimbal_global, mut gimbal_data, mut tracker)) = query.get_mut(entity) else { return; };
++    // Fixed ticks must not use stale GlobalTransforms from the previous render.
++    let (gimbal_rotation, muzzle_rotation) = fresh.unwrap_or((gimbal_global.rotation(), muzzle_global.rotation()));
++    if config.vehicle.gimbal_pid.fixed_update && tracker.last_command_at.is_some_and(|t| t.elapsed().as_secs_f32() > 0.25) {
++        tracker.feedforward = Vec2::ZERO;
++        return;
++    }
+ 
+     // Error is measured on the muzzle, so chassis motion shows up as tracking error
+     // instead of being cancelled out by a one-shot correction.
+     let error = tracking_error(
+         tracker.target().rotation(),
+         gimbal_transform.rotation,
+-        gimbal_global.rotation(),
+-        muzzle.rotation(),
++        gimbal_rotation,
++        muzzle_rotation,
+     );
+     let (yaw_error, pitch_error) = (error.x, error.y);
+     let pid = &config.vehicle.gimbal_pid;
+-    let yaw_rate = tracker.yaw.step(yaw_error, &pid.yaw, dt);
+-    let pitch_rate = tracker.pitch.step(pitch_error, &pid.pitch, dt);
++    let yaw_feedback = tracker.yaw.step(yaw_error, &pid.yaw, dt);
++    let pitch_feedback = tracker.pitch.step(pitch_error, &pid.pitch, dt);
++    let mut feedforward = Vec2::ZERO;
++    if pid.feedforward_gain != 0.0 && tracker.last_command_at.is_some_and(|t| t.elapsed().as_secs_f32() <= pid.feedforward_reset_gap_s) {
++        let h = 0.001;
++        let next = GimbalAimTarget { yaw:tracker.target.yaw+tracker.feedforward.x*h,
++            pitch:tracker.target.pitch+tracker.feedforward.y*h };
++        let next_error = tracking_error(next.rotation(),gimbal_transform.rotation,gimbal_rotation,muzzle_rotation);
++        // Express the target's world angular velocity in the local actuator axes.
++        feedforward = Vec2::new(wrap_angle(next_error.x-error.x),wrap_angle(next_error.y-error.y)) / h * pid.feedforward_gain;
++    }
++    let yaw_rate = (yaw_feedback+feedforward.x).clamp(-pid.yaw.max_rate,pid.yaw.max_rate);
++    let pitch_rate = (pitch_feedback+feedforward.y).clamp(-pid.pitch.max_rate,pid.pitch.max_rate);
++    tracker.control_steps += 1;
++    tracker.last_dt = dt;
++    tracker.last_error = error;
++    tracker.last_feedback = Vec2::new(yaw_feedback,pitch_feedback);
++    tracker.last_feedforward = feedforward;
+ 
+     (gimbal_data.local_yaw, gimbal_data.pitch, _) =
+         gimbal_transform.rotation.to_euler(EulerRot::YXZ);
+@@ -176,6 +256,25 @@ pub fn gimbal_pid_controls(
+         Quat::from_euler(EulerRot::YXZ, gimbal_data.local_yaw, gimbal_data.pitch, 0.0);
+ }
+ 
++#[cfg(feature = "bench")]
++pub fn publish_gimbal_control_trace(
++    time: Res<Time>,
++    config: Res<SimulationConfig>,
++    stamp: Res<crate::ros2::plugin::RosFrameStamp>,
++    publisher: Res<crate::ros2::topic::TopicPublisher<crate::ros2::topic::bench_topics::SimGimbalTraceTopic>>,
++    gimbal: Query<&GimbalAimTracker, (With<Controlled>, With<InfantryGimbal>)>,
++    mut previous: Local<f64>,
++) {
++    if time.elapsed_secs_f64()-*previous < 0.01 { return; }
++    *previous = time.elapsed_secs_f64();
++    let Ok(tracker) = gimbal.single() else { return; };
++    let mut value = tracker.diagnostic();
++    value["stamp_ns"] = serde_json::json!(i64::from(stamp.0.sec)*1_000_000_000+i64::from(stamp.0.nanosec));
++    value["fixed_update"] = serde_json::json!(config.vehicle.gimbal_pid.fixed_update);
++    value["feedforward_gain"] = serde_json::json!(config.vehicle.gimbal_pid.feedforward_gain);
++    publisher.publish(r2r::std_msgs::msg::String { data:value.to_string() });
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+diff --git a/src/systems/projectile.rs b/src/systems/projectile.rs
+index 2b245a4..21b05ce 100644
+--- a/src/systems/projectile.rs
++++ b/src/systems/projectile.rs
+@@ -13,6 +13,14 @@ use crate::robomaster::prelude::Projectile;
+ use crate::statistic::ProjectileStatistics;
+ use crate::systems::{ControllerState, request_controller_rumble};
+ 
++/// Granted only around a fresh ROS launch attempt; local inputs cannot use it.
++#[derive(Resource, Default)]
++pub(crate) struct IntegrationShotPermit {
++    pub authorized: bool,
++    pub stamp_ns: i128,
++    pub last_launch: Option<std::time::Instant>,
++}
++
+ pub fn setup_projectile(
+     mut commands: Commands,
+     config: Res<SimulationConfig>,
+@@ -54,7 +62,31 @@ pub fn projectile_launch(
+         (With<Controlled>, Without<InfantryChassis>),
+     >,
+     launch_offset: Single<&Transform, (With<Controlled>, With<InfantryLaunchOffset>)>,
++    muzzle_world: Single<&GlobalTransform, (With<Controlled>, With<InfantryLaunchOffset>, Without<InfantryGimbal>)>,
++    permit: Option<ResMut<IntegrationShotPermit>>,
++    #[cfg(feature = "bench")] scenario: Option<Res<crate::bench::scenario::Scenario>>,
+ ) {
++    if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|value| value == "1") {
++        let Some(mut permit) = permit else { return; };
++        let authorized = std::mem::take(&mut permit.authorized);
++        let now_ns = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
++            .unwrap_or_default().as_nanos() as i128;
++        let rate = std::env::var("DAEDALUS_INTEGRATION_FIRE_RATE_HZ").ok()
++            .and_then(|value| value.parse::<f64>().ok()).unwrap_or(2.0);
++        if !rate.is_finite() || rate <= 0.0 || rate > 5.0 { return; }
++        if !authorized || std::env::var("DAEDALUS_INTEGRATION_FIRE").as_deref() != Ok("auto")
++            || now_ns - permit.stamp_ns > 250_000_000 || permit.stamp_ns > now_ns + 10_000_000
++            || permit.last_launch.is_some_and(|last| last.elapsed() < Duration::from_secs_f64(1.0/rate)) {
++            return;
++        }
++        #[cfg(feature = "bench")]
++        if !scenario.as_ref().is_some_and(|s| s.phase == crate::bench::scenario::Phase::Running) {
++            return;
++        }
++        // The ROS path already advances the mechanical cooldown each frame.
++        if !cooldown.is_finished() { return; }
++        permit.last_launch = Some(std::time::Instant::now());
++    }
+     cooldown.tick(time.delta());
+     if !cooldown.is_finished() {
+         return;
+@@ -69,7 +101,7 @@ pub fn projectile_launch(
+         return;
+     }
+     let vel = infantry.1.0 + direction * config.projectile.speed;
+-    commands.spawn((
++    let mut projectile = commands.spawn((
+         RigidBody::Dynamic,
+         Collider::sphere(config.projectile.diameter / 2.0),
+         Mass(config.projectile.mass),
+@@ -77,19 +109,21 @@ pub fn projectile_launch(
+         Restitution::new(0.3),
+         LinearDamping(config.projectile.linear_damping),
+         GameLayer::projectile_collision_layers(true),
++        if std::env::var("DAEDALUS_PROJECTILE_VISIBLE").as_deref()==Ok("off") {Visibility::Hidden} else {Visibility::Inherited},
+         Mesh3d(setting.0.clone()),
+         MeshMaterial3d(setting.1.clone()),
+         LinearVelocity(vel),
+         AngularVelocity(infantry.2.0),
+-        Transform::IDENTITY.with_translation(
+-            infantry.0.translation + (gimbal.0.rotation() * launch_offset.translation),
+-        ),
++        Transform::IDENTITY.with_translation(muzzle_world.translation()),
+         ProjectileLifetime(Timer::from_seconds(
+             config.projectile.lifetime,
+             TimerMode::Once,
+         )),
+         Projectile,
+     ));
++    if std::env::var("DAEDALUS_INTEGRATION").is_ok_and(|value| value == "1") {
++        projectile.insert((Sensor, SpeculativeMargin::ZERO, CollisionMargin(0.0)));
++    }
+     request_controller_rumble(
+         controller.as_deref(),
+         &mut rumble_requests,

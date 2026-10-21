@@ -1,0 +1,31 @@
+# Same open corridor traversed in opposite map-Y directions.
+id = "rm26_ego_left"
+seed = 20261019
+duration = 8.0
+trigger = "on_load"
+
+[[robot]]
+id = 0
+spawn = { x = -2.5, y = 11.3, z = -0.2465, yaw_deg = 180.0 }
+[[robot.segment]]
+t0 = 0.0
+t1 = 2.0
+type = "static"
+[[robot.segment]]
+t0 = 2.0
+t1 = 6.0
+type = "strafe"
+v = 0.5
+dir_deg = 90.0
+[[robot.segment]]
+t0 = 6.0
+t1 = 8.0
+type = "static"
+
+[[robot]]
+id = 1
+spawn = { x = -6.5, y = 11.3, z = -0.2465, yaw_deg = 0.0 }
+[[robot.segment]]
+t0 = 0.0
+t1 = 8.0
+type = "static"
