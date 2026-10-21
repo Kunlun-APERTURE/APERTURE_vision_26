@@ -23,7 +23,6 @@
 # Other host provisioning artifacts are outside the simulator integration repo.
 /docker/Dockerfile.generated
 /docker/*.log
-/docker/deploy-sunshine.sh
 /docker/deploy.sh
 /docker/enter-sunshine.sh
 /docker/enter.sh
