@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "runtime_image": "sha256:370746accca944e39ef52785a5791c5b3b36cf5a7b8bba66128bc90b7019aa43",
+  "tests_image": "sha256:bb52ea9fa83bb5ad2fb9c7d36004896b720061d92600384e9fcd16b31c0d34f1",
+  "parent_images": {
+    "daedalus:rm26-reference-yaw-tests-20261028": "sha256:a538b9e89486cccd9274fd6d3a0cb75807fa8db0df96eeafc3dd3e86db7077c2",
+    "daedalus:rm26-reference-yaw-20261028": "sha256:dd9c0b70dfdd4faf1b053252d5e470a4adf3ceee278444bcba46de732289a0f9"
+  },
+  "runtime_binary_sha256": "d6b97a88f960d063aa5b5244ad3444e5a3f6faaa0ed1f9593441258f445875a4",
+  "tested_builder_binary_sha256": "d6b97a88f960d063aa5b5244ad3444e5a3f6faaa0ed1f9593441258f445875a4",
+  "source_sha256": {
+    "vision_simulator_26/src/systems/yaw_reference.rs": "1b72b7b29bc46d71856625007e06542a87b24298fbeaf5a6ed12b984b7950b16",
+    "vision_simulator_26/src/systems/gimbal_pid.rs": "770ddfae601a4ced082dda4345c89f8a5052c223409dd2f938d0754e60511be6",
+    "vision_simulator_26/src/bench/scenario.rs": "f3aaec9636330537e3cd5cc3183ff2d0ad6a6799b5891c95ff384557a4d2fae1",
+    "vision_simulator_26/src/config.rs": "7a2525eef90150499b3db61f2fd6ed28060847ad30b9e96aef18649c15899996",
+    "vision_simulator_26/Cargo.lock": "c8ad54a9525770e28df2886f28689f1052b32f5cb3a9336bf39437e24b6443f0"
+  },
+  "source_matches_tested_builder": true,
+  "unique_regular_tests": 12,
+  "angle_loop_cases": 24,
+  "angle_loop_samples": 96000,
+  "scope": "Numerical kernel + production controller component; not full ECS/ROS or real-world qualification"
+}

@@ -1,0 +1,34 @@
+{
+  "python_syntax_files": 165,
+  "python_syntax_passed": true,
+  "scenario_and_scoring_checks": {
+    "passed": true,
+    "generated_cases": 28,
+    "checks": [
+      "determinism",
+      "seed sensitivity",
+      "actor independence",
+      "continuous timelines",
+      "nominal bounds",
+      "explicit semantics",
+      "nearest rank tail",
+      "fixed-script pulse consumption, expiry, reset",
+      "future moving-origin compensation",
+      "ambiguous physical-plate exclusion"
+    ]
+  },
+  "rust_math_tests_passed": 9,
+  "previous_production_rust_checks": "See integration-checks.json; source hashes unchanged",
+  "existing_cpp_test_probe": {
+    "passed": false,
+    "command": "continuity_test configs/simulator.yaml (existing local binary, algorithm container)",
+    "result": "SIGSEGV exit139; robustness/optimization not reached",
+    "scope": "Not a fresh build of this stage source. Full current C++ validation remains pending; no algorithm or protected binary changed for packaging."
+  },
+  "whitespace_note": "configs/simulator.yaml retains two historical trailing-whitespace lines to preserve the validated config hash",
+  "remote_push": {
+    "completed": false,
+    "probe": "HTTPS push --dry-run failed: no usable GitHub username/credential",
+    "integration_remote": "not configured"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "source_transcription_verified": true,
+  "numerical_consistency_verified": true,
+  "production_component_verified": true,
+  "backend_smoke_verified": true,
+  "two_lane_repeatability_smoke_verified": true,
+  "historical_kernel_bit_identical": true,
+  "historical_seals_unchanged": true,
+  "protected_files_unchanged": true,
+  "default_promoted": false,
+  "real_robot_fidelity_verified": false,
+  "ui_backend_equivalence_certified": false,
+  "continuous_rotating_collision_fixed": false,
+  "muzzle_rotational_velocity_fixed": false,
+  "team_visual_review": "pending",
+  "maximum_complete_trial_s": 22.20692801475525
+}

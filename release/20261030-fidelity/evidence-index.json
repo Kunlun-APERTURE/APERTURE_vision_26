@@ -1,0 +1,12 @@
+{
+  "original_directory": "/home/rm/rm26/docker/auto_aim/experiments/reference-yaw-correction-20261029",
+  "original_report_seal_sha256": "aec6a4c55ba3a417faf0bc9b5e7580cada8f61f3e40744788ae191a29a395c3f",
+  "video": {
+    "relative_local_path": "visual-review/acceptance.mp4",
+    "sha256": "b66b1fb19ced6024dcfacd2a6acbf930b5044ff989a8e4fe8204dc8958ac09dd",
+    "duration_s": "9.366667",
+    "not_in_git": true
+  },
+  "original_artifacts_not_distributed": true,
+  "team_review": "pending"
+}

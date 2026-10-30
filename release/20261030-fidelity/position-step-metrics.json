@@ -1,0 +1,34 @@
+[
+  {
+    "model": "legacy",
+    "peak_rad": 0.010103833,
+    "overshoot_percent": 1.0383299999999984,
+    "peak_after_command_s": 0.27,
+    "settle_2percent_after_command_s": 0.15000001,
+    "note": "Observed production yaw-only position PID + optional feedforward component response, not published velocity response, not real vehicle; default gains; 100Hz command/1000Hz update"
+  },
+  {
+    "model": "rm2017-yaw-unitdc",
+    "peak_rad": 0.012001268,
+    "overshoot_percent": 20.012680000000003,
+    "peak_after_command_s": 0.16,
+    "settle_2percent_after_command_s": 0.45500000000000007,
+    "note": "Observed production yaw-only position PID + optional feedforward component response, not published velocity response, not real vehicle; default gains; 100Hz command/1000Hz update"
+  },
+  {
+    "model": "rm2017-yaw-corrected-raw",
+    "peak_rad": 0.014530404,
+    "overshoot_percent": 45.304039999999986,
+    "peak_after_command_s": 0.13600002,
+    "settle_2percent_after_command_s": 0.4,
+    "note": "Observed production yaw-only position PID + optional feedforward component response, not published velocity response, not real vehicle; default gains; 100Hz command/1000Hz update"
+  },
+  {
+    "model": "rm2017-yaw-corrected-unitdc",
+    "peak_rad": 0.013674086,
+    "overshoot_percent": 36.74086000000001,
+    "peak_after_command_s": 0.14100000999999998,
+    "settle_2percent_after_command_s": 0.40700000000000003,
+    "note": "Observed production yaw-only position PID + optional feedforward component response, not published velocity response, not real vehicle; default gains; 100Hz command/1000Hz update"
+  }
+]

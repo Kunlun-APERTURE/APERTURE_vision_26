@@ -1,0 +1,103 @@
+{
+  "passed": true,
+  "source_image_sha256": "9b643c862db2ff3231b48af046cea839abed1ca06dec0c3d9a60ffd08b13b6bc",
+  "models": {
+    "rm2017-yaw-unitdc": {
+      "name": "rm2017-yaw-unitdc",
+      "numerator": [
+        -12.65,
+        1084
+      ],
+      "denominator": [
+        1,
+        43.16,
+        3975
+      ],
+      "coefficient_sha256": "224f96e68a2855b76fda2c0850084cb65baa5da888aa6048c896d6397ae3f971",
+      "original_dc_gain": 0.27270440251572325,
+      "applied_scale": 3.6669741697416973,
+      "effective_dc_gain": 1.0,
+      "normalization": "G(s)/G(0); unit DC is a simulation assumption",
+      "source_status": "transcription_error_historical_only",
+      "axis": "yaw",
+      "input": "runtime: commanded yaw rate rad/s after simulator outer position PID and feedforward",
+      "source_interface": "published target yaw rate to measured gyro yaw rate, with an existing inner speed PID; source export-unit conversion not independently verified",
+      "output": "actual angular velocity rad/s before angle integration; final output rate limiter retained",
+      "discretization": "exact ZOH state and linear angle integral; clipped intervals integrated to absolute tolerance 1e-12",
+      "source": "https://bbs.robomaster.com/article/3559?source=5",
+      "source_formula": "https://hz-rm-bbs-web-prod.oss-cn-hangzhou.aliyuncs.com/attachment/pre/v1/201710/11/213630m5dydtcgrahuolud.png",
+      "source_formula_sha256": "9b643c862db2ff3231b48af046cea839abed1ca06dec0c3d9a60ffd08b13b6bc",
+      "limitation": "Wrong denominator preserved for historical reproduction; not the published RM2017 model. Source is an identified closed-loop velocity response, not this robot calibration. Existing outer position PID/feedforward and final clipping are simulator assumptions; pitch uses the legacy model.",
+      "erratum": "experiments/realism-audit-20261029/report.md"
+    },
+    "rm2017-yaw-corrected-raw": {
+      "name": "rm2017-yaw-corrected-raw",
+      "numerator": [
+        -12.65,
+        1084
+      ],
+      "denominator": [
+        1,
+        34.16,
+        975
+      ],
+      "coefficient_sha256": "aa1c92b77aac23e0c2536ab42ce5ed37bb7bb1a0725c01ad740f222a82088cf2",
+      "original_dc_gain": 1.1117948717948718,
+      "applied_scale": 1.0,
+      "effective_dc_gain": 1.1117948717948718,
+      "normalization": "none; published velocity transfer function gain retained",
+      "source_status": "corrected_against_original_formula_image",
+      "axis": "yaw",
+      "input": "runtime: commanded yaw rate rad/s after simulator outer position PID and feedforward",
+      "source_interface": "published target yaw rate to measured gyro yaw rate, with an existing inner speed PID; source export-unit conversion not independently verified",
+      "output": "actual angular velocity rad/s before angle integration; final output rate limiter retained",
+      "discretization": "exact ZOH state and linear angle integral; clipped intervals integrated to absolute tolerance 1e-12",
+      "source": "https://bbs.robomaster.com/article/3559?source=5",
+      "source_formula": "https://hz-rm-bbs-web-prod.oss-cn-hangzhou.aliyuncs.com/attachment/pre/v1/201710/11/213630m5dydtcgrahuolud.png",
+      "source_formula_sha256": "9b643c862db2ff3231b48af046cea839abed1ca06dec0c3d9a60ffd08b13b6bc",
+      "limitation": "Source is an identified closed-loop velocity response, not this robot calibration. Existing outer position PID/feedforward and final clipping are simulator assumptions; pitch uses the legacy model.",
+      "erratum": "experiments/realism-audit-20261029/report.md"
+    },
+    "rm2017-yaw-corrected-unitdc": {
+      "name": "rm2017-yaw-corrected-unitdc",
+      "numerator": [
+        -12.65,
+        1084
+      ],
+      "denominator": [
+        1,
+        34.16,
+        975
+      ],
+      "coefficient_sha256": "aa1c92b77aac23e0c2536ab42ce5ed37bb7bb1a0725c01ad740f222a82088cf2",
+      "original_dc_gain": 1.1117948717948718,
+      "applied_scale": 0.8994464944649446,
+      "effective_dc_gain": 1.0,
+      "normalization": "G(s)/G(0); unit DC is a simulation assumption",
+      "source_status": "corrected_against_original_formula_image",
+      "axis": "yaw",
+      "input": "runtime: commanded yaw rate rad/s after simulator outer position PID and feedforward",
+      "source_interface": "published target yaw rate to measured gyro yaw rate, with an existing inner speed PID; source export-unit conversion not independently verified",
+      "output": "actual angular velocity rad/s before angle integration; final output rate limiter retained",
+      "discretization": "exact ZOH state and linear angle integral; clipped intervals integrated to absolute tolerance 1e-12",
+      "source": "https://bbs.robomaster.com/article/3559?source=5",
+      "source_formula": "https://hz-rm-bbs-web-prod.oss-cn-hangzhou.aliyuncs.com/attachment/pre/v1/201710/11/213630m5dydtcgrahuolud.png",
+      "source_formula_sha256": "9b643c862db2ff3231b48af046cea839abed1ca06dec0c3d9a60ffd08b13b6bc",
+      "limitation": "Source is an identified closed-loop velocity response, not this robot calibration. Existing outer position PID/feedforward and final clipping are simulator assumptions; pitch uses the legacy model.",
+      "erratum": "experiments/realism-audit-20261029/report.md"
+    }
+  },
+  "max_magnitude_error_db": 0.00015568571307883719,
+  "max_phase_error_deg": 0.0013272436495364193,
+  "routing": {
+    "cli_config_combinations": 16,
+    "aligned_ui_selection": true,
+    "compose_selection": true,
+    "mixed_matrix_selection": true,
+    "historical_matrix_cannot_ignore_selected_model": true
+  },
+  "historical_kernel_bit_identical": true,
+  "source_to_coefficients": "original image independently read by root and Luna; manual transcription review, not OCR accuracy certification",
+  "scope": "Numerical/source/routing consistency only; not real-robot identification or shooting improvement",
+  "excitation": "Offline midpoint-sampled sine; no artificial communication timing change"
+}
