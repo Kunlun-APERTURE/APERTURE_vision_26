@@ -33,3 +33,22 @@
 /docker/setup-gpu.sh
 /docker/setup-host.sh
 /docker/sunshine-assets.html
+
+# Local handoff packages and superseded development notes.
+/exports/
+/docker/auto_aim/AIM_RETENTION.md
+/docker/auto_aim/BACKGROUND_ALIGNMENT.md
+/docker/auto_aim/DECISION_BENCHMARK.md
+/docker/auto_aim/HIGHSPEED_V1.md
+/docker/auto_aim/MANEUVER_FIRE_V6.md
+/docker/auto_aim/MANEUVER_V6.md
+/docker/auto_aim/MOTION_V5.md
+/docker/auto_aim/OPTIMIZATION_V4.md
+/docker/auto_aim/PERCEPTION_ASSOCIATION.md
+/docker/auto_aim/PERCEPTION_HANDOFF.md
+/docker/auto_aim/PERCEPTION_OPTIMIZATION.md
+/docker/auto_aim/PERCEPTION_REPAIR.md
+/docker/auto_aim/PIXEL_ROTATION.md
+/docker/auto_aim/PIXEL_ROTATION_REPLICATION.md
+/docker/auto_aim/POSE_REFINEMENT.md
+/docker/auto_aim/TIMING_FACTOR.md
