@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "fixed",
+  "name": "reference-yaw-return20",
+  "control_hz": 508.516313,
+  "input_delay_ns": 28622040,
+  "processing_delay_ns": 9436004,
+  "warmup_frames": 30,
+  "provenance": {
+    "parent": "ui-aligned-v7-clock",
+    "assumption": "Additional 20 ms return transport sensitivity; all other timing unchanged"
+  },
+  "return_delay_ns": 20438315,
+  "pose_delay_ns": 1016502,
+  "preparation_reset": true,
+  "continuous_measurement": true,
+  "warmup_receipt_boundary": true,
+  "capture_interval_ns": 34634124
+}

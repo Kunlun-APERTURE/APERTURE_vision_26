@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "parallelism": "auto",
+  "defaults": {
+    "terrain": "flat_range",
+    "mode": "shoot",
+    "matrix": "single",
+    "physics": "no-drag",
+    "algorithm_profile": "tracking_fire_v3",
+    "algorithm_lifecycle": "session",
+    "gimbal_profile": "feedforward",
+    "fire_policy": "advice",
+    "fire_rate_hz": 5,
+    "label": "highspeed-background"
+  },
+  "matrix": {
+    "seed": [2026102201, 2026102202, 2026102203],
+    "scene": ["hf_static_5", "hf_static_8", "hf_uniform_3", "hf_reverse_3", "hf_turn90_3", "hf_spin_pos", "hf_spin_neg"]
+  }
+}

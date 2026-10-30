@@ -3,11 +3,16 @@ import csv
 import json
 import math
 import bisect
+from impact_quality import impact_coordinates, summarize as summarize_quality
 
 
 def baseline_key(manifest):
+    terrain=manifest.get('terrain','arena')
+    history='_detector_session' if manifest.get('execution',{}).get('detector_history')=='session' else ''
+    if manifest.get('input_contract')=='aligned-v1':
+        history+='_input_aligned1_warm'+str(manifest['warmup_frames'])+'_sensor'+str(manifest['sensor_seed'])
     if manifest.get('mode','track') != 'shoot':
-        return manifest['scene']
+        return manifest['scene']+('_terrain_'+terrain if terrain!='arena' else '')+history
     p = manifest['shooting']
     base = f"shoot_{manifest['scene']}_{p['physics']}_{p['bullet_speed']:g}_{p['reported_bullet_speed']:g}"
     if manifest.get('scenario_semantics'):
@@ -25,11 +30,25 @@ def baseline_key(manifest):
         base += '_continuous_2hz'
     if p.get('launch_speed_frame'):
         base += '_restframe_speed_v1'
-    return base
+    if terrain!='arena':base+='_terrain_'+terrain+'_quality_v1'
+    if manifest.get('pipeline_version')==2:
+        base+='_'+manifest['execution']['profile']+'_score2'
+    return base+history
 
 
-def score(folder, manifest, state):
+def score(folder, manifest, state, output_folder=None):
+    destination=output_folder or folder
     events = state.get('shot_events',[])
+    quality_enabled=manifest.get('impact_quality_version')==1
+    front_id=None
+    if (folder/'telemetry.jsonl').exists():
+        for line in (folder/'telemetry.jsonl').open():
+            packet=json.loads(line)
+            if packet['kind']=='armors':
+                front_id=next((p['id'] for p in packet['data']['armors'] if p['robot_id']==1 and p['slot']==0),None)
+                break
+    hit_mode=manifest.get('scenario_semantics',{}).get('hit_evaluation','target_armor')
+    unified=manifest.get('scoring_version')==2
     strict = manifest.get('shooting',{}).get('hit_method') == 'swept_actual_segment_v3'
     traces = {}
     for packet in state.get('projectile_traces',[]):
@@ -110,6 +129,15 @@ def score(folder, manifest, state):
             'armor_id':terminal['armor_id'] if terminal and terminal['kind']==1 else None,
             'contact_point':point,'contact_trace_gap_m':trace_gap,'trace_samples':len(traces.get(seq,[])),'flight_time_s':terminal['flight_time_s'] if terminal else None,
             'terminal_stamp_ns':terminal['stamp_ns'] if terminal else None})
+        geometry=impact_coordinates(point,terminal or {})
+        rows[-1].update({key:(geometry[key] if geometry else None) for key in
+            ('impact_x_m','impact_y_m','impact_center_distance_m','impact_x_fraction','impact_y_fraction','impact_center_proximity')})
+        rows[-1]['front_armor_hit']=outcome=='target_armor' and rows[-1]['armor_id']==front_id
+        rows[-1]['useful_hit']=outcome=='target_armor' and (unified or hit_mode=='target_armor' or rows[-1]['armor_id']==front_id)
+        rows[-1]['weighted_hit_score']=(geometry['impact_center_proximity'] if geometry else None) if rows[-1]['useful_hit'] else 0.
+        rows[-1]['impact_geometry']={key:terminal.get(key) for key in ('impact_geometry_valid','impact_sim_time_ns','plate_center','plate_right','plate_up','plate_size')} if terminal and armor else None
+        if quality_enabled and armor and geometry is None:errors.append(f'shot {seq}: missing or invalid impact geometry v1')
+        if quality_enabled and not unified and hit_mode=='front_armor' and front_id is None:errors.append('No front armor identity in recorded truth')
         if rest_speed:
             own = shooter_velocity(fire['stamp_ns'],fire['shooter_id'])
             if own is None:
@@ -127,9 +155,9 @@ def score(folder, manifest, state):
     speed_key = 'muzzle_relative_speed_mps' if rest_speed else 'initial_speed_mps'
     if expected is not None and any(r.get(speed_key) is None or abs(r[speed_key]-expected)>.2 for r in rows):
         errors.append('Observed muzzle speed differs from configured speed by >0.2 m/s')
-    path = folder/'shots.jsonl'
+    path = destination/'shots.jsonl'
     path.write_text(''.join(json.dumps(r,allow_nan=False)+'\n' for r in rows))
-    with (folder/'shots.csv').open('w',newline='') as out:
+    with (destination/'shots.csv').open('w',newline='') as out:
         fields = list(rows[0]) if rows else ['shot_seq','fire_time_s','outcome']
         writer = csv.DictWriter(out,fieldnames=fields)
         writer.writeheader()
@@ -152,4 +180,9 @@ def score(folder, manifest, state):
         'hit_trace_gap_max_m':max((r['contact_trace_gap_m'] for r in rows if r['outcome']=='target_armor' and r['contact_trace_gap_m'] is not None),default=None),
         'projectile_trace_packets':len(state.get('projectile_traces',[])),
         'shot_sample_available':bool(rows)}
+    metrics.update(summarize_quality(rows,quality_enabled))
+    metrics.update(scoring_version=2 if unified else 1,
+        target_hits_per_s=len(hits)/manifest['duration_s'],
+        front_armor_hits=sum(r['front_armor_hit'] for r in rows),
+        front_armor_hit_rate=sum(r['front_armor_hit'] for r in rows)/len(rows) if rows else None)
     return metrics, errors

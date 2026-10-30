@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "contract": "aligned-v1",
+  "mechanisms_verified": true,
+  "ui_equivalence_certified": false,
+  "automatic_parallelism": 1,
+  "algorithm_sha256": "6a34a834710eb2365ec40cce96137eb603c069a4bb3d03ec190f7a18bf721593",
+  "simulator": {
+    "tag": "daedalus:rm26-input-contract-v2",
+    "image_id": "sha256:f9a10aa9e19766c6fefd7a062fb64f538b7941635c299351deec566ae66ed75a"
+  },
+  "evaluator": {
+    "tag": "daedalus:rm26-evaluator-input-contract-v2",
+    "image_id": "sha256:46b336a16db9b3fa5d4a12eaf713e665aee332736a2f716b6092fc5977be700f"
+  },
+  "evidence": "/home/rm/rm26/docker/auto_aim/experiments/input-contract-fix-20261023/acceptance-r3/mechanism-result.json",
+  "scope": "Mechanism acceptance; inherited aiming qualification remains unchanged"
+}

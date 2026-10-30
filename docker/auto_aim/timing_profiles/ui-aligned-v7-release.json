@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "kind": "fixed",
+  "name": "ui-aligned-v7-release",
+  "control_hz": 480,
+  "input_delay_ns": 38456297,
+  "processing_delay_ns": 9537230,
+  "warmup_frames": 30,
+  "provenance": {
+    "parent_profile": "ui-fixed-v6",
+    "intervention_fields": [
+      "preparation_release_home"
+    ],
+    "selection": "Source-confirmed missing UI hold command; ACK distance=-1 before fresh input. No timing or score selection.",
+    "scope": "First preparation-state divergence; no extra physical settling duration introduced."
+  },
+  "return_delay_ns": 433691,
+  "pose_delay_ns": 1070773,
+  "preparation_reset": true,
+  "continuous_measurement": true,
+  "warmup_receipt_boundary": true,
+  "preparation_release_home": true
+}

@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "kind": "fixed",
+  "name": "ui-fixed-v5",
+  "control_hz": 480,
+  "input_delay_ns": 38456297,
+  "processing_delay_ns": 9537230,
+  "warmup_frames": 30,
+  "provenance": {
+    "selection": "Timing-only calibration; independent UI repeats required for effect acceptance",
+    "runs": [
+      {
+        "run": "20261022T155837_hf_static_8_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_006e64ca",
+        "manifest_sha256": "f2517a1a6d5be8bf0e11b11db1564b95faf617604ab96489650bb34d0088d556",
+        "telemetry_sha256": "ae1e334df15ae1314feb0618a7270d96d936dd25533d6a62fb0a1f769a6b5fcf",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160052_hf_static_8_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_cecb0daf",
+        "manifest_sha256": "39a2edf39ff5830196d2c7f4f1f4e2c931e05fa67990188a201e0c63f268116a",
+        "telemetry_sha256": "b0cc1c436be8201bbcb5aa65565f001ff74a81e92a58250c5b3ce9c695156404",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160112_hf_static_8_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_48f8292b",
+        "manifest_sha256": "2b0d32a7418af020706cf1a731c8d6d817d644afc86a553272a4a33f8b4416df",
+        "telemetry_sha256": "7b26ee3ad4d1dbee2f211687641970ea0b05806a3a8311ebadcfcfa9cc0e8b9f",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T155857_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_3ee05ea2",
+        "manifest_sha256": "120b9084b855c10cab00163418d9de91369353bdf42f44ba71ac4cdae27b6e94",
+        "telemetry_sha256": "793194d3da0f2e655af1c1a6d5bdecacaf5a37b5eaa2a4c84ecdaf8a27f70c7a",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160034_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_d04fded2",
+        "manifest_sha256": "6cba19d84f7bb89dd8ad67f0dfc2314bd80471dff90d1685cadfbd3161a718da",
+        "telemetry_sha256": "aad82094b3a043f2b42730f0ee86bd9070f0c23a170d56d772c63b35a5ee183a",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160132_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ab2aeabd",
+        "manifest_sha256": "de753de5a1480111beb2a283bb8c4822e9ce457a82ec7e3e9bff8824728cf956",
+        "telemetry_sha256": "623e1da533b3238b7a6079986b9ac018e7c72ce27377b13dfe5f1306da5092f5",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T155915_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_34745320",
+        "manifest_sha256": "e6668e58c2f78799a8106f80807a5c16ff8b21383036cdb9acdbaa442d728d27",
+        "telemetry_sha256": "f5980d91c13d80c5835eb698e53d90fc7701e2cf9860774120f1b40e78904567",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160014_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_043b85d4",
+        "manifest_sha256": "9e86101bdb92b82b69b790cb590abce0f52b6691482bf6ce329487fc5a4cd66d",
+        "telemetry_sha256": "745e540e285a1c4df20374baeec97ab20e89de3d53a5faa983e0f6e44b685da2",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160150_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_d72cf1a1",
+        "manifest_sha256": "b92a90edf51d331127b4f82cc62c679c36d8e6ba72ca30d3084b627a75ac44ad",
+        "telemetry_sha256": "cabc14b0022004211a51d0d391978bbbeeb1f2817f3ae20f75a6e6d443e766e6",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T155935_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9fad67ea",
+        "manifest_sha256": "6ba6a56e91d33745a9e99143dcde37f12346ef76fda3146e18284fe488526590",
+        "telemetry_sha256": "d67d03a645232b0ad79b8cd5f6518ac2b678d25ef5ccb24453da769ee695a0ac",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T155954_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_bbdfcd81",
+        "manifest_sha256": "60fe8a4aae4170a019f8958e721a04862f6c00462cd507a05c402851cd739cec",
+        "telemetry_sha256": "efbdd157f5c4b4a55450d8b8d29572e0c61e10e372f743c35f3feec435895145",
+        "control_source": "exact_tf"
+      },
+      {
+        "run": "20261022T160210_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4394029f",
+        "manifest_sha256": "85dda707deef4d32c6eae73367d0b9cb81fd13cdfe559876ac899089897e9d74",
+        "telemetry_sha256": "9bd375575e135ce387dc25f40a911f2bbfb74f3cc639e7c8eb3495e5708a61a2",
+        "control_source": "exact_tf"
+      }
+    ],
+    "processing_clock": "Own-pose stamp + recorded decision-time pose age; includes JPEG decode",
+    "return_clock": "Bridge receipt minus decision time",
+    "pose_clock": "Send time minus own-pose stamp",
+    "missing_pipeline_median_ns": 2730857,
+    "parent_timing_sha256": "c1671df2e4df36f4a77a78084c1f8ee546447de40db1ccf554e08d23eba7a51f",
+    "initialization": "Acknowledged physical reset and control-clock origin before fixed settling. Sensor warmup remains 30 frames.",
+    "cadence": "Integer nanoseconds; identical timing values to v3",
+    "measurement_boundary": "Keep pending warmup command, queued captures and all timing indices; begin changes scenario clock and fire arming only."
+  },
+  "return_delay_ns": 433691,
+  "pose_delay_ns": 1070773,
+  "preparation_reset": true,
+  "continuous_measurement": true
+}

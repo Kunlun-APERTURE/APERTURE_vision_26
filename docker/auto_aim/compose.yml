@@ -1,7 +1,7 @@
 name: rm26-daedalus
 services:
   daedalus:
-    image: daedalus:rm26-integration
+    image: ${RM26_SIMULATOR_IMAGE:-daedalus:rm26-integration}
     container_name: vision_simulator_26
     build:
       context: ../../vision_simulator_26
@@ -60,7 +60,7 @@ services:
       driver: json-file
       options: {max-size: 20m, max-file: "3"}
   bridge:
-    image: daedalus:rm26-integration
+    image: ${RM26_BRIDGE_IMAGE:-daedalus:rm26-integration}
     container_name: sp_vision_ros_bridge
     init: true
     restart: "no"
@@ -73,10 +73,18 @@ services:
       ROS_DOMAIN_ID: "0"
       RMW_IMPLEMENTATION: rmw_fastrtps_cpp
       RM26_COMMAND_SCRIPT: ${RM26_COMMAND_SCRIPT:-}
+      RM26_RECORD_TIMING: ${RM26_RECORD_TIMING:-0}
     volumes:
       - ./bridge.py:/opt/rm26/bridge.py:ro
       - ./observer.py:/opt/rm26/observer.py:ro
+      - ./session_evidence.py:/opt/rm26/session_evidence.py:ro
+      - ./input_contract.py:/opt/rm26/input_contract.py:ro
+      - ./sync_bridge.py:/opt/rm26/sync_bridge.py:ro
+      - ./sync_timing.py:/opt/rm26/sync_timing.py:ro
       - ./scenario_catalog.py:/opt/rm26/scenario_catalog.py:ro
+      - ./highspeed_scenarios.py:/opt/rm26/highspeed_scenarios.py:ro
+      - ./movement_scenarios.py:/opt/rm26/movement_scenarios.py:ro
+      - ./focus_scenarios.py:/opt/rm26/focus_scenarios.py:ro
       - ./command_script.py:/opt/rm26/command_script.py:ro
       - ./.runtime:/run/rm26-sim
     command: [python3, -u, /opt/rm26/bridge.py, --port, "18726", --fps, "30", --bullet-speed, "${RM26_REPORTED_BULLET_SPEED:-25}", --actual-bullet-speed, "${RM26_BULLET_SPEED:-25}", --fire, "${RM26_FIRE_MODE:-off}", --physics, "${RM26_PHYSICS:-no-drag}", --fire-policy, "${RM26_FIRE_POLICY:-advice}", --fire-rate-hz, "${RM26_FIRE_RATE_HZ:-5}", --algorithm-profile, "${RM26_ALGORITHM_PROFILE:-legacy}"]

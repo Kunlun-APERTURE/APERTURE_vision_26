@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "kind": "fixed",
+  "name": "ui-aligned-v7-clock",
+  "control_hz": 508.516313,
+  "input_delay_ns": 28622040,
+  "processing_delay_ns": 9436004,
+  "warmup_frames": 30,
+  "provenance": {
+    "parent_profile": "ui-fixed-v6",
+    "selection": "All six frozen current UI runs; median timing only. No score input.",
+    "input_contract": "aligned-v1",
+    "source_runs": [
+      {
+        "run_id": "20261023T065825_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_5fcc01e8",
+        "files": {
+          "manifest.json": "c72a2e174a5b20cbe6deb6c22ca7491284e2e4ce1d0851d7dff7087d9a7b5952",
+          "run-state.json": "b23ff50ccf5b74cf196c580360a6fdbe7f28095192cef9634813c97ebb8927c5",
+          "session-evidence/events.jsonl": "1da09d8c6f459c707e03852d8c68344a287742562a8585ec79d21867e6a38ec8",
+          "session-evidence/input.mjpg": "2a9597505d190f7d118f3db62e519882d278e7ddacb074af29356b8173fd8787"
+        }
+      },
+      {
+        "run_id": "20261023T065851_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_21caf638",
+        "files": {
+          "manifest.json": "f61456e59c3393c968155e4133c45c35bee6c31d0fbce99f62e2b3924462f5a4",
+          "run-state.json": "1e66818afbdacc3ebbdf98a4691c18c236b3490d3e4ec5aa178382102e2223cc",
+          "session-evidence/events.jsonl": "57a462ea4a66adccd4ded82e8875945d085225909e93f1c5e459ff282b89bd8f",
+          "session-evidence/input.mjpg": "f763913e730bb6404d4b09a6e091a4d867893abbb676a7ef8fdb74ff2a0df722"
+        }
+      },
+      {
+        "run_id": "20261023T065918_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_3fb6e795",
+        "files": {
+          "manifest.json": "1d96ed1233678a1d09c699a44ebe6357629ab988c3617f3cb4140cc4558088b1",
+          "run-state.json": "b967a0eeefd4b604ac771a3877c4f3a9779220ec82d0476499fab3757e4f0906",
+          "session-evidence/events.jsonl": "13f250ad668052b999c9e5ebbe932934855b734cfd106cf5a1e298ec7b15f854",
+          "session-evidence/input.mjpg": "aa378e27171a82a77da2b4f4eb33fdabf1955f63797e8931f0252527fca874b4"
+        }
+      },
+      {
+        "run_id": "20261023T065945_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_815da3b4",
+        "files": {
+          "manifest.json": "799cc2d8ecd6d8a7b8d267165a7e3d7161ea40a4c700bf2aeb4dabd6a68c4e4f",
+          "run-state.json": "ee68173babaab4440bb8193965f196652717b58c9d853e671680d66560f67513",
+          "session-evidence/events.jsonl": "81d1379f2fe2a87f779685daf974a9f381902b9a3747b5ee938f242bc1b2ab6b",
+          "session-evidence/input.mjpg": "b7b4284d892f1d0a8edc6ece4a6b60d66e2c6eaba0addbc408612054c6ab7588"
+        }
+      },
+      {
+        "run_id": "20261023T070012_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_f0d1854d",
+        "files": {
+          "manifest.json": "f07e5f0186cb6dd1c451c7f26c1f40e7b2329b80a050080ad3b7654692d46b48",
+          "run-state.json": "d2dcb6683cb220a9353c25f58a2299c39388238e542629e4882c308dd0f015f8",
+          "session-evidence/events.jsonl": "f40db172aaf2078be9b5417d0c130b781f0fe7cf51bdec1af9ce03daa4b89386",
+          "session-evidence/input.mjpg": "e4e8e68ae8da723a5046592d4437faa1769835db79d481d477a4af4df0be5b89"
+        }
+      },
+      {
+        "run_id": "20261023T070038_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_8881e664",
+        "files": {
+          "manifest.json": "8d33f5c234c5e02769c8f6eb9bdb651a586e2a1ba3e1aab400c5fc850ed5f6e9",
+          "run-state.json": "8706b6338b5ac796aa1208eaaf35c66a953f544973e3877b8f5dbbd0aa67a720",
+          "session-evidence/events.jsonl": "5602fdf450b4ea1705cf630a4c031d89cbeb1869cafc35eab94efea28bb57328",
+          "session-evidence/input.mjpg": "3d80b98e53d274e7f2bff38efdf7c90c005e3d2ae4b53beb7bc7c38ee325d1c3"
+        }
+      }
+    ],
+    "intervention_fields": [
+      "input_delay_ns",
+      "capture_interval_ns",
+      "control_hz",
+      "processing_delay_ns",
+      "return_delay_ns",
+      "pose_delay_ns"
+    ],
+    "limits": "Fixed timing still omits per-frame jitter and preparation capture phase. Does not certify initial native image equivalence."
+  },
+  "return_delay_ns": 438315,
+  "pose_delay_ns": 1016502,
+  "preparation_reset": true,
+  "continuous_measurement": true,
+  "warmup_receipt_boundary": true,
+  "capture_interval_ns": 34634124
+}

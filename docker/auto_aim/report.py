@@ -7,9 +7,10 @@ from pathlib import Path
 import subprocess
 import shutil
 import hashlib
+import uuid
 from datetime import datetime, timezone
 from shots import score as score_shots
-from scenario_catalog import semantics, EXTRA
+from scenario_catalog import semantics, EXTRA, HIGHSPEED
 
 
 def quantile(values, fraction=.95):
@@ -25,9 +26,11 @@ def load(path, default=None):
 
 
 def write(path, data):
-    temporary = path.with_suffix(path.suffix+'.tmp')
-    temporary.write_text(json.dumps(data,ensure_ascii=False,allow_nan=False,indent=2))
-    temporary.replace(path)
+    temporary = path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp')
+    try:
+        temporary.write_text(json.dumps(data,ensure_ascii=False,allow_nan=False,indent=2))
+        temporary.replace(path)
+    finally:temporary.unlink(missing_ok=True)
 
 
 def gap_metrics(rows, duration):
@@ -71,6 +74,8 @@ def gap_metrics(rows, duration):
 def finalize(folder):
     folder = Path(folder)
     manifest = load(folder/'manifest.json',{})
+    deferred=manifest.get('pipeline_version')==2
+    lockstep=manifest.get('execution',{}).get('mode')=='lockstep'
     state = load(folder/'run-state.json',{'errors':['No recorder final state'],'complete':False})
     try:
         rows = [json.loads(line) for line in (folder/'frames.jsonl').read_text().splitlines() if line]
@@ -139,7 +144,7 @@ def finalize(folder):
     lower('measurement_end','validity',metrics['last_frame_sim_s'],duration-.25)
     upper('measurement_start','validity',metrics['first_frame_sim_s'],.25)
     upper('maximum_frame_gap','validity',metrics['max_frame_gap_s'],.25)
-    generated_scene=scene in EXTRA
+    generated_scene=scene in EXTRA or scene in HIGHSPEED
     moving_ego = scene in ('ego_left','ego_right','ego_right_centered','ego_sweep','ego_sweep_reverse')
     if generated_scene:
         meta=manifest.get('scenario_semantics',semantics(scene))
@@ -147,7 +152,14 @@ def finalize(folder):
         else:lower('ego_translates','validity',metrics['ego_drift_m'],.1)
         if 'translation' in meta['target_motion']:lower('target_translates','validity',metrics['target_travel_span_m'],.1)
         else:upper('target_static','validity',metrics['target_travel_span_m'],.1)
-        if 'rotation' in meta['target_motion']:lower('target_rotates','validity',metrics['target_abs_yaw_rate_median'],.2)
+        if 'rotation' in meta['target_motion']:
+            planned=load(folder/'configuration/scenario-plan.json',{})
+            if planned.get('suite')=='movement-v1' and planned.get('case')=='spin_startstop':
+                phases=[p for p in planned.get('phases',[]) if abs(p['target_omega'])>0]
+                active_rates=[abs(r['target_yaw_rate']) for r in timed if r.get('target_yaw_rate') is not None and any(p['t0']<=r['time']<p['t1'] for p in phases)]
+                metrics['target_active_abs_yaw_rate_median']=quantile(active_rates,.5)
+                lower('target_rotates','validity',metrics['target_active_abs_yaw_rate_median'],.2)
+            else:lower('target_rotates','validity',metrics['target_abs_yaw_rate_median'],.2)
     elif moving_ego:
         lower('ego_translation','validity',metrics['ego_drift_m'],1.5)
         upper('ego_translation_bound','validity',metrics['ego_drift_m'],2.5)
@@ -165,7 +177,7 @@ def finalize(folder):
         upper('target_static','validity',metrics['target_travel_span_m'],.1)
     else:
         upper('ego_drift','validity',metrics['ego_drift_m'],.05)
-    lower('target_visibility','validity',metrics['visible_frame_fraction'],.5)
+    lower('target_visibility','effect' if scene in HIGHSPEED else 'validity',metrics['visible_frame_fraction'],.5)
     rule('spawn_ready','validity',state.get('scenario',{}).get('spawn_applied') and not state.get('scenario',{}).get('spawn_error'),
         state.get('scenario',{}).get('spawn_error'),'spawn_applied without error')
     if scene=='line':
@@ -178,15 +190,20 @@ def finalize(folder):
         upper('target_spin_drift','validity',metrics['target_travel_span_m'],.1)
     elif scene in ('static','move_ref'):
         upper('target_static','validity',metrics['target_travel_span_m'],.1)
-    lower('processed_frequency','performance',metrics['processed_hz'],20)
-    upper('frame_age','performance',metrics['age_p95_ms'],150)
+    if lockstep:
+        metrics['clock_domain']='simulation'
+        rule('synchronous_input_order','validity',all(b['stamp_ns']>a['stamp_ns'] for a,b in zip(rows,rows[1:])),len(rows),'strictly increasing input timestamps')
+        lower('logical_input_frequency','validity',metrics['processed_hz'],20)
+    else:
+        lower('processed_frequency','performance',metrics['processed_hz'],20)
+        upper('frame_age','performance',metrics['age_p95_ms'],150)
     if scene=='static':
         upper('yaw_execution_error','performance',metrics['yaw_execution_error_p95_deg'],2)
         upper('pitch_execution_error','performance',metrics['pitch_execution_error_p95_deg'],2)
     timing = load(folder/'timing.json')
     if timing:
         metrics['total_wall_s'] = timing['wall_seconds']
-        upper('wall_time_budget','validity',timing['wall_seconds'],40)
+        upper('wall_time_budget','validity',timing['wall_seconds'],manifest.get('wall_budget_s',40))
     if mode == 'shoot':
         shot_metrics,shot_errors = score_shots(folder,manifest,state)
         metrics.update(shot_metrics)
@@ -194,6 +211,14 @@ def finalize(folder):
             lower('continuous_firing_sample_count','validity',metrics['shots_fired'],int(duration*1.8))
             upper('continuous_firing_max_gap','validity',metrics.get('maximum_launch_spacing_s'),.6)
         rule('shot_event_integrity','validity',not shot_errors,shot_errors,'paired, unique events; launches within measurement and configured rate limit')
+        if scene in HIGHSPEED:
+            from highspeed_report import motion_analysis
+            try:
+                metrics.update(motion_analysis(folder,media=not deferred))
+                rule('motion_intensity','motion',metrics['motion_intensity_achieved'],metrics['motion_intensity'],'requested speed/rate ±15% for >=1 s')
+                rule('flat_range_bounds','validity',metrics['within_range_ground'],metrics['within_range_ground'],True)
+            except (OSError,ValueError,KeyError) as error:
+                rule('motion_evidence','validity',False,str(error),'readable motion evidence')
     else:
         rule('no_fire_events','safety',state.get('fire_events',0)==0,state.get('fire_events',0),0)
         rule('no_fire_advice','safety',state.get('fire_advice_messages',0)==0,state.get('fire_advice_messages',0),0)
@@ -219,10 +244,15 @@ def finalize(folder):
         verdict = 'pending_effect_baseline'
     else:
         verdict = 'passed'
+    automatic_verdict=('invalid' if invalid else 'failed' if failed else
+        'no_shooting_samples' if mode=='shoot' and not metrics.get('shots_fired') else 'passed')
+    if deferred:verdict=automatic_verdict
     summary = {'schema_version':2,'quantile_method':'nearest_rank','run_id':manifest.get('run_id',folder.name),'scene':scene,
         'scorer_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'shot_scorer_sha256':hashlib.sha256(Path(__file__).with_name('shots.py').read_bytes()).hexdigest() if mode=='shoot' else None,
         'verdict':verdict,'mode':mode,'shooting':manifest.get('shooting'),'counts':counts,'metrics':metrics,'rules':rules,
+        'automatic_verdict':automatic_verdict,'visual_status':review['decision'] if review else 'not_reviewed',
+        'scoring_version':manifest.get('scoring_version',1),
         'visual_review':review,'baseline':baseline.get('run_id') if baseline else None,
         'limitations':[
             'Visibility uses plate front face, full projected plate in FOV and a physics centre ray. It is not a render pixel segmentation mask.',
@@ -231,14 +261,14 @@ def finalize(folder):
             'Execution error compares the new command to image-time gimbal attitude. It is a same-frame following error, not an isolated actuator response test.',
             'Position/velocity truth metrics use the image capture time. Aimer includes ballistic lead; aiming at the image centre is not required.',
             'AVI/MP4 use a nominal 30 FPS playback clock; frames.jsonl is the authoritative timestamp and frame index mapping.',
-            (('Hit v3 sweeps the actual 17 mm sphere along each travelled physics segment, compensates plate translation and uses exact collider identity and first solid impact. Plate rotation is sampled at 120 Hz (sub-mm orientation approximation at current speed). It is not real-world ballistic calibration.' if manifest.get('shooting',{}).get('hit_method') == 'swept_actual_segment_v3' else 'Legacy hit events include speculative contacts and are not a validated precision baseline.') if mode=='shoot' else 'No projectile hit-rate measurement is included in this tracking experiment.')
+            (('Hit v3 sweeps the actual 17 mm sphere along each travelled physics segment, compensates plate translation and uses exact collider identity and first solid impact. Plate rotation uses end-of-step orientation sampled at 120 Hz; approximation error grows with angular speed. It is not real-world ballistic calibration.' if manifest.get('shooting',{}).get('hit_method') == 'swept_actual_segment_v3' else 'Legacy hit events include speculative contacts and are not a validated precision baseline.') if mode=='shoot' else 'No projectile hit-rate measurement is included in this tracking experiment.')
         ]}
     write(folder/'report-generation.json',{'generated_utc':datetime.now(timezone.utc).isoformat(),
         'report_sha256':summary['scorer_sha256'],'shots_sha256':summary['shot_scorer_sha256'],
         'capture_recorder_code':load(folder/'recorder-code.json',{})})
     write(folder/'summary.json',summary)
-    plots(folder,rows)
-    if (folder/'annotated.avi').exists() and not (folder/'annotated.mp4').exists() and shutil.which('ffmpeg'):
+    if not deferred:plots(folder,rows)
+    if not deferred and (folder/'annotated.avi').exists() and not (folder/'annotated.mp4').exists() and shutil.which('ffmpeg'):
         result = subprocess.run(['ffmpeg','-nostdin','-loglevel','error','-y','-i',str(folder/'annotated.avi'),
             '-c:v','libx264','-preset','ultrafast','-crf','25','-pix_fmt','yuv420p','-movflags','+faststart',
             str(folder/'annotated.mp4')],capture_output=True,text=True)
@@ -288,17 +318,24 @@ def render(folder, summary):
     rules=''.join(f"<tr><td>{escape(r['category'])}</td><td>{escape(r['name'])}</td><td>{'PASS' if r['passed'] else 'FAIL'}</td><td>{escape(r['actual'])}</td><td>{escape(r['expected'])}</td></tr>" for r in summary['rules'])
     metrics=''.join(f'<tr><td>{escape(k)}</td><td>{escape(round(v,5) if isinstance(v,float) else v)}</td></tr>' for k,v in summary['metrics'].items())
     limits=''.join('<li>'+escape(v)+'</li>' for v in summary.get('limitations',[]))
-    original = ('<a href="input.mjpg">原始 JPEG 字节流</a>' if (folder/'input.mjpg').exists()
-        and (folder/'input.mjpg').stat().st_size else '该早期记录未保存原始 JPEG 字节流')
+    evidence=load(folder/'evidence-policy.json',{})
+    media=load(folder/'media-status.json',{})
+    archive='retained.mjpg' if evidence.get('level')=='sampled' else 'input.mjpg'
+    original = (f'<a href="{archive}">保留的原始 JPEG 字节流</a>' if (folder/archive).exists()
+        and (folder/archive).stat().st_size else '尚无可用原始 JPEG 字节流')
+    video=('<video controls preload="metadata" src="annotated.mp4"></video>' if (folder/'annotated.mp4').exists() else
+        '<p>录像尚未生成。可通过 jobs render 按需生成，基础结果已可用。</p>')
+    evidence_text=escape(json.dumps(dict(evidence=evidence,media=media),ensure_ascii=False))
+    video_links=' · '.join(f'<a href="{name}">{name}</a>' for name in ('input.avi','annotated.avi','annotated.mp4') if (folder/name).exists())
     shooting = ('<h2>自动打击条件与逐发证据</h2><pre>'+escape(json.dumps(summary.get('shooting'),ensure_ascii=False,indent=2))+'</pre><p><a href="shots.csv">逐发 CSV</a> · <a href="shots.jsonl">逐发 JSONL</a></p>' if summary.get('mode')=='shoot' else '')
     text=f'''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>{escape(summary['run_id'])}</title>
 <style>body{{font:16px system-ui;max-width:1150px;margin:2em auto;padding:0 1em}}table{{border-collapse:collapse;width:100%;margin:1em 0}}td,th{{border:1px solid #aaa;padding:.4em;text-align:left}}video,img{{max-width:100%}}code{{background:#eee;padding:.2em}}</style>
 <h1>{escape(summary['run_id'])}</h1><h2>结论：{labels[summary['verdict']]}</h2>
 <p>场景：{escape(summary['scene'])}。规则结论与视觉复核分别保存；环境无效不能由人工复核覆盖。</p>
 <h2>同步标注录像</h2><p>青色：真值投影；绿色：检测；紫色：预测装甲；黄色：弹道瞄准点。</p>
-<video controls preload="metadata" src="annotated.mp4"></video>
-<p><a href="input.avi">输入浏览录像</a> · {original} · <a href="annotated.avi">标注 AVI</a> · <a href="frames.jsonl">逐帧评分、视频时间与 JPEG 字节偏移</a> · <a href="telemetry.jsonl">原始观测和真值</a> · <a href="manifest.json">版本、配置和模型摘要</a></p>
-{shooting}<h2>指标曲线</h2><img src="metrics.png"><h2>自动规则</h2><table><tr><th>分类</th><th>规则</th><th>结果</th><th>实际</th><th>要求</th></tr>{rules}</table>
+{video}<p>图像保留与媒体状态：{evidence_text}</p>
+<p>{video_links} · {original} · <a href="frames.jsonl">逐帧评分与原始时间索引</a> · <a href="telemetry.jsonl">原始观测和真值</a> · <a href="manifest.json">版本、配置和模型摘要</a></p>
+{shooting}{'<h2>落点质量与实际运动</h2><img src="impact-quality.png"><img src="motion.png">' if (folder/'motion-analysis.json').exists() else ''}<h2>指标曲线</h2><img src="metrics.png"><h2>自动规则</h2><table><tr><th>分类</th><th>规则</th><th>结果</th><th>实际</th><th>要求</th></tr>{rules}</table>
 <h2>指标</h2><table>{metrics}</table><h2>视觉复核</h2><pre>{escape(json.dumps(summary['visual_review'],ensure_ascii=False,indent=2))}</pre>
 <h2>解释边界</h2><ul>{limits}</ul></html>'''
     (folder/'report.html').write_text(text)

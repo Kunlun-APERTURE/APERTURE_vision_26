@@ -26,9 +26,10 @@ DESKTOP_CONTAINER = 'sp_vision_sunshine'
 SIMULATOR = 'vision_simulator_26'
 BRIDGE = 'sp_vision_ros_bridge'
 IMAGE = 'daedalus:rm26-integration'
-ALGORITHM_PROFILES = ('legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3')
+ALGORITHM_PROFILES = ('legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr')
+from gimbal_dynamics import MODELS as GIMBAL_DYNAMICS, simulator_image
 GIMBAL_PROFILES = ('legacy','timing','feedforward','combined')
-from scenario_catalog import SCENES
+from scenario_catalog import SCENES, HIGHSPEED
 RUNNER = '/home/openvino/.local/share/rm26-sim/algorithm_runner.py'
 
 
@@ -73,6 +74,9 @@ def compose(*args, capture=False):
     if config.exists():
         env['RM26_BULLET_SPEED'] = str(tomllib.loads(config.read_text())['projectile']['speed'])
     launch = json.loads((RUNTIME/'launch.json').read_text()) if (RUNTIME/'launch.json').exists() else {}
+    dynamics=launch.get('gimbal_dynamics','legacy')
+    if dynamics!='legacy':
+        env.setdefault('RM26_SIMULATOR_IMAGE',simulator_image(dynamics,IMAGE))
     env['RM26_REPORTED_BULLET_SPEED'] = str(launch.get('reported_bullet_speed',env.get('RM26_BULLET_SPEED',25)))
     env['RM26_COMMAND_SCRIPT'] = '/run/rm26-sim/command-script.json' if launch.get('command_script') else ''
     env['RM26_PROJECTILE_VISIBLE'] = launch.get('projectile_visible','on')
@@ -81,6 +85,7 @@ def compose(*args, capture=False):
     env['RM26_FIRE_POLICY'] = launch.get('fire_policy','advice')
     env['RM26_FIRE_RATE_HZ'] = str(launch.get('fire_rate_hz',5.0))
     env['RM26_PHYSICS'] = launch.get('physics','no-drag')
+    env['RM26_RECORD_TIMING']='1' if launch.get('record_timing')=='on' else '0'
     return run(['docker','compose','--file',str(OPS/'compose.yml'),*args], capture=capture, env=env)
 
 
@@ -106,15 +111,17 @@ def rpc(op, **fields):
         return response['result']
 
 
-def algorithm(action, *, view='off', fire='off', aim_origin='muzzle', algorithm_profile='legacy', detach=False):
+def algorithm(action, *, view='off', fire='off', aim_origin='muzzle', algorithm_profile='legacy', detector_history='process', detach=False):
     command = ['docker','exec']
     if detach:
         command.append('--detach')
     command += ['--user','1000:1000','--env','DISPLAY=:20',
         '--env','XAUTHORITY=/run/user/1000/Xauthority',
+        *(['--env','RM26_ALGORITHM_ROOT='+os.environ['RM26_ALGORITHM_ROOT']] if os.environ.get('RM26_ALGORITHM_ROOT') else []),
         DESKTOP_CONTAINER,'python3',RUNNER,action]
     if action == 'start':
         command += ['--view',view,'--fire',fire,'--aim-origin',aim_origin,'--algorithm-profile',algorithm_profile]
+        if detector_history!='process':command+=['--detector-history',detector_history]
     result = run(command, capture=not detach)
     return json.loads(result) if result and not detach else None
 
@@ -150,7 +157,13 @@ def override(text, section, key, value):
 
 
 def render_config(settings):
+    from input_contract import aligned,validate
+    validate(settings)
     text = (ROOT/'vision_simulator_26/config.toml').read_text()
+    if aligned(settings):text=override(text,'capture.effect','sensor_seed',str(settings['sensor_seed']))
+    if settings.get('max_fps') is not None:
+        text = override(text,'performance','max_fps',str(settings['max_fps']))
+    text = override(text,'scene','terrain',json.dumps(settings.get('terrain','arena')))
     text = override(text,'bench','enabled','true')
     # bench requires a valid boot scenario even when runtime services will load
     # the user's chosen scene a moment later. Boot parked, then reset via ROS.
@@ -159,6 +172,9 @@ def render_config(settings):
     text = override(text,'projectile','speed',str(settings['bullet_speed']))
     text = override(text,'projectile.aerodynamics','enabled','true' if settings['physics']=='drag' else 'false')
     text = override(text,'projectile.aerodynamics','wind','[0.0, 0.0, 0.0]')
+    dynamics=settings.get('gimbal_dynamics','legacy')
+    if dynamics not in GIMBAL_DYNAMICS:raise ValueError('Unknown gimbal dynamics')
+    if dynamics!='legacy':text=override(text,'vehicle.gimbal_pid','dynamics',json.dumps(dynamics))
     mode = settings.get('gimbal_profile','legacy')
     if mode not in GIMBAL_PROFILES:
         raise RuntimeError('Unknown gimbal profile')
@@ -190,11 +206,19 @@ def save_profile(profile):
 def profile():
     try:
         value = json.loads((RUNTIME/'profile.json').read_text())
+        value.setdefault('terrain','arena')
         value.setdefault('projectile_visible','on')
         value.setdefault('algorithm_profile','legacy')
         value.setdefault('gimbal_profile','legacy')
+        value.setdefault('gimbal_dynamics','legacy')
         value.setdefault('fire_policy','advice')
         value.setdefault('fire_rate_hz',2.0)
+        value.setdefault('max_fps',None)
+        value.setdefault('record_timing','off')
+        value.setdefault('detector_history','process')
+        value.setdefault('input_contract','legacy')
+        value.setdefault('sensor_seed',None)
+        value.setdefault('warmup_frames',30)
         return value
     except (OSError,ValueError):
         return {}
@@ -263,8 +287,12 @@ def start(args):
     # For a running instance, omitted args preserve idempotent start behaviour.
     defaults = current if running and integration else {}
     desired = {key:(getattr(args,key,None) if getattr(args,key,None) is not None else defaults.get(key,default))
-               for key,default in [('scene','static'),('control','off'),('view','off'),
-                   ('fire','off'),('fire_policy','advice'),('fire_rate_hz',5.0),('aim_origin','muzzle'),('gimbal_profile','legacy'),('algorithm_profile','legacy'),('bullet_speed',25.0),('reported_bullet_speed',None),('physics','no-drag'),('projectile_visible','on'),('command_script','')]}
+               for key,default in [('terrain','arena'),('scene','static'),('control','off'),('view','off'),
+                   ('fire','off'),('fire_policy','advice'),('fire_rate_hz',5.0),('aim_origin','muzzle'),('gimbal_profile','legacy'),('gimbal_dynamics','legacy'),('algorithm_profile','legacy'),('detector_history','process'),('bullet_speed',25.0),('reported_bullet_speed',None),('physics','no-drag'),('projectile_visible','on'),('command_script',''),('max_fps',None),('record_timing','off'),('input_contract','legacy'),('sensor_seed',None),('warmup_frames',30)]}
+    if desired['scene'] in HIGHSPEED and desired['terrain']!='flat_range':
+        raise RuntimeError('High-speed scenes require --terrain flat_range')
+    if desired['max_fps'] is not None and (not math.isfinite(desired['max_fps']) or not (desired['max_fps']==0 or 1<=desired['max_fps']<=1000)):
+        raise RuntimeError('max-fps must be 0 (uncapped) or 1..1000')
     if not math.isfinite(desired['fire_rate_hz']) or not 0 < desired['fire_rate_hz'] <= 5:
         raise RuntimeError('fire-rate-hz must be within (0,5] Hz')
     if desired['fire_policy'] == 'continuous' and desired['fire_rate_hz'] != 2:
@@ -317,8 +345,12 @@ def start(args):
             if time.monotonic() >= deadline:
                 raise RuntimeError('Simulator scenario services did not become ready')
             time.sleep(.3)
-        rpc('scene',name=desired['scene'])
-        algorithm('start',view=desired['view'],fire=desired['fire'],aim_origin=desired['aim_origin'],algorithm_profile=desired['algorithm_profile'],detach=True)
+        if desired['scene'] in HIGHSPEED:
+            from highspeed_scenarios import DURATIONS
+            from experiments import short_scenario
+            short_scenario(sys.modules[__name__],desired['scene'],DURATIONS[desired['scene']])
+        rpc('scene',name=desired['scene'],**({'duration':DURATIONS[desired['scene']]} if desired['scene'] in HIGHSPEED else {}))
+        algorithm('start',view=desired['view'],fire=desired['fire'],aim_origin=desired['aim_origin'],algorithm_profile=desired['algorithm_profile'],detector_history=desired['detector_history'],detach=True)
         deadline = time.monotonic()+45
         while True:
             health = rpc('status')
@@ -337,22 +369,34 @@ def start(args):
 
 def build(args):
     desktop = inspect(DESKTOP_CONTAINER)
-    if not desktop or not desktop['State']['Running']:
+    if args.component in ('all','algorithm') and (not desktop or not desktop['State']['Running']):
         raise RuntimeError('Start the Sunshine desktop before building the algorithm')
+    if args.component == 'background':
+        base = inspect('sp_vision_dev:2024.6.0')
+        if not base:
+            raise RuntimeError('Missing local sp_vision_dev:2024.6.0 build environment')
+        run(['docker','run','--rm','--user',f'{os.getuid()}:{os.getgid()}',
+            '--volume',str(ROOT/'sp_vision_25')+':/workspace/sp_vision_25',
+            '--workdir','/workspace/sp_vision_25','--entrypoint','bash',base['Id'],'-c',
+            'source /opt/intel/openvino/setupvars.sh >/dev/null && '
+            'cmake -S . -B build/simulator -DBUILD_SIMULATOR_ADAPTER=ON -DCMAKE_BUILD_TYPE=Release '
+            '&& cmake --build build/simulator --target sim_auto_aim standard -j 4'],log=LOGS/'background-algorithm-build.log')
+        run(['docker','build','--file',str(OPS/'Algorithm.Dockerfile'),
+            '--tag','daedalus:rm26-algorithm',str(OPS)],log=LOGS/'algorithm-image-build.log')
     if args.component in ('all','algorithm'):
         command = ['docker','exec','--user','1000:1000','--workdir','/workspace/sp_vision_25',
             DESKTOP_CONTAINER,'bash','-c',
             'cmake -S . -B build/simulator -DBUILD_SIMULATOR_ADAPTER=ON -DCMAKE_BUILD_TYPE=Release '
             '&& cmake --build build/simulator --target sim_auto_aim standard -j 4']
         run(command,log=LOGS/'algorithm-build.log')
-    if args.component in ('all','simulator'):
+    if args.component in ('all','simulator','background'):
         os.environ.setdefault('RM26_BUILD_PROXY','http://127.0.0.1:7890')
         definition = compose('build','--print','daedalus',capture=True)
         bake = LOGS/'build-bake.json'
         bake.write_text(definition)
         run(['docker','buildx','bake','--file',str(bake),'--allow=network.host',
              '--progress','plain','--load','daedalus'],log=LOGS/'build.log')
-    if args.component in ('all','evaluator'):
+    if args.component in ('all','evaluator','background'):
         os.environ.setdefault('RM26_BUILD_PROXY','http://127.0.0.1:7890')
         definition = compose('--profile','experiment','build','--print','evaluator',capture=True)
         bake = LOGS/'evaluator-bake.json'
@@ -366,10 +410,11 @@ def parser():
     result = argparse.ArgumentParser(description='RM26 simulator + ROS bridge + original auto-aim algorithm')
     commands = result.add_subparsers(dest='action',required=True)
     p = commands.add_parser('build')
-    p.add_argument('--component',choices=['all','algorithm','simulator','evaluator'],default='all')
+    p.add_argument('--component',choices=['all','algorithm','simulator','evaluator','background'],default='all')
     for name in ('start','restart'):
         p = commands.add_parser(name)
         p.add_argument('--scene',choices=SCENES)
+        p.add_argument('--terrain',choices=['arena','flat_range'])
         p.add_argument('--control',choices=['on','off'])
         p.add_argument('--view',choices=['on','off'])
         p.add_argument('--fire',choices=['off','auto'])
@@ -377,12 +422,16 @@ def parser():
         p.add_argument('--fire-rate-hz',type=float)
         p.add_argument('--aim-origin',choices=['muzzle','gimbal'])
         p.add_argument('--gimbal-profile',choices=GIMBAL_PROFILES)
+        p.add_argument('--gimbal-dynamics',choices=GIMBAL_DYNAMICS)
         p.add_argument('--algorithm-profile',choices=ALGORITHM_PROFILES)
+        p.add_argument('--detector-history',choices=['process','session'])
         p.add_argument('--bullet-speed',type=float)
         p.add_argument('--reported-bullet-speed',type=float)
         p.add_argument('--physics',choices=['no-drag','drag'])
         p.add_argument('--projectile-visible',choices=['on','off'])
         p.add_argument('--command-script',help='Fixed control playback JSON for renderer diagnostics')
+        p.add_argument('--max-fps',type=float,help='Main-loop cap: 0 uncapped, otherwise 1..1000; omitted preserves config')
+        p.add_argument('--record-timing',choices=['on','off'])
         p.add_argument('--replace',action='store_true',help='Replace a running standalone simulator')
     p = commands.add_parser('control')
     p.add_argument('value',choices=['on','off'])
@@ -396,6 +445,8 @@ def parser():
         commands.add_parser(name)
     from experiments import add_parser
     add_parser(commands)
+    from background_jobs import add_parser as add_jobs_parser
+    add_jobs_parser(commands)
     return result
 
 
@@ -411,6 +462,13 @@ def main():
     args = parser().parse_args(arguments)
     RUNTIME.mkdir(parents=True,exist_ok=True,mode=0o700)
     LOGS.mkdir(parents=True,exist_ok=True,mode=0o700)
+    if args.action=='experiment' and args.experiment_action=='suite':
+        import experiments
+        return experiments.execute(sys.modules[__name__],args)
+    if args.action == 'jobs' or (args.action == 'experiment' and args.experiment_action == 'submit'):
+        import background_jobs
+        background_jobs.execute(args)
+        return
     if args.action == 'logs':
         if not 0 <= args.tail <= 10000:
             raise RuntimeError('tail must be between 0 and 10000')
@@ -436,7 +494,8 @@ def main():
             raise RuntimeError('Another integration operation is still running')
         if args.action == 'experiment':
             import experiments
-            experiments.execute(sys.modules[__name__],args)
+            from input_contract import runtime
+            with runtime(vars(args),sys.modules[__name__]):experiments.execute(sys.modules[__name__],args)
         elif args.action == 'install':
             install()
         elif args.action == 'build':
@@ -448,7 +507,7 @@ def main():
         elif args.action == 'restart':
             saved = profile()
             stop()
-            for key in ('scene','control','view','fire','aim_origin','gimbal_profile','bullet_speed','reported_bullet_speed','physics'):
+            for key in ('terrain','scene','control','view','fire','aim_origin','gimbal_profile','gimbal_dynamics','bullet_speed','reported_bullet_speed','physics'):
                 if getattr(args,key) is None:
                     setattr(args,key,saved.get(key))
             start(args)
@@ -459,7 +518,11 @@ def main():
             save_profile(saved)
             print('Control '+args.value)
         elif args.action == 'scene':
-            rpc('scene',name=args.name)
+            if args.name in HIGHSPEED:
+                from highspeed_scenarios import DURATIONS
+                from experiments import short_scenario
+                short_scenario(sys.modules[__name__],args.name,DURATIONS[args.name])
+            rpc('scene',name=args.name,**({'duration':DURATIONS[args.name]} if args.name in HIGHSPEED else {}))
             saved = profile()
             saved['scene'] = args.name
             save_profile(saved)

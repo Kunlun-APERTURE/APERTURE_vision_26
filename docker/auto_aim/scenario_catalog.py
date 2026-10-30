@@ -1,14 +1,18 @@
 """Explicit scenario semantics shared by orchestration and the independent scorer."""
 import math, random
+from highspeed_scenarios import HIGHSPEED
 
 BASE=('static','line','spin','move_ref','ego_left','ego_right','ego_right_centered','ego_sweep','ego_sweep_reverse')
 EXTRA=('random_both_05','random_both_10','random_both_20','distance_3','distance_5','distance_8',
        'range_in_out','range_diagonal','spin_move_05_pos','spin_move_05_neg','spin_move_15_pos','spin_move_15_neg',
        'spin_move_ego_05','spin_move_ego_15')
-SCENES=BASE+EXTRA
+SCENES=BASE+EXTRA+HIGHSPEED
 
 
 def semantics(scene):
+    if scene in HIGHSPEED:
+        from highspeed_scenarios import semantics as hs_semantics
+        return hs_semantics(scene)
     moving_ego=scene.startswith('ego_') or scene.startswith('random_both') or scene.startswith('spin_move_ego')
     rotating=scene=='spin' or scene.startswith('spin_move')
     target_moving=scene in ('line','range_in_out','range_diagonal') or scene.startswith(('random_both','spin_move'))
@@ -19,6 +23,9 @@ def semantics(scene):
 
 
 def generated(scene,seed,duration=18):
+    if scene in HIGHSPEED:
+        from highspeed_scenarios import generated as hs_generated
+        return hs_generated(scene,seed,duration)
     if scene not in EXTRA:raise ValueError('Not a generated scenario')
     distance=int(scene.rsplit('_',1)[1]) if scene.startswith('distance_') else 4
     if scene.startswith('range_'):distance=3

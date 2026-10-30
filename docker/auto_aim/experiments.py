@@ -3,6 +3,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -15,7 +16,9 @@ import html
 
 from report import load, write, finalize, render
 from shots import baseline_key
-from scenario_catalog import SCENES, EXTRA, generated, semantics
+from scenario_catalog import SCENES, EXTRA, HIGHSPEED, generated, semantics
+from highspeed_scenarios import DURATIONS
+from gimbal_dynamics import MODELS as GIMBAL_DYNAMICS, simulator_image
 
 
 def add_parser(commands):
@@ -24,8 +27,9 @@ def add_parser(commands):
     run = sub.add_parser('run')
     run.add_argument('--scene',choices=list(SCENES)+['advice-motion','ego-all','stability-all','all'],default='all')
     run.add_argument('--repeat',type=int)
+    run.add_argument('--terrain',choices=['arena','flat_range'],default='arena')
     run.add_argument('--mode',choices=['track','shoot'],default='track')
-    run.add_argument('--matrix',choices=['ballistic-v1','hit-v2','hit-v3','gimbal-ab','single'])
+    run.add_argument('--matrix',choices=['ballistic-v1','hit-v2','hit-v3','gimbal-ab','single','highspeed-v1'])
     run.add_argument('--resume',help='Reuse valid matching runs from an interrupted batch id')
     run.add_argument('--bullet-speed',type=float,default=25)
     run.add_argument('--reported-bullet-speed',type=float)
@@ -34,13 +38,52 @@ def add_parser(commands):
     run.add_argument('--fire-policy',choices=['advice','continuous'],default='advice')
     run.add_argument('--fire-rate-hz',type=float,default=5.0)
     run.add_argument('--aim-origin',choices=['muzzle','gimbal'],default='muzzle')
-    run.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3'],default='legacy')
+    run.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr'],default='legacy')
+    run.add_argument('--gimbal-dynamics',choices=GIMBAL_DYNAMICS,default='legacy')
     run.add_argument('--gimbal-profile',choices=['legacy','timing','feedforward','combined'],default='legacy')
     run.add_argument('--seed',type=int,default=20261019)
+    run.add_argument('--input-contract',choices=['legacy','aligned-v1'],default='legacy')
+    run.add_argument('--sensor-seed',type=int,default=None)
+    run.add_argument('--warmup-frames',type=int,default=30)
     run.add_argument('--command-script',default='')
     run.add_argument('--projectile-visible',choices=['on','off'],default='on')
     run.add_argument('--duration',type=float,help='Measurement seconds, 1..18; defaults static/spin/move_ref=6, ego=8, line=18')
+    run.add_argument('--max-fps',type=float,help='Shared UI/background main-loop cap; 0 uncapped, omitted preserves config')
+    run.add_argument('--algorithm-lifecycle',choices=['session','fresh'],default='session',
+        help='Reuse the detector process across scene session resets (UI default), or restart each experiment')
+    run.add_argument('--detector-history',choices=['process','session'],default='process',
+        help='Keep detector search/cache for the process lifetime, or reset it at each fresh input session')
+    run.add_argument('--stage',choices=['screen','final'],default='screen')
+    run.add_argument('--evidence',choices=['auto','full'],default='auto')
+    run.add_argument('--session-evidence',choices=['auto','on','off'],default='auto',
+        help='Archive every fresh-session input/result, including warmup; automatic and required for lockstep')
+    run.add_argument('--execution-mode',choices=['realtime','lockstep'],default='realtime')
+    run.add_argument('--timing-profile',default=None,help='Frozen timing profile name, required by lockstep')
+    run.add_argument('--record-timing',choices=['on','off'],default='off')
+    run.add_argument('--preview',choices=['on','off'],default='off',help='Read-only desktop viewer for lockstep input')
+    submit = sub.add_parser('submit', parents=[run], add_help=False,
+        help='Freeze and enqueue experiments independently of the desktop')
+    submit.add_argument('--spec', help='Version 1 JSON matrix specification')
+    submit.add_argument('--parallelism', choices=['auto']+[str(n) for n in range(1,9)], default=None)
+    submit.add_argument('--paused', action='store_true')
+    submit.add_argument('--exploratory', action='store_true', help='Allow unqualified parallel execution; recorded in evidence')
+    suite=sub.add_parser('suite',help='Frozen basic/advanced movement capability study')
+    suite.add_argument('--tier',choices=('basic','advanced'),default='basic')
+    suite.add_argument('--cases');suite.add_argument('--pressure',action='store_true')
+    suite.add_argument('--list',action='store_true');suite.add_argument('--output',type=Path)
     sub.add_parser('list')
+    compare = sub.add_parser('compare',help='Compare paired frozen background tasks')
+    compare.add_argument('--baseline',required=True)
+    compare.add_argument('--candidate',required=True)
+    compare.add_argument('--extend',action='store_true',help='Queue missing paired repeats from the original frozen bundles, up to 10 pairs')
+    study=sub.add_parser('lockstep-study',help='Calibrate and qualify both synchronous timing candidates against frozen original UI')
+    study.add_argument('--output',default='lockstep-study-20261022')
+    study.add_argument('--phase',choices=['calibrate','evaluate','all'],default='all')
+    study.add_argument('--repeats',type=int,default=5)
+    study.add_argument('--max-repeats',type=int,default=30)
+    study.add_argument('--levels',default='1,2,4,8')
+    study.add_argument('--resume',action='store_true')
+    study.add_argument('--new-candidate',action='store_true',help='Archive earlier candidate results and freeze a new version; original UI evidence is retained')
     report = sub.add_parser('report')
     report.add_argument('run_id')
     review = sub.add_parser('review')
@@ -52,12 +95,13 @@ def add_parser(commands):
 
 
 def measurement_duration(scene, args):
+    if scene in HIGHSPEED:return args.duration if args.duration is not None else DURATIONS[scene]
     return args.duration if args.duration is not None else (6.0 if scene.startswith('distance_') else 18.0 if scene in EXTRA else 18.0 if scene in ('ego_sweep','ego_sweep_reverse') else 8.0 if scene.startswith('ego_') else 18.0 if scene=='line' else 6.0)
 
 
 def short_scenario(manager, scene, duration, seed=20261019):
     """Render only complete/trimmed segments; original 60 s scenario stays intact."""
-    if scene in EXTRA:
+    if scene in EXTRA or scene in HIGHSPEED:
         text,plan=generated(scene,seed,duration)
         destination=manager.RUNTIME/'scenarios'/f'{scene}.toml';destination.parent.mkdir(exist_ok=True)
         destination.write_text(text);write(destination.with_suffix('.json'),plan);return destination
@@ -90,6 +134,11 @@ def digest(path):
 
 
 def repository(manager, name, destination):
+    if getattr(manager, 'FROZEN_REPOSITORIES', None) is not None:
+        for suffix in ('.patch', '-sources.json'):
+            source = manager.ROOT/'provenance'/(name+suffix)
+            shutil.copy2(source, destination/source.name)
+        return manager.FROZEN_REPOSITORIES[name]
     root = manager.ROOT/name
     head = manager.run(['git','-C',str(root),'rev-parse','HEAD'],capture=True)
     status = manager.run(['git','-C',str(root),'status','--short'],capture=True)
@@ -109,6 +158,8 @@ def repository(manager, name, destination):
 
 
 def snapshot(manager, folder, scene, args):
+    if hasattr(manager, 'snapshot'):
+        return manager.snapshot(folder, scene, args)
     configs = folder/'configuration'
     configs.mkdir()
     sources = configs/'ops'
@@ -124,7 +175,7 @@ def snapshot(manager, folder, scene, args):
         shutil.copy2(source,configs/target)
     if manager.profile().get('command_script'):shutil.copy2(manager.RUNTIME/'command-script.json',configs/'command-script.json')
     plan=manager.RUNTIME/'scenarios'/f'{scene}.json'
-    if scene in EXTRA and plan.exists():shutil.copy2(plan,configs/'scenario-plan.json')
+    if (scene in EXTRA or scene in HIGHSPEED) and plan.exists():shutil.copy2(plan,configs/'scenario-plan.json')
     weights = {}
     # All selectable weights are fingerprinted; no ambiguity if profile changes
     # from YOLOv5 to another supported network in a later experiment.
@@ -136,7 +187,8 @@ def snapshot(manager, folder, scene, args):
     bridge = manager.inspect(manager.BRIDGE)
     integration_image = simulator['Image']
     settings = manager.profile()
-    shooting = {k:settings[k] for k in ('bullet_speed','reported_bullet_speed','physics','aim_origin','gimbal_profile','fire_policy','algorithm_profile')} if args.mode=='shoot' else None
+    settings.setdefault('gimbal_dynamics',getattr(args,'gimbal_dynamics','legacy'))
+    shooting = {k:settings[k] for k in ('bullet_speed','reported_bullet_speed','physics','aim_origin','gimbal_profile','gimbal_dynamics','fire_policy','algorithm_profile')} if args.mode=='shoot' else None
     if shooting:
         shooting.update(fire_rate_limit_hz=settings['fire_rate_hz'],settlement_s=6,projectile_lifetime_s=5,
             hit_method='swept_actual_segment_v3')
@@ -146,8 +198,14 @@ def snapshot(manager, folder, scene, args):
     if calibration.exists():
         shutil.copy2(calibration,configs/'runtime-calibration.yaml')
     manifest = {'mode':args.mode,'shooting':shooting,'schema_version':1,'run_id':folder.name,'scene':scene,'duration_s':measurement_duration(scene,args),'wall_budget_s':40,
+        'execution':{'max_fps':settings.get('max_fps'),
+            'algorithm_lifecycle':getattr(args,'algorithm_lifecycle','session'),
+            'detector_history':settings.get('detector_history','process')},
+        'input_contract':settings.get('input_contract','legacy'),
+        'sensor_seed':settings.get('sensor_seed'),
+        'warmup_frames':settings.get('warmup_frames',30),
         'algorithm_binary_sha256':digest(manager.ROOT/'sp_vision_25/build/simulator/sim_auto_aim'),
-        'algorithm_profile':settings['algorithm_profile'],'label':args.label,'gimbal_profile':settings['gimbal_profile'],'created_utc':datetime.now(timezone.utc).isoformat(),
+        'algorithm_profile':settings['algorithm_profile'],'label':args.label,'gimbal_dynamics':settings['gimbal_dynamics'],'gimbal_profile':settings['gimbal_profile'],'created_utc':datetime.now(timezone.utc).isoformat(),
         'ros_domain_id':0,'random_seed':getattr(args,'seed',20261019),'scenario_semantics':semantics(scene),'projectile_visible':settings.get('projectile_visible','on'),'control_source':'fixed_script' if settings.get('command_script') else 'algorithm','command_script_sha256':digest(manager.RUNTIME/'command-script.json') if settings.get('command_script') else None,'algorithm_weights_sha256':weights,
         'configuration_sha256':{str(p.relative_to(configs)):digest(p) for p in configs.rglob('*') if p.is_file()},
         'repositories':{name:repository(manager,name,folder)
@@ -155,9 +213,29 @@ def snapshot(manager, folder, scene, args):
         'containers':{'simulator_image_id':integration_image,'bridge_image_id':bridge['Image'],
             'evaluator_image_id':manager.inspect('daedalus:rm26-evaluator')['Id']},
         'source_files':{p.name:digest(p) for p in manager.OPS.iterdir() if p.suffix in ('.py','.yml')},
+        'terrain':settings.get('terrain','arena'),'impact_quality_version':1 if settings.get('terrain')=='flat_range' else None,
+        'terrain_geometry':{'size_m':[120,120],'surface_z_m':0,'friction':.5,'material':'neutral_gray_rough'} if settings.get('terrain')=='flat_range' else None,
         'rules_version':4,'warmup_excluded':True,'recording':'all processed input frames and annotations',
         'visibility_model':'physics centre ray + front face + full plate in FOV; convex self occlusion approximation',
         'acceptance_baseline':None}
+    if getattr(manager,'PIPELINE_VERSION',1)==2:
+        manifest.update(pipeline_version=2,scoring_version=2,stage=getattr(args,'stage','screen'),
+            evidence='full' if getattr(args,'stage','screen')=='final' else getattr(args,'evidence','auto'),
+            repeat_id=getattr(args,'repeat_id',0),impact_quality_version=1,
+            recording='Original JPEG + telemetry + numerical metrics; media generated offline')
+        manifest['execution']['profile']=getattr(args,'execution_profile','backend-240-v1')
+    from gimbal_dynamics import description
+    manifest['gimbal_reference']=description(settings.get('gimbal_dynamics','legacy'))
+    manifest['execution']['mode']=getattr(args,'execution_mode','realtime')
+    manifest['execution']['preview']=getattr(args,'preview','off')
+    if manifest['execution']['mode']=='lockstep':
+        source=manager.OPS/'timing_profiles'/(args.timing_profile+'.json')
+        shutil.copy2(source,configs/'timing-profile.json')
+        manifest.update(wall_budget_s=180)
+        manifest['execution'].update(timing_profile=args.timing_profile,timing_sha256=digest(source),
+            initialization='Fresh environment, fixed simulated settling/homing and warmup frame count',
+            clock_domain='simulation',real_compute_cost_separate=True)
+        manifest['configuration_sha256']['timing-profile.json']=digest(source)
     manifest['baseline_key'] = baseline_key(manifest)
     baseline = load(manager.OPS/'baselines'/(manifest['baseline_key']+'.json'))
     if baseline:
@@ -237,8 +315,19 @@ def batch_report(path, batch):
 
 
 def run_one(manager, scene, args):
-    start_mono = time.monotonic()
-    operation_deadline = start_mono+36
+    from input_contract import aligned,validate as validate_contract
+    validate_contract(vars(args))
+    counted_warmup=aligned(vars(args))
+    start_mono = getattr(manager,'attempt_started',time.monotonic()) if getattr(args,'execution_mode','realtime')=='lockstep' else time.monotonic()
+    deferred=getattr(manager,'PIPELINE_VERSION',1)==2
+    lockstep=getattr(args,'execution_mode','realtime')=='lockstep'
+    session_option=getattr(args,'session_evidence','auto')
+    if lockstep and session_option=='off':raise ValueError('Lockstep requires complete session evidence')
+    reset_detector=getattr(args,'detector_history','process')=='session'
+    if reset_detector and session_option=='off':raise ValueError('Session detector history requires complete session evidence')
+    session_evidence=lockstep or reset_detector or session_option in (True,'on')
+    budget=180 if lockstep else 40
+    operation_deadline = start_mono+budget-4
     duration = measurement_duration(scene,args)
     short_scenario(manager,scene,duration,getattr(args,'seed',20261019))
     tag = ('_shoot_'+manager.profile()['aim_origin']+'_'+manager.profile()['physics']+'_'+str(manager.profile()['bullet_speed'])+'_'+str(manager.profile()['reported_bullet_speed'])).replace('.','p') if args.mode=='shoot' else ''
@@ -253,17 +342,22 @@ def run_one(manager, scene, args):
     identifier = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')+'_'+scene+tag+'_'+uuid.uuid4().hex[:8]
     folder = manager.OPS/'experiments'/identifier
     folder.mkdir(parents=True)
-    write(folder/'manifest.json',{'run_id':identifier,'scene':scene,'duration_s':measurement_duration(scene,args),'wall_budget_s':40,'created_utc':datetime.now(timezone.utc).isoformat()})
+    if hasattr(manager, 'on_run_created'):
+        manager.on_run_created(folder)
+    write(folder/'manifest.json',{'run_id':identifier,'scene':scene,'mode':args.mode,'duration_s':measurement_duration(scene,args),'wall_budget_s':budget,'pipeline_version':2 if deferred else 1,'created_utc':datetime.now(timezone.utc).isoformat()})
     container = 'rm26-eval-'+uuid.uuid4().hex[:12]
     capture_started = None
     component_ids = {}
     print('Experiment: '+identifier,flush=True)
     try:
-        manager.rpc('prepare',name=scene,control='on',duration=duration,seed=getattr(args,'seed',20261019))
+        manager.rpc('prepare',name=scene,control='on',duration=duration,seed=getattr(args,'seed',20261019),
+            record_session=session_evidence,input_contract=getattr(args,'input_contract','legacy'),
+            warmup_frames=getattr(args,'warmup_frames',30))
         deadline = min(time.monotonic()+5,operation_deadline)
         while True:
             health = manager.rpc('status')
             result = health.get('last_result') or {}
+            if counted_warmup and health.get('connected'):break
             if (health.get('connected') and health.get('frame_age_ms') is not None
                     and health['frame_age_ms'] < 250 and result.get('diagnostics_version',0) >= 1):
                 break
@@ -273,6 +367,10 @@ def run_one(manager, scene, args):
         # This confirms input readiness, not successful target detection. A
         # detector failure must remain a measured failure, not prevent the run.
         manifest = snapshot(manager,folder,scene,args)
+        if session_evidence:
+            manifest['session_evidence']=dict(version=1,required=True,archive='session-evidence',
+                scope='All inputs and results since the final fresh session reset, including unscored warmup')
+            write(folder/'manifest.json',manifest)
         for name in (manager.SIMULATOR,manager.BRIDGE,manager.DESKTOP_CONTAINER):
             info = manager.inspect(name)
             component_ids[name] = (info['Id'],info['State']['StartedAt'])
@@ -281,19 +379,36 @@ def run_one(manager, scene, args):
         manager.compose('--profile','experiment','run','--detach','--no-deps','--name',container,
             'evaluator','python3','-u','/opt/rm26/evaluator.py','--output','/experiments/'+identifier,
             '--scene',scene,'--duration',str(duration),'--mode',args.mode,'--settlement','6',
-            '--wall-budget',str(max(1,operation_deadline-time.monotonic())))
+            '--wall-budget',str(max(1,operation_deadline-time.monotonic())),
+            '--input-contract',getattr(args,'input_contract','legacy'),
+            *(['--defer-media'] if deferred else []))
         capture_started = time.monotonic()
+        if lockstep:
+            # Subscriptions must exist before the deterministic priming ticks.
+            deadline=min(time.monotonic()+5,operation_deadline)
+            while not load(folder/'recorder-status.json',{}).get('stream_ready'):
+                if time.monotonic()>deadline:raise RuntimeError('Observer failed to subscribe')
+                time.sleep(.05)
+            manager.rpc('prime')
         deadline = min(time.monotonic()+5,operation_deadline)
         while True:
             recorder = load(folder/'recorder-status.json',{})
             if recorder.get('stream_ready') and recorder.get('truth_ready'):
                 break
+            if lockstep:manager.rpc('prime')
             info = manager.inspect(container)
             if not info or not info['State']['Running']:
                 raise RuntimeError('Recorder exited before it was ready')
             if time.monotonic()>deadline:
                 raise RuntimeError('Observer stream was not ready')
             time.sleep(.2)
+        if counted_warmup:
+            write(folder/'warmup.json',manager.rpc('warm'))
+        if getattr(args,'diagnosis_reset',False):
+            reset=manager.rpc('diagnosis_reset')
+            write(folder/'diagnosis-reset.json',{'reset_status':reset,'requested_ns':time.time_ns(),
+                'purpose':'Recorder is already ready; include the full fresh algorithm session before measurement.'})
+            time.sleep(1.)
         manager.rpc('begin',fire=args.mode=='shoot')
         write(folder/'begin.json',{'requested_utc':datetime.now(timezone.utc).isoformat(),
             'bridge_status':manager.rpc('status')})
@@ -330,28 +445,73 @@ def run_one(manager, scene, args):
             manager.save_profile(saved)
         except (OSError,RuntimeError):
             pass
+        session_audit=None
+        if session_evidence:
+            try:
+                manager.rpc('seal_session')
+                shutil.copytree(manager.RUNTIME/'session-evidence',folder/'session-evidence',dirs_exist_ok=True)
+                from session_evidence import audit
+                run_state=load(folder/'run-state.json',{})
+                session_audit=audit(folder/'session-evidence',run_state.get('measurement_start_stamp_ns'),
+                    run_state.get('measurement_end_stamp_ns'),folder)
+                first=load(folder/'begin.json',{}).get('bridge_status',{}).get('last_result') or {}
+                if first.get('session')!=session_audit['session']:
+                    session_audit['errors'].append('Archived session differs from measurement session')
+                    session_audit['passed']=False
+                if reset_detector:
+                    initial={}
+                    with (folder/'session-evidence/events.jsonl').open() as events:
+                        for line in events:
+                            packet=json.loads(line)
+                            if packet['kind']=='result':initial=packet['data']['result'];break
+                    reset_ok=initial.get('detector_history')=='session' and initial.get('detector_reset') is True
+                    session_audit['detector_session_reset_verified']=reset_ok
+                    if not reset_ok:
+                        session_audit['errors'].append('Detector did not acknowledge fresh-session cache reset')
+                        session_audit['passed']=False
+            except (OSError,RuntimeError,ValueError,KeyError) as error:
+                session_audit=dict(passed=False,errors=[type(error).__name__+': '+str(error)])
+            write(folder/'session-evidence-audit.json',session_audit)
         for name,label in [(container,'evaluator'),(manager.SIMULATOR,'simulator'),(manager.BRIDGE,'bridge')]:
             if manager.inspect(name):
                 logs = subprocess.run(['docker','logs','--timestamps',name],capture_output=True,text=True)
                 (folder/(label+'.log')).write_text(logs.stdout+logs.stderr)
+        control_timing=manager.RUNTIME/'control-timing.jsonl'
+        if control_timing.exists():shutil.copy2(control_timing,folder/'control-timing.jsonl')
+        if lockstep:write(folder/'synchronization.json',manager.rpc('status').get('synchronization'))
+        if deferred:
+            from background_pipeline import compact
+            if (folder/'input.mjpg').exists():compact(folder)
+            write(folder/'media-status.json',{'state':'not_requested','basic_results_available':True})
         evidence = {}
         for name in ('input.mjpg','input.avi','annotated.avi','annotated.mp4','frames.jsonl','telemetry.jsonl',
-                'manifest.json','run-state.json','shots.jsonl','shots.csv'):
+                'manifest.json','run-state.json','shots.jsonl','shots.csv','motion-analysis.json','impact-quality.png','impact-quality.svg','motion.png','motion.svg','quality-shots.jsonl','quality-shots.csv',
+                'retained.mjpg','retained-index.json','evidence-policy.json','control-timing.jsonl','synchronization.json'):
             artifact = folder/name
             if artifact.exists():
                 evidence[name] = digest(artifact)
+        if session_evidence:
+            for artifact in sorted((folder/'session-evidence').glob('*')):
+                if artifact.is_file():evidence[str(artifact.relative_to(folder))]=digest(artifact)
+            evidence['session-evidence-audit.json']=digest(folder/'session-evidence-audit.json')
         write(folder/'evidence-sha256.json',evidence)
         if manager.inspect(container):
             manager.run(['docker','rm',container],check=False)
         summary = load(folder/'summary.json',{})
-        publish_desktop(manager,folder)
+        if session_audit is not None:
+            summary.setdefault('rules',[]).append(dict(name='complete_session_evidence',category='validity',
+                passed=session_audit['passed'],actual=session_audit,expected='Complete warmup and measurement input/result history'))
+            if not session_audit['passed']:summary['verdict']='invalid'
+        if not deferred:publish_desktop(manager,folder)
         elapsed = time.monotonic()-start_mono
-        write(folder/'timing.json',{'wall_seconds':elapsed,'budget_seconds':40,'within_budget':elapsed<=40,
-            'measurement_seconds':duration,'settlement_seconds':6})
+        write(folder/'timing.json',{'wall_seconds':elapsed,'budget_seconds':budget,'within_budget':elapsed<=budget,
+            'measurement_seconds':duration,'settlement_seconds':load(folder/'run-state.json',{}).get('settlement_wall_s',6),
+            'completion_boundary':'basic_results' if deferred else 'all_artifacts',
+            'media_seconds':None if deferred else 0})
         summary.setdefault('metrics',{})['total_wall_s'] = elapsed
         summary.setdefault('rules',[]).append({'name':'wall_time_budget','category':'validity',
-            'passed':elapsed<=40,'actual':elapsed,'expected':'<= 40 s including preparation, settlement and report'})
-        if elapsed>40:
+            'passed':elapsed<=budget,'actual':elapsed,'expected':f'<= {budget} s including preparation, settlement and report'})
+        if elapsed>budget:
             summary['verdict']='invalid'
         write(folder/'summary.json',summary)
         render(folder,summary)
@@ -362,6 +522,33 @@ def run_one(manager, scene, args):
 
 def execute(manager, args):
     action = args.experiment_action
+    if action=='suite':
+        from movement_scenarios import select
+        if args.list:return print(json.dumps(select(args.tier,args.cases,args.pressure),ensure_ascii=False,indent=2))
+        if not args.output:raise ValueError('--output is required for suite acquisition')
+        from movement_study import run
+        return run(args.output,args.tier,args.cases,args.pressure)
+    if action=='run' and getattr(args,'execution_mode','realtime')=='lockstep':
+        import background_jobs as jobs
+        argv=['experiment','submit','--parallelism','1']
+        for key,value in vars(args).items():
+            if key in jobs.FIELDS and value is not None:argv+=['--'+key.replace('_','-'),str(value)]
+        if args.repeat is not None:argv+=['--repeat',str(args.repeat)]
+        task=jobs.submit(manager.parser().parse_args(argv))
+        if not task['scheduler_available']:raise RuntimeError('Frozen task queued; start the scheduler to execute it: '+task['job_id'])
+        while True:
+            with jobs.connect() as db:state=jobs.status(db,task['job_id'])
+            if state['state'] in ('completed','paused','cancelled'):
+                with jobs.connect() as db:print(jobs.report(db,task['job_id']))
+                if state['state']!='completed':raise RuntimeError('Task stopped: '+state['state'])
+                return
+            time.sleep(.5)
+    if action=='compare':
+        from background_compare import compare
+        return compare(args)
+    if action=='lockstep-study':
+        from sync_study import launch
+        return launch(args)
     root = manager.OPS/'experiments'
     root.mkdir(exist_ok=True)
     if action == 'list':
@@ -430,6 +617,13 @@ def execute(manager, args):
         write(folder/'selected-as-baseline.json',baseline)
         print('Selected baseline: '+summary['scene']+' / '+folder.name)
         return
+    if args.matrix=='highspeed-v1':
+        if args.gimbal_dynamics!='legacy':
+            raise RuntimeError('Legacy highspeed-v1 study has fixed gimbal dynamics; use a concrete --scene with --matrix single, or experiment submit')
+        if args.max_fps is not None or args.algorithm_lifecycle!='session':
+            raise RuntimeError('Legacy highspeed-v1 study has fixed execution settings; use a concrete --scene with --matrix single, or experiment submit for timing/lifecycle comparisons')
+        from highspeed_study import run
+        return run(manager,manager.OPS/'experiments'/('highspeed-v1-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')),locked=True)
     if isinstance(args.seed,bool) or not 0<=args.seed<=4294967295:raise RuntimeError('seed must be an unsigned 32-bit integer')
     args.matrix = args.matrix or ('hit-v3' if args.mode=='shoot' else None)
     args.repeat = args.repeat if args.repeat is not None else (1 if args.mode=='shoot' else 3)
@@ -437,6 +631,8 @@ def execute(manager, args):
         raise RuntimeError('--matrix requires --mode shoot')
     if args.duration is not None and not 1 <= args.duration <= 18:
         raise RuntimeError('Measurement duration must be 1..18 seconds to preserve 40 s total budget')
+    if args.max_fps is not None and (not math.isfinite(args.max_fps) or not (args.max_fps==0 or 1<=args.max_fps<=1000)):
+        raise RuntimeError('max-fps must be 0 (uncapped) or 1..1000')
     if not 1 <= args.repeat <= 30 or len(args.label)>100:
         raise RuntimeError('repeat must be 1..30; label at most 100 characters')
     image = manager.inspect('daedalus:rm26-evaluator')
@@ -445,6 +641,9 @@ def execute(manager, args):
         raise RuntimeError('Build simulator and evaluator images with sim.sh build first')
     if image['Config'].get('Labels',{}).get('rm26.integration_image_id') != integration['Id']:
         raise RuntimeError('Evaluator image does not match integration interfaces; run sim.sh build --component evaluator')
+    selected_simulator=manager.inspect(os.environ.get('RM26_SIMULATOR_IMAGE') or simulator_image(args.gimbal_dynamics,manager.IMAGE))
+    if not selected_simulator:
+        raise RuntimeError('Selected gimbal dynamics simulator image is missing')
     desktop = manager.inspect(manager.DESKTOP_CONTAINER)
     if not desktop or not desktop['State']['Running']:
         raise RuntimeError('Sunshine desktop must be running; no experiment started')
@@ -471,6 +670,7 @@ def execute(manager, args):
         for row in previous['runs']:
             settings = row.get('shooting') or {}
             if settings.get('algorithm_profile','legacy') != args.algorithm_profile: continue
+            if settings.get('gimbal_dynamics','legacy') != args.gimbal_dynamics:continue
             if settings.get('fire_policy','advice') != args.fire_policy or settings.get('fire_rate_limit_hz',2) != args.fire_rate_hz: continue
             condition = (settings.get('physics'),settings.get('bullet_speed'),settings.get('reported_bullet_speed'),settings.get('aim_origin','gimbal'),settings.get('gimbal_profile','legacy'))
             if row['scene'] not in scenes or row['repeat'] > args.repeat or (args.mode=='shoot' and condition not in configurations):
@@ -479,11 +679,16 @@ def execute(manager, args):
             if saved.get('verdict') in ('invalid',None):
                 continue
             manifest = load(checked_folder(manager,row['run_id'])/'manifest.json',{})
+            if manifest.get('terrain','arena')!=args.terrain:continue
+            if manifest.get('execution',{}).get('max_fps')!=args.max_fps:continue
+            if manifest.get('execution',{}).get('algorithm_lifecycle','session')!=args.algorithm_lifecycle:continue
+            if manifest.get('execution',{}).get('detector_history','process')!=args.detector_history:continue
+            if manifest.get('input_contract','legacy')!=args.input_contract or manifest.get('sensor_seed')!=args.sensor_seed or manifest.get('warmup_frames',30)!=args.warmup_frames:continue
             if manifest.get('command_script_sha256')!=(digest(Path(args.command_script)) if args.command_script else None):continue
             if manifest.get('random_seed',20261019)!=args.seed or manifest.get('projectile_visible','on')!=args.projectile_visible:continue
             if manifest.get('algorithm_binary_sha256') != digest(manager.ROOT/'sp_vision_25/build/simulator/sim_auto_aim'):
                 raise RuntimeError('Resume algorithm binary differs; start a new batch')
-            if manifest.get('containers',{}).get('simulator_image_id') != integration['Id']:
+            if manifest.get('containers',{}).get('simulator_image_id') != selected_simulator['Id']:
                 raise RuntimeError('Resume simulator image differs; start a new batch')
             if manifest.get('configuration_sha256',{}).get('scenario.toml') != digest(short_scenario(manager,row['scene'],measurement_duration(row['scene'],args),getattr(args,'seed',20261019))):
                 raise RuntimeError('Resume scenario differs; start a new batch')
@@ -492,8 +697,11 @@ def execute(manager, args):
             for name,checksum in manifest.get('algorithm_weights_sha256',{}).items():
                 if digest(manager.ROOT/'sp_vision_25/assets'/name) != checksum:
                     raise RuntimeError('Resume model weights differ; start a new batch')
-            expected = manager.render_config({'physics':settings.get('physics',args.physics),
-                'bullet_speed':settings.get('bullet_speed',args.bullet_speed),'gimbal_profile':settings.get('gimbal_profile','legacy')})
+            expected = manager.render_config({'terrain':args.terrain,'physics':settings.get('physics',args.physics),
+                'bullet_speed':settings.get('bullet_speed',args.bullet_speed),'gimbal_profile':settings.get('gimbal_profile','legacy'),'gimbal_dynamics':settings.get('gimbal_dynamics','legacy'),
+                'max_fps':args.max_fps,'input_contract':args.input_contract,'sensor_seed':args.sensor_seed,
+                'warmup_frames':args.warmup_frames,'detector_history':args.detector_history,
+                'session_evidence':args.session_evidence})
             frozen = (checked_folder(manager,row['run_id'])/'configuration/simulator.toml').read_text()
             if manager.tomllib.loads(expected) != manager.tomllib.loads(frozen):
                 raise RuntimeError('Resume simulator parameters differ; start a new batch')
@@ -512,6 +720,7 @@ def execute(manager, args):
                                 and settings.get('bullet_speed')==actual
                                 and settings.get('reported_bullet_speed')==reported and settings.get('aim_origin')==origin
                                 and settings.get('gimbal_profile','legacy')==gimbal_profile
+                                and settings.get('gimbal_dynamics','legacy')==args.gimbal_dynamics
                                 and settings.get('algorithm_profile','legacy')==args.algorithm_profile
                                 and settings.get('fire_policy','advice')==args.fire_policy
                                 and settings.get('fire_rate_limit_hz',2)==args.fire_rate_hz))):
@@ -521,10 +730,15 @@ def execute(manager, args):
                 if not pending:
                     continue
                 manager.stop()
-                manager.start(argparse.Namespace(scene='static',control='off',view='off',replace=False,
-                    fire='auto' if args.mode=='shoot' else 'off',physics=physics,
-                    bullet_speed=actual,reported_bullet_speed=reported,aim_origin=origin,gimbal_profile=gimbal_profile,fire_policy=args.fire_policy,fire_rate_hz=args.fire_rate_hz,algorithm_profile=args.algorithm_profile,projectile_visible=args.projectile_visible,command_script=args.command_script))
+                manager.start(argparse.Namespace(terrain=args.terrain,scene='static',control='off',view='off',replace=False,
+                    input_contract=args.input_contract,sensor_seed=args.sensor_seed,warmup_frames=args.warmup_frames,
+                    fire='auto' if args.mode=='shoot' else 'off',physics=physics,max_fps=args.max_fps,detector_history=args.detector_history,
+                    bullet_speed=actual,reported_bullet_speed=reported,aim_origin=origin,gimbal_profile=gimbal_profile,gimbal_dynamics=args.gimbal_dynamics,fire_policy=args.fire_policy,fire_rate_hz=args.fire_rate_hz,algorithm_profile=args.algorithm_profile,projectile_visible=args.projectile_visible,command_script=args.command_script))
                 for scene in pending:
+                    if args.algorithm_lifecycle=='fresh':
+                        manager.algorithm('stop')
+                        manager.algorithm('start',view='off',fire='auto' if args.mode=='shoot' else 'off',
+                            aim_origin=origin,algorithm_profile=args.algorithm_profile,detector_history=args.detector_history,detach=True)
                     folder = run_one(manager,scene,args)
                     result = load(folder/'summary.json',{})
                     batch.append({'run_id':folder.name,'scene':scene,'repeat':repeat+1,'mode':args.mode,

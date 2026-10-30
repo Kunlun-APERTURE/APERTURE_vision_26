@@ -27,6 +27,7 @@ from rm_interfaces.msg import SimArmorStates, SimRobotStates, SimScenarioStatus,
 from observer import receive, send
 from report import finalize, load
 from scenario_catalog import semantics, EXTRA, SCENES
+from input_contract import accept_boundary
 
 
 def ns(stamp):
@@ -88,6 +89,12 @@ class Evaluator(Node):
         self.output = Path(args.output)
         self.output.mkdir(parents=True,exist_ok=True)
         self.manifest=load(self.output/'manifest.json',{})
+        self.lockstep=self.manifest.get('execution',{}).get('mode')=='lockstep'
+        self.last_settlement_stamp=None
+        self.deferred=getattr(args,'defer_media',False)
+        self.settlement_snapshot=None
+        self.settlement_generation=None
+        self.last_shot_activity=time.monotonic()
         self.semantics=self.manifest.get('scenario_semantics',semantics(args.scene))
         self.fire_rate_hz = (load(self.output/'manifest.json',{}).get('shooting') or {}).get('fire_rate_limit_hz',2)
         self.fire_policy = (load(self.output/'manifest.json',{}).get('shooting') or {}).get('fire_policy','advice')
@@ -125,6 +132,9 @@ class Evaluator(Node):
         self.end_stamp = None
         self.end_received = None
         self.scenario_started_stamp = None
+        self.require_boundary=getattr(args,'input_contract','legacy')=='aligned-v1'
+        self.scenario_boundary=None
+        self.boundary_pending=collections.deque()
         self.started_received = None
         self.created_mono = time.monotonic()
         self.raw_log = (self.output/'telemetry.jsonl').open('w')
@@ -134,9 +144,11 @@ class Evaluator(Node):
         self.create_subscription(SimArmorStates,'/sim/gt/armors',self.on_armors,qos_profile_sensor_data)
         self.create_subscription(SimRobotStates,'/sim/gt/robots',self.on_robots,qos_profile_sensor_data)
         self.create_subscription(SimScenarioStatus,'/sim/scenario/status',self.on_scenario,qos_profile_sensor_data)
+        self.create_subscription(RosString,'/sim/scenario/boundary',lambda msg:self.on_boundary(json.loads(msg.data)),100)
         self.create_subscription(SimEvent,'/sim/events/fire',self.on_fire,100)
         self.create_subscription(SimEvent,'/sim/events/hit',self.on_fire,100)
         self.create_subscription(RosString,'/sim/projectiles/trace',self.on_trace,100)
+        self.create_subscription(RosString,'/sim/projectiles/settlement',self.on_settlement,100)
         self.create_subscription(RosString,'/sim/gimbal/trace',self.on_gimbal_trace,qos_profile_sensor_data)
         self.create_subscription(RosString,'/sim/aim/fire_eligibility',lambda msg:self.log('fire_eligibility',json.loads(msg.data)),qos_profile_sensor_data)
         self.create_subscription(RosString,'/sim/bench/continuous_fire',lambda msg:self.log('continuous_fire_heartbeat',json.loads(msg.data)),qos_profile_sensor_data)
@@ -175,6 +187,7 @@ class Evaluator(Node):
     def on_robots(self, msg):
         stamp = ns(msg.header.stamp)
         with self.lock:
+            if stamp<=self.robots.last_sample:return
             values = [{'id':r.robot_id,'team':r.team,'position':list(r.pos),'velocity':list(r.vel),
                 'yaw':r.yaw,'yaw_rate':r.yaw_rate} for r in msg.robots]
             sim = msg.robots[0].sim_time_ns/1e9 if msg.robots else None
@@ -193,19 +206,51 @@ class Evaluator(Node):
                 self.fail('Scenario reset during measurement')
             self.scenario = sample
             self.scenario_history.append(sample)
-            if msg.phase == 1 and self.started_received is None:
+            if not self.require_boundary and msg.phase == 1 and self.started_received is None:
                 self.started_received = time.monotonic()
                 self.scenario_started_stamp = sample['stamp_ns']-int(msg.t_scenario*1e9)
-            if msg.phase == 2 and self.end_stamp is None:
+            if not self.require_boundary and msg.phase == 2 and self.end_stamp is None:
                 self.end_stamp = sample['stamp_ns']
                 self.end_received = time.monotonic()
             self.log('scenario',sample)
+
+    def on_boundary(self,value):
+        if value.get('id')!='rm26_'+self.args.scene:
+            self.fail('Unexpected physical scenario identity');return
+        with self.lock:
+            if not accept_boundary(self.scenario_boundary,value):return
+            if self.scenario_started_stamp is not None and self.scenario_boundary and value['generation']!=self.scenario_boundary['generation']:
+                self.fail('Physical scenario generation changed');return
+            self.scenario_boundary=dict(value)
+            if self.require_boundary:
+                start=value.get('measurement_start_stamp_ns');end=value.get('measurement_end_stamp_ns')
+                if start is not None:
+                    self.scenario_started_stamp=start
+                    if self.started_received is None:self.started_received=time.monotonic()
+                if end is not None:
+                    self.end_stamp=end
+                    if self.end_received is None:self.end_received=time.monotonic()
+            self.log('scenario_boundary',value)
 
     def on_trace(self, msg):
         data = json.loads(msg.data)
         with self.lock:
             self.projectile_traces.append(data)
             self.log('projectile_trace',data)
+
+    def on_settlement(self,msg):
+        data=json.loads(msg.data)
+        if data.get('version')!=1 or data.get('method')!='swept_actual_segment_v3':return
+        with self.lock:
+            if self.settlement_generation is None:self.settlement_generation=data['generation']
+            elif self.settlement_generation!=data['generation']:
+                self.fail('Settlement generation changed during capture')
+            previous=self.settlement_snapshot
+            if previous is None or (previous['allocated'],previous['terminals'])!=(data['allocated'],data['terminals']):
+                self.last_shot_activity=time.monotonic()
+                self.last_settlement_stamp=data['stamp_ns']
+            self.settlement_snapshot=data
+            self.log('settlement',data)
 
     def on_gimbal_trace(self, msg):
         self.log('gimbal_trace',json.loads(msg.data))
@@ -215,9 +260,12 @@ class Evaluator(Node):
             'shot_seq':msg.shot_seq,'kind':msg.kind,'shooter_id':msg.shooter_id,
             'target_id':msg.target_id,'armor_id':msg.armor_id,
             'world_point':list(msg.world_point),'contact_point':list(msg.contact_point),
-            'velocity':list(msg.velocity),'flight_time_s':msg.flight_time_s})
+            'velocity':list(msg.velocity),'flight_time_s':msg.flight_time_s,
+            'impact_geometry_valid':msg.impact_geometry_valid,'impact_sim_time_ns':msg.impact_sim_time_ns,
+            'plate_center':list(msg.plate_center),'plate_right':list(msg.plate_right),'plate_up':list(msg.plate_up),'plate_size':list(msg.plate_size)})
         with self.lock:
             self.fire_events += msg.kind == 0
+            self.last_shot_activity=time.monotonic()
             self.shot_events.append(value)
             self.log('shot_event',value)
 
@@ -225,7 +273,8 @@ class Evaluator(Node):
         self.control_messages += 1
         self.fire_advice += bool(msg.fire_advice)
         self.log('command',{'stamp_ns':ns(msg.header.stamp),'yaw_deg':msg.yaw,'pitch_deg':msg.pitch,
-            'distance':msg.distance,'fire_advice':msg.fire_advice})
+            'distance':msg.distance,'fire_advice':msg.fire_advice,'temporal_valid':msg.temporal_valid,
+            'aim_stamp_ns':msg.aim_stamp_ns,'yaw_rate_radps':msg.yaw_rate_radps,'pitch_rate_radps':msg.pitch_rate_radps})
 
     def fail(self, reason):
         with self.lock:
@@ -297,6 +346,7 @@ class Evaluator(Node):
             'robots':interpolate(c,d,'robots',beta)}
 
     def process(self, packet, jpeg):
+        if self.require_boundary and packet.get('scenario_boundary'):self.on_boundary(packet['scenario_boundary'])
         frame,result = packet['frame'],packet['result']
         stamp = frame['stamp_ns']
         truth = self.truth(stamp)
@@ -315,7 +365,7 @@ class Evaluator(Node):
             t = None
         else:
             t = truth['time']
-            if t <= 0 or t > self.args.duration:
+            if (t < 0 if self.require_boundary else t <= 0) or t > self.args.duration:
                 return
             if self.end_stamp is not None and stamp > self.end_stamp and self.args.mode != 'shoot':
                 return
@@ -323,21 +373,28 @@ class Evaluator(Node):
             self.session = frame['session']
         elif self.session != frame['session']:
             self.fail('Algorithm session changed during measurement')
-        image = cv2.imdecode(np.frombuffer(jpeg,np.uint8),cv2.IMREAD_COLOR)
-        if image is None:
+        image = cv2.imdecode(np.frombuffer(jpeg,np.uint8),cv2.IMREAD_COLOR) if not self.deferred or not self.records else None
+        if image is None and (not self.deferred or not self.records):
             self.fail('JPEG decode failure')
             return
-        h,w = image.shape[:2]
-        if self.raw_video is None:
+        from background_pipeline import jpeg_size
+        w,h=jpeg_size(jpeg)
+        if (w,h)!=(frame['calibration']['width'],frame['calibration']['height']):
+            raise ValueError('JPEG dimensions differ from calibration')
+        if self.raw_video is None and not self.deferred:
             fourcc = cv2.VideoWriter_fourcc(*'MJPG')
             self.raw_video = cv2.VideoWriter(str(self.output/'input.avi'),fourcc,30,(w,h))
             self.annotated_video = cv2.VideoWriter(str(self.output/'annotated.avi'),fourcc,30,(w,h))
             if not self.raw_video.isOpened() or not self.annotated_video.isOpened():
                 raise RuntimeError('Cannot open experiment video writers')
-        self.raw_video.write(image)
+        if not self.deferred:self.raw_video.write(image)
         jpeg_offset = self.original_jpegs.tell()
         self.original_jpegs.write(jpeg)
-        marked = image.copy()
+        marked = image.copy() if not self.deferred else None
+        drawings=[]
+        def draw(name,*arguments):
+            if self.deferred:drawings.append([name,clean(arguments)])
+            else:getattr(cv2,name)(marked,*arguments)
         camera = frame['camera_in_map']
         r = rotation(camera['quaternion'])
         position = np.asarray(camera['position'])
@@ -379,9 +436,9 @@ class Evaluator(Node):
             eligible = bool(plate['visibility_valid'] and plate['line_of_sight_clear'] and facing and inside)
             if polygon is not None and inside:
                 color = (255,255,0) if eligible else (140,140,140)
-                cv2.polylines(marked,[np.rint(polygon).astype(np.int32)],True,color,2)
+                draw('polylines',[np.rint(polygon).astype(np.int32)],True,color,2)
                 p = tuple(np.rint(polygon.mean(axis=0)).astype(int))
-                cv2.putText(marked,f"GT {plate['robot_id']}:{plate['slot']}",p,cv2.FONT_HERSHEY_SIMPLEX,.45,color,1)
+                draw('putText',f"GT {plate['robot_id']}:{plate['slot']}",p,cv2.FONT_HERSHEY_SIMPLEX,.45,color,1)
             if eligible and plate['robot_id'] == 1:
                 candidates.append((plate,polygon))
         row['visible_plates'] = len(candidates)
@@ -391,8 +448,8 @@ class Evaluator(Node):
             points = np.asarray(observation.get('corners',[]),dtype=float)
             if points.shape != (4,2) or not np.isfinite(points).all():
                 continue
-            cv2.polylines(marked,[np.rint(points).astype(np.int32)],True,(0,255,0),2)
-            cv2.putText(marked,'DET '+observation.get('name','?'),tuple(np.rint(points[0]).astype(int)),
+            draw('polylines',[np.rint(points).astype(np.int32)],True,(0,255,0),2)
+            draw('putText','DET '+observation.get('name','?'),tuple(np.rint(points[0]).astype(int)),
                 cv2.FONT_HERSHEY_SIMPLEX,.45,(0,255,0),1)
             for pi,(plate,polygon) in enumerate(candidates):
                 diagonal = np.linalg.norm(polygon.max(axis=0)-polygon.min(axis=0))
@@ -455,12 +512,12 @@ class Evaluator(Node):
                 if projected is not None:
                     for point in projected:
                         if np.isfinite(point).all() and -w<int(point[0])<2*w and -h<int(point[1])<2*h:
-                            cv2.drawMarker(marked,tuple(np.rint(point).astype(int)),(255,0,255),cv2.MARKER_CROSS,12,2)
+                            draw('drawMarker',tuple(np.rint(point).astype(int)),(255,0,255),cv2.MARKER_CROSS,12,2)
         aim = result.get('aim_point')
         if aim is not None:
             point = project([np.asarray(aim)+origin])
             if point is not None and np.isfinite(point).all():
-                cv2.circle(marked,tuple(np.rint(point[0]).astype(int)),7,(0,255,255),2)
+                draw('circle',tuple(np.rint(point[0]).astype(int)),7,(0,255,255),2)
         rg = rotation(frame['q_gimbal2world'])
         if packet['command_emitted']:
             yaw = math.atan2(rg[1,0],rg[0,0])
@@ -482,11 +539,12 @@ class Evaluator(Node):
             'GT cyan / detection green / estimated plates magenta / ballistic aim yellow',
             ('NO FIRE | video timeline: frames.jsonl' if self.args.mode == 'track' else
                 self.shot_overlay(stamp,measurement))]
-        cv2.rectangle(marked,(0,0),(w,112),(0,0,0),-1)
+        draw('rectangle',(0,0),(w,112),(0,0,0),-1)
         for i,line in enumerate(overlay):
-            cv2.putText(marked,line,(12,23+i*26),cv2.FONT_HERSHEY_SIMPLEX,.53,(255,255,255),1,cv2.LINE_AA)
-        self.annotated_video.write(marked)
-        if not self.records or len(self.records)%300 == 0 or (not row['correct_tracking'] and len(self.records)%30 == 0):
+            draw('putText',line,(12,23+i*26),cv2.FONT_HERSHEY_SIMPLEX,.53,(255,255,255),1,cv2.LINE_AA)
+        if not self.deferred:self.annotated_video.write(marked)
+        row.update(drawings=drawings,image_size=[w,h])
+        if not self.deferred and (not self.records or len(self.records)%300 == 0 or (not row['correct_tracking'] and len(self.records)%30 == 0)):
             folder = self.output/'keyframes'
             folder.mkdir(exist_ok=True)
             cv2.imwrite(str(folder/f'{len(self.records):06d}.jpg'),marked)
@@ -525,20 +583,46 @@ class Evaluator(Node):
                 if time.monotonic()>deadline:
                     self.fail('Experiment deadline exceeded')
                     break
-                if self.started_received is None and time.monotonic()-self.last_observation_wall > 3:
+                if not self.lockstep and self.started_received is None and time.monotonic()-self.last_observation_wall > (8 if self.require_boundary else 3):
                     self.fail('No live algorithm observations before measurement')
                     break
                 if not self.scenario and time.monotonic()-self.created_mono > 15:
                     self.fail('Scenario/GT subscriptions did not become ready')
                     break
-                if self.started_received is not None and time.monotonic()-self.last_observation_wall > 2:
+                if not self.lockstep and self.started_received is not None and time.monotonic()-self.last_observation_wall > 2:
                     self.fail('Image or algorithm stream missing for more than 2 seconds')
                     break
-                if self.end_received is not None and time.monotonic()-self.end_received > (self.args.settlement if self.args.mode=='shoot' else 1) and self.observations.empty():
-                    break
+                if self.end_received is not None and self.observations.empty():
+                    elapsed=time.monotonic()-self.end_received
+                    with self.lock:
+                        snapshot=self.settlement_snapshot
+                        if self.lockstep and snapshot:
+                            elapsed=(snapshot['stamp_ns']-self.end_stamp)/1e9
+                        quiet=((snapshot['stamp_ns']-(self.last_settlement_stamp or snapshot['stamp_ns']))/1e9
+                            if self.lockstep and snapshot else time.monotonic()-self.last_shot_activity)
+                        fires={e['shot_seq'] for e in self.shot_events if e['kind']==0}
+                        terminal={v['shot_seq'] for v in snapshot['terminals']} if snapshot else set()
+                        hits={e['shot_seq'] for e in self.shot_events if e['kind'] in (1,2)}
+                        collision={v['shot_seq'] for v in snapshot['terminals'] if v['reason']=='collision'} if snapshot else set()
+                        settled=(snapshot and snapshot.get('allocated')==len(fires)
+                            and fires==terminal and collision<=hits
+                            and quiet>=.25)
+                    if self.deferred and settled and elapsed>=.25:break
+                    if elapsed>(self.args.settlement if self.args.mode=='shoot' else 1):
+                        if self.deferred and snapshot and not settled:self.fail('Missing projectile settlement or collision events')
+                        break
                 try:
-                    packet,jpeg = self.observations.get(timeout=.05)
+                    if self.boundary_pending and self.scenario_started_stamp is not None:
+                        packet,jpeg=self.boundary_pending.popleft()
+                    else:packet,jpeg = self.observations.get(timeout=.05)
                 except queue.Empty:
+                    if self.lockstep or self.require_boundary:self.record_status('ready' if self.started_received is None else 'recording')
+                    continue
+                if self.require_boundary and packet.get('scenario_boundary'):self.on_boundary(packet['scenario_boundary'])
+                if self.require_boundary and self.scenario_started_stamp is None:
+                    self.boundary_pending.append((packet,jpeg))
+                    if len(self.boundary_pending)>256:
+                        raise RuntimeError('Physical start boundary missing; early-observation buffer exhausted')
                     continue
                 # Warmup precedes the recorder's oldest GT. Waiting cannot
                 # recover that bracket and can build seconds of queue backlog.
@@ -571,7 +655,10 @@ class Evaluator(Node):
             'fire_advice_messages':self.fire_advice,'control_messages':self.control_messages,
             'algorithm_fire_suggestions':self.algorithm_fire_suggestions,'shot_events':self.shot_events,
             'projectile_traces':self.projectile_traces,
+            'settlement':self.settlement_snapshot,
+            'settlement_wall_s':time.monotonic()-self.end_received if self.end_received else None,
             'measurement_start_stamp_ns':self.scenario_started_stamp,'measurement_end_stamp_ns':self.end_stamp,
+            'physical_boundary':self.scenario_boundary,'pending_boundary_observations':len(self.boundary_pending),
             'scenario':self.scenario,'scenario_history':list(self.scenario_history),
             'complete':self.end_stamp is not None and not self.abort.is_set(),
             'ended_ns':time.time_ns()}
@@ -588,6 +675,8 @@ def main():
     parser.add_argument('--mode',choices=['track','shoot'],default='track')
     parser.add_argument('--settlement',type=float,default=6)
     parser.add_argument('--wall-budget',type=float,default=35)
+    parser.add_argument('--defer-media',action='store_true')
+    parser.add_argument('--input-contract',choices=['legacy','aligned-v1'],default='legacy')
     args = parser.parse_args()
     cv2.setNumThreads(1)
     rclpy.init()

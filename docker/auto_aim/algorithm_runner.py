@@ -8,7 +8,7 @@ import signal
 import subprocess
 import time
 
-ROOT = Path('/workspace/sp_vision_25')
+ROOT = Path(os.environ.get('RM26_ALGORITHM_ROOT','/workspace/sp_vision_25'))
 STATE = ROOT / 'build/sim/algorithm.json'
 LOG = ROOT / 'build/sim/algorithm.log'
 EXE = ROOT / 'build/simulator/sim_auto_aim'
@@ -43,8 +43,9 @@ def write(value):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['start', 'stop', 'status'])
-    parser.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3'],default='legacy')
+    parser.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr'],default='legacy')
     parser.add_argument('--aim-origin',choices=['muzzle','gimbal'],default='muzzle')
+    parser.add_argument('--detector-history',choices=['process','session'],default='process')
     parser.add_argument('--fire',choices=['off','auto'],default='off')
     parser.add_argument('--view', choices=['on', 'off'], default='off')
     args = parser.parse_args()
@@ -74,6 +75,7 @@ def main():
         command = [str(EXE), '--config=configs/simulator.yaml',
                    '--runtime=build/sim/calibration.yaml', '--port=18726',
                    '--view=' + ('true' if args.view == 'on' else 'false'), '--fire='+args.fire,'--aim-origin='+args.aim_origin,'--algorithm-profile='+args.algorithm_profile]
+        if args.detector_history!='process':command.append('--detector-history='+args.detector_history)
         child = subprocess.Popen(command, cwd=ROOT, stdout=output,
             stderr=subprocess.STDOUT, start_new_session=True)
         deadline = time.monotonic()+2
@@ -82,7 +84,7 @@ def main():
             time.sleep(.01)
             start = identity(child.pid)
         write({'pid':child.pid, 'starttime':start, 'view':args.view,
-               'algorithm_profile':args.algorithm_profile,'started_at':time.time(), 'running':child.poll() is None})
+               'algorithm_profile':args.algorithm_profile,'detector_history':args.detector_history,'started_at':time.time(), 'running':child.poll() is None})
         code = child.wait()
         if state().get('pid') == child.pid:
             write({'pid':child.pid, 'starttime':start, 'view':args.view,
