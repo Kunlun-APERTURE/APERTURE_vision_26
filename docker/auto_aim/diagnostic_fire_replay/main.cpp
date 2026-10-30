@@ -20,6 +20,8 @@ int main(int argc,char **argv) {
         c.yaw=r.value("pose_yaw",0.);c.elevation=r.value("pose_elevation",0.);
         c.pose_age_s=r.value("pose_age_s",1.);
         c.target_half_width_rad=r.value("target_half_width_rad",-1.);
+        c.prediction_yaw_sigma_rad=r.value("prediction_yaw_sigma_rad",-1.);
+        c.prediction_suspect=r.value("prediction_suspect",false);
         c.tracking=r.value("tracking",false);c.measurement_fresh=r.value("measurement_fresh",false);
         c.generation=r.value("generation",0u);c.plate_id=r.value("plate_id",-1);
         io::Command command{r.value("valid",false),false,r.value("yaw",0.),r.value("pitch",0.)};
