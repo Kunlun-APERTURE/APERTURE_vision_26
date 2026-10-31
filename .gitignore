@@ -1,6 +1,4 @@
-# Independent source repositories are committed separately.
-/sp_vision_25/
-/vision_simulator_26/
+# Source repositories are tracked as submodule commit references.
 /MvSdkLog/
 /rm26/
 

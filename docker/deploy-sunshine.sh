@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-task_dir=/home/rm/rm26/docker/sunshine
-task_repo=/home/rm/rm26/sp_vision_25
-task_simulator_repo=/home/rm/rm26/vision_simulator_26
+task_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+task_dir=$task_root/docker/sunshine
+task_repo=$task_root/sp_vision_25
+task_simulator_repo=$task_root/vision_simulator_26
+task_git_dir=$(git -C "$task_root" rev-parse --absolute-git-dir)
 task_image=sp_vision_sunshine:2026.914.233613
 task_name=sp_vision_sunshine
 task_proxy=${https_proxy:-${HTTPS_PROXY:-http://127.0.0.1:7890}}
@@ -44,7 +46,7 @@ PY
     > "$task_dir/credentials-setup.log" 2>&1
 fi
 
-if [[ ! -d $task_simulator_repo/.git ]]; then
+if ! git -C "$task_simulator_repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 || [[ ! -e $task_simulator_repo/.git ]]; then
   printf 'Simulator repository not found: %s\n' "$task_simulator_repo" >&2
   exit 1
 fi
@@ -57,6 +59,9 @@ if docker container inspect "$task_name" >/dev/null 2>&1; then
   if [[ $(docker inspect --format '{{index .Config.Labels "rm26.display"}}' "$task_name") != physical-gnome ]]; then
     printf 'Existing container uses an earlier display setup. Preserve config/home, remove the stopped container, then deploy again.\n' >&2
     exit 1
+  fi
+  if ! docker inspect --format '{{range .Mounts}}{{println .Destination}}{{end}}' "$task_name" | grep -qx /workspace/rm26; then
+    printf 'Existing desktop keeps its original mounts. Canonical /workspace/rm26 requires a planned container recreation; no running container changed.\n'
   fi
   printf 'Container already exists. Start it using: sudo systemctl start rm26-sunshine\n'
   exit 0
@@ -80,6 +85,8 @@ docker create --init --name "$task_name" --restart unless-stopped --stop-timeout
   --mount "type=bind,src=$task_glx,dst=/usr/lib/xorg/modules/extensions/libglxserver_nvidia.so,readonly" \
   --mount "type=bind,src=$task_dir/config,dst=/config" \
   --mount "type=bind,src=$task_dir/home,dst=/home/openvino" \
+  --mount "type=bind,src=$task_root,dst=/workspace/rm26" \
+  --mount "type=bind,src=$task_git_dir,dst=/workspace/.git" \
   --mount "type=bind,src=$task_repo,dst=/workspace/sp_vision_25" \
   --mount "type=bind,src=$task_simulator_repo,dst=/workspace/vision_simulator_26" \
   "$task_image"

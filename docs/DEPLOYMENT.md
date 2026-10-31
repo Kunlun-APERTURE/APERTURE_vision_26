@@ -4,7 +4,7 @@
 
 当前已验环境：Ubuntu宿主机、NVIDIA GPU与容器工具链、Docker Compose/Buildx；Sunshine容器 `sp_vision_sunshine` 提供GNOME显示和OpenVINO开发环境。模拟器运行在宿主机独立Docker容器，桥接器/评估器另行运行，不使用嵌套Docker。
 
-路径固定为 `/home/rm/rm26`，Sunshine源码挂载为 `/workspace/sp_vision_25`、`/workspace/vision_simulator_26`。UI显示为 `:20`，使用工作站时保持VT8；切换TTY可能影响NVIDIA呈现。后台运行可以慢于实时，但本部署仍使用既有GPU/显示设施，并不是无GPU的纯数值模拟。
+现有工作站路径为 `/home/rm/rm26`，Sunshine源码挂载为 `/workspace/sp_vision_25`、`/workspace/vision_simulator_26`。UI显示为 `:20`，使用工作站时保持VT8；切换TTY可能影响NVIDIA呈现。后台运行可以慢于实时，但本部署仍使用既有GPU/显示设施，并不是无GPU的纯数值模拟。
 
 ```bash
 cd /home/rm/rm26
@@ -35,3 +35,7 @@ Sunshine由宿主机服务管理；UI模拟器/桥接手动启停。实验调度
 正确yaw模型镜像通过10月29日的增量构建验证，依赖旧冻结builder及Cargo缓存。源码完整保存在模拟器仓库，但本轮未在空机器重新构建这些镜像。交给队友直接复现时，需要另行提供镜像包/镜像仓库，以及选择性原始实验资料；本次Git推送不包含这些大文件。
 
 重新构建可以改变已有二进制；当前已验v3二进制可能与工作树实验候选源码不同。先冻结现有任务和记录，再建立新候选、构建与验收，不能继承旧二进制的成绩。
+
+## Submodule部署兼容
+
+新的桌面部署定义增加完整项目挂载 `/workspace/rm26`，并保留旧算法/模拟器挂载和对应Git元数据入口。启动脚本从自身位置推导主仓库路径，显示/用户/宿主机服务仍使用既有工作站约定。本次没有重建正在运行的Sunshine；它继续使用原有挂载。现有布局与标准新克隆均经过独立辅助容器的Git可见性检查。后续重建桌面时改用根工作区文件，见 [协作说明](SUBMODULES.md)。

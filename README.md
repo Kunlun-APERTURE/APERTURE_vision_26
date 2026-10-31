@@ -17,7 +17,9 @@
 |`sp_vision_25/`|https://github.com/angjustinl/sp_vision_25|视觉估计、预测与开火建议；不依赖模拟器真值|
 |`vision_simulator_26/`|https://github.com/ANGJustinl/vision_simulator_26|场景、渲染、车辆/弹丸与命中事件|
 
-算法与模拟器目录由根仓库忽略，**不是 submodule**。分别克隆到对应目录，再按版本清单 checkout；只克隆集成仓库不会自动取得它们。三个仓库使用同名标签 `stage-20261030-fidelity`，清单同时记录不可变提交SHA。
+算法与模拟器目录现为 **submodule**，主仓库只记录各自提交，不复制源码。使用 `git clone --recurse-submodules <主仓库URL> rm26` 获取配套版本；已有克隆执行 `git submodule update --init --recursive`。原阶段标签 `stage-20261030-fidelity` 保留转换前状态；submodule转换使用新标签 `stage-20261031-submodules`，两个子仓库仍引用原已提交版本。源码选择以gitlink为准。
+
+检查工作区：`python3 tools/check-workspace.py`；VSCode打开 `RM26.code-workspace`。开发/上传流程见 [Submodule协作](docs/SUBMODULES.md)，组件职责见 [接口边界](docs/INTERFACES.md)。
 
 ## 分享范围
 

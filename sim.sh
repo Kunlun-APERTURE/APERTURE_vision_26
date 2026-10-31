@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One argument-based interface on both the host and the Sunshine desktop.
 set -euo pipefail
-task_root=/home/rm/rm26
+task_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 if [[ -f "$task_root/docker/auto_aim/manage.py" ]] && command -v docker >/dev/null; then
   exec python3 "$task_root/docker/auto_aim/manage.py" "$@"
 fi

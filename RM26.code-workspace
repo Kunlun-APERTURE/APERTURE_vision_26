@@ -1,0 +1,11 @@
+{
+  "folders": [
+    {"name": "rm26 · 集成", "path": "."},
+    {"name": "sp_vision_25 · 算法", "path": "sp_vision_25"},
+    {"name": "vision_simulator_26 · 模拟器", "path": "vision_simulator_26"}
+  ],
+  "settings": {
+    "files.exclude": {"**/target": true, "**/build": true},
+    "git.detectSubmodules": true
+  }
+}

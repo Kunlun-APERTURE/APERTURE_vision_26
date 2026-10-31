@@ -1,0 +1,6 @@
+[submodule "sp_vision_25"]
+	path = sp_vision_25
+	url = https://github.com/angjustinl/sp_vision_25
+[submodule "vision_simulator_26"]
+	path = vision_simulator_26
+	url = https://github.com/ANGJustinl/vision_simulator_26
