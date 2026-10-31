@@ -122,3 +122,37 @@ class GitHubTransientReadTests(unittest.TestCase):
   with patch('pr_service.github.urllib.request.urlopen',side_effect=urllib.error.URLError('offline')) as call,patch('pr_service.github.time.sleep'):
    with self.assertRaises(urllib.error.URLError):api.repo('GET','/test')
    self.assertEqual(call.call_count,3)
+
+class ApprovalMonitorTests(unittest.TestCase):
+ def test_throttle_and_revocation(self):
+  from pr_service.service import ApprovalMonitor
+  now=[0];check=Mock(side_effect=[True,False]);monitor=ApprovalMonitor(check,clock=lambda:now[0])
+  self.assertTrue(monitor())
+  now[0]=29;self.assertTrue(monitor());self.assertEqual(check.call_count,1)
+  now[0]=30;self.assertFalse(monitor());self.assertEqual(check.call_count,2)
+ def test_error_does_not_refresh_approval(self):
+  from pr_service.service import ApprovalMonitor
+  check=Mock(side_effect=[ConnectionError('offline'),True]);monitor=ApprovalMonitor(check)
+  with self.assertRaises(ConnectionError):monitor()
+  self.assertTrue(monitor());self.assertEqual(check.call_count,2)
+
+class ArtifactNetworkTests(unittest.TestCase):
+ def test_retry_then_cache(self):
+  import zipfile,urllib.error
+  buffer=io.BytesIO()
+  with zipfile.ZipFile(buffer,'w') as archive:archive.writestr('request.json',json.dumps({'review_id':7}))
+  api=GitHub('team/repo',1,2,'unused');api.token='token';api.repo=Mock(side_effect=[{'workflow_runs':[{'id':1}]},{'artifacts':[{'name':'experiment-request','expired':False,'archive_download_url':'https://api.github.com/artifact'}]}])
+  response=Mock();response.__enter__=Mock(return_value=io.BytesIO(buffer.getvalue()));response.__exit__=Mock(return_value=False)
+  with patch('pr_service.github.urllib.request.build_opener') as opener,patch('pr_service.github.time.sleep'):
+   opener.return_value.open.side_effect=[urllib.error.URLError('TLS EOF'),response]
+   self.assertEqual(api.request_snapshot(7),{'review_id':7})
+   self.assertEqual(api.request_snapshot(7),{'review_id':7})
+   self.assertEqual(opener.return_value.open.call_count,2)
+   self.assertEqual(api.repo.call_count,2)
+ def test_artifact_failure_is_bounded(self):
+  import urllib.error
+  api=GitHub('team/repo',1,2,'unused');api.token='token';api.repo=Mock(side_effect=[{'workflow_runs':[{'id':1}]},{'artifacts':[{'name':'experiment-request','expired':False,'archive_download_url':'https://api.github.com/artifact'}]}])
+  with patch('pr_service.github.urllib.request.build_opener') as opener,patch('pr_service.github.time.sleep'):
+   opener.return_value.open.side_effect=urllib.error.URLError('offline')
+   with self.assertRaises(urllib.error.URLError):api.request_snapshot(7)
+   self.assertEqual(opener.return_value.open.call_count,3);self.assertEqual(api.snapshots,{})
