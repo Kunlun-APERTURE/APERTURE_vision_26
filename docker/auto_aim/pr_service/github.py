@@ -4,6 +4,8 @@ import json
 import subprocess
 import time
 import urllib.request
+import urllib.error
+import http.client
 from pathlib import Path
 
 class ArtifactRedirect(urllib.request.HTTPRedirectHandler):
@@ -32,8 +34,15 @@ class GitHub:
             self.token=result['token'];self.expires=time.time()+3000
         request=urllib.request.Request('https://api.github.com'+path,data=json.dumps(data).encode() if data is not None else None,method=method,
             headers={'Authorization':'Bearer '+(self.jwt() if app else self.token),'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json','User-Agent':'aperture-experiment-service'})
-        with urllib.request.urlopen(request,timeout=30) as response:
-            raw=response.read();return json.loads(raw) if raw else None
+        attempts=3 if method=='GET' else 1
+        for attempt in range(attempts):
+            try:
+                with urllib.request.urlopen(request,timeout=30) as response:
+                    raw=response.read();return json.loads(raw) if raw else None
+            except (urllib.error.URLError,TimeoutError,ConnectionError,http.client.IncompleteRead) as error:
+                transient=not isinstance(error,urllib.error.HTTPError) or error.code in (502,503,504)
+                if not transient or attempt+1==attempts:raise
+                time.sleep(2**attempt)
 
     def repo(self,method,path,data=None):return self.call(method,'/repos/'+self.repository+path,data)
 
