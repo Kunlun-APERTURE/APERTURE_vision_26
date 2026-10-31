@@ -43,3 +43,5 @@ python3 tools/pr_acceptance.py --repository Kunlun-APERTURE/APERTURE_vision_26 \
 相同 base/head 用于零差异检查；`--upload-failure` 可注入回传故障。新尝试使用不同 attempt。工具产生的本地验收输出属于维护者本地发起实验；服务端远程任务仍仅保留日志。
 
 只读封存目录和 root-owned 证据会阻止普通账户删除。清理先仅对任务树解除只读；权限不足时使用不联网的短生命周期 root 清理容器，只挂载该任务目录，授予 DAC_OVERRIDE/FOWNER，不跟随符号链接，不挂载 Docker socket。正常与上传失败路径已用真实 root-owned 只读夹具验证。
+
+工作站网络：systemd 不自动继承登录终端代理。当前服务通过本机 drop-in 显式设置 HTTP_PROXY/HTTPS_PROXY 为 `http://127.0.0.1:7890`，NO_PROXY 保留 localhost；该值属于机器配置，不作为团队默认网络要求。批准复核默认每30秒一次，已核验的审批 artifact 按 review ID 缓存在服务内存中；PR 状态、提交和批准记录仍定期重新查询。API GET 与 artifact 下载均使用最多三次有限重试，写操作不自动重放。

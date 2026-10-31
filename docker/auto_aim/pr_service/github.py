@@ -20,7 +20,7 @@ class ArtifactRedirect(urllib.request.HTTPRedirectHandler):
 class GitHub:
     def __init__(self,repository,app_id,installation_id,key):
         self.repository=repository;self.app_id=str(app_id);self.installation_id=installation_id;self.key=Path(key)
-        self.token=None;self.expires=0;self.check_ids={}
+        self.token=None;self.expires=0;self.check_ids={};self.snapshots={}
 
     def jwt(self):
         encode=lambda b:base64.urlsafe_b64encode(b).rstrip(b'=')
@@ -48,19 +48,29 @@ class GitHub:
 
     def request_snapshot(self,review_id):
         import io,zipfile
+        if review_id in self.snapshots:return self.snapshots[review_id]
         runs=self.repo('GET','/actions/workflows/experiment-request.yml/runs?status=success&per_page=100')['workflow_runs']
         for run in runs:
             artifacts=self.repo('GET',f"/actions/runs/{run['id']}/artifacts")['artifacts']
             for artifact in artifacts:
                 if artifact['name']!='experiment-request' or artifact['expired']:continue
                 request=urllib.request.Request(artifact['archive_download_url'],headers={'Authorization':'Bearer '+self.token,'Accept':'application/vnd.github+json'})
-                with urllib.request.build_opener(ArtifactRedirect()).open(request,timeout=30) as response:raw=response.read(1024*1024+1)
+                for attempt in range(3):
+                    try:
+                        with urllib.request.build_opener(ArtifactRedirect()).open(request,timeout=30) as response:raw=response.read(1024*1024+1)
+                        break
+                    except (urllib.error.URLError,TimeoutError,ConnectionError,http.client.IncompleteRead) as error:
+                        transient=not isinstance(error,urllib.error.HTTPError) or error.code in (502,503,504)
+                        if not transient or attempt==2:raise
+                        time.sleep(2**attempt)
                 if len(raw)>1024*1024:raise ValueError('Oversized request artifact')
                 with zipfile.ZipFile(io.BytesIO(raw)) as archive:
                     info=archive.getinfo('request.json')
                     if info.file_size>65536:raise ValueError('Oversized request')
                     data=json.loads(archive.read(info))
-                if data.get('review_id')==review_id:return data
+                if data.get('review_id')==review_id:
+                    self.snapshots[review_id]=data
+                    return data
         return None
 
     def checks(self,sha):return self.repo('GET',f'/commits/{sha}/check-runs')['check_runs']

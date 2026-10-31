@@ -10,6 +10,18 @@ from .lifecycle import Lifecycle
 from .resources import DockerResources
 
 
+class ApprovalMonitor:
+    def __init__(self,check,interval=30,clock=time.monotonic):
+        self.check=check;self.interval=interval;self.clock=clock;self.last=None;self.value=False
+
+    def __call__(self):
+        now=self.clock()
+        if self.last is None or now-self.last>=self.interval:
+            # A failed query is never cached as approval.
+            self.value=self.check();self.last=self.clock()
+        return self.value
+
+
 class Service:
     def __init__(self,api,lifecycle,execute):self.api=api;self.lifecycle=lifecycle;self.execute=execute
 
@@ -44,10 +56,11 @@ class Service:
                 old=__import__('json').loads(first.removeprefix('request '))
                 if 'finished; score delivered' in text or request.review_id<=old['review_id']:continue
                 request=replace(request,attempt=request.review_id)
-            def valid():
+            def check_approval():
                 current=self.api.repo('GET',f'/pulls/{request.number}')
                 approved=self.approved(current)
                 return approved is not None and approved.key()==original.key()
+            valid=ApprovalMonitor(check_approval)
             if sum(p.stat().st_size for p in self.lifecycle.logs.glob('*.log'))>10*1024**3:raise RuntimeError('Log storage threshold reached; operator action required')
             if (self.lifecycle.logs/(request.key()+'.log')).exists():continue
             self.api.status(request,'Queued for workstation')
