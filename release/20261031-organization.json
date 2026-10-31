@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-31",
+  "repository_id": 1440527793,
+  "previous_owner": "ANGJustinl",
+  "owner": "Kunlun-APERTURE",
+  "repository": "Kunlun-APERTURE/APERTURE_vision_26",
+  "url": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26",
+  "private": true,
+  "default_branch": "main",
+  "organization_base_permission": "read",
+  "team": {
+    "name": "vision",
+    "id": 20446594,
+    "repository_permission": "write",
+    "members_added": 0
+  },
+  "repository_identity_preserved": true,
+  "pretransfer_refs_preserved": true,
+  "remote_recursive_clone_passed": true,
+  "children": {
+    "sp_vision_25": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476",
+    "vision_simulator_26": "778c0c8fba8022835eeabb3f81c4c865f588a34e"
+  },
+  "submodule_locations_unchanged": true,
+  "child_write_permissions_not_inherited": true,
+  "scope": "Transfer main repository only; current documentation links updated; historical publication manifests retained."
+}

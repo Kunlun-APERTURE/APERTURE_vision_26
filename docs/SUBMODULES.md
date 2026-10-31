@@ -5,7 +5,7 @@
 ## 获取与更新
 
 ```bash
-git clone --recurse-submodules https://github.com/angjustinl/APERTURE_vision_26.git
+git clone --recurse-submodules https://github.com/Kunlun-APERTURE/APERTURE_vision_26.git
 cd APERTURE_vision_26
 python3 tools/check-workspace.py
 ```
@@ -35,7 +35,7 @@ git commit -m 'chore(deps): select validated algorithm revision'
 git push --recurse-submodules=check origin HEAD
 ```
 
-模拟器使用相同流程，路径换为`vision_simulator_26`。先上传子仓库提交，再上传主仓库引用；`check`检查引用是否已在子仓库远端可获取，不代替功能测试。队友需要三个仓库的读取权限，当前主仓库为私有。
+模拟器使用相同流程，路径换为`vision_simulator_26`。先上传子仓库提交，再上传主仓库引用；`check`检查引用是否已在子仓库远端可获取，不代替功能测试。主仓库为组织私有仓库，组织成员沿用当前Read基础权限；加入`vision` Team的开发成员获得主仓库Write。两个子仓库仍为个人账户下的公开仓库，可读取，但Team权限不会自动赋予它们写入权。
 
 统一阶段标签便于定位组合；已有标签保留原义，新阶段使用新标签。算法与模拟器不必同步发版，组合提交仍由主仓库确定。
 

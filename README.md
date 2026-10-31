@@ -56,7 +56,7 @@ flowchart LR
 ### 1. 获取项目
 
 ```bash
-git clone --recurse-submodules https://github.com/angjustinl/APERTURE_vision_26.git
+git clone --recurse-submodules https://github.com/Kunlun-APERTURE/APERTURE_vision_26.git
 cd APERTURE_vision_26
 python3 tools/check-workspace.py
 ```
@@ -111,7 +111,7 @@ APERTURE_vision_26/
 
 |仓库|职责|
 |---|---|
-|[APERTURE_vision_26](https://github.com/angjustinl/APERTURE_vision_26)|部署、桥接、实验组织与验收|
+|[APERTURE_vision_26](https://github.com/Kunlun-APERTURE/APERTURE_vision_26)|部署、桥接、实验组织与验收|
 |[sp_vision_25](https://github.com/angjustinl/sp_vision_25)|视觉估计、运动预测、瞄准与火控|
 |[vision_simulator_26](https://github.com/ANGJustinl/vision_simulator_26)|场景、成像、车辆/云台、弹丸和事件接口|
 
