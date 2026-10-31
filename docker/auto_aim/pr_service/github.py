@@ -6,6 +6,14 @@ import time
 import urllib.request
 from pathlib import Path
 
+class ArtifactRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        from urllib.parse import urlsplit
+        redirected=super().redirect_request(req,fp,code,msg,headers,newurl)
+        if redirected and urlsplit(req.full_url).netloc!=urlsplit(newurl).netloc:
+            redirected.remove_header('Authorization')
+        return redirected
+
 
 class GitHub:
     def __init__(self,repository,app_id,installation_id,key):
@@ -37,7 +45,7 @@ class GitHub:
             for artifact in artifacts:
                 if artifact['name']!='experiment-request' or artifact['expired']:continue
                 request=urllib.request.Request(artifact['archive_download_url'],headers={'Authorization':'Bearer '+self.token,'Accept':'application/vnd.github+json'})
-                with urllib.request.urlopen(request,timeout=30) as response:raw=response.read(1024*1024+1)
+                with urllib.request.build_opener(ArtifactRedirect()).open(request,timeout=30) as response:raw=response.read(1024*1024+1)
                 if len(raw)>1024*1024:raise ValueError('Oversized request artifact')
                 with zipfile.ZipFile(io.BytesIO(raw)) as archive:
                     info=archive.getinfo('request.json')
