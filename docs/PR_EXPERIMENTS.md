@@ -30,3 +30,16 @@ PYTHONPATH=docker/auto_aim python3 -m pr_service.service check \
 复制 config.example.json 到 `/etc/aperture-experiments/config.json`，填写 App ID、Installation ID、路径，保持 enabled=false。运行 `pr_service.service check` 验证连接。workflow 合入默认分支并完成测试 PR 后再启用 service。
 
 同一批准的重复事件不重跑；失败后新 Review Approve 可以创建新尝试。已成功回传的同版本请求不因另一位审查者批准重复运行。Check 在排队、运行、完成阶段更新同一个 ID。
+
+## 本地真实执行链路验收
+
+`tools/pr_acceptance.py` 直接调用服务的 Executor 和 Lifecycle，仅替换 GitHub 批准/回传，实际拉取源码、分别构建 base/candidate、运行静止及进阶场景并清理。指定真实可获取的提交：
+
+```bash
+python3 tools/pr_acceptance.py --repository Kunlun-APERTURE/APERTURE_vision_26 \
+  --base <提交SHA> --head <提交SHA> --output exports/pr-acceptance --attempt 1
+```
+
+相同 base/head 用于零差异检查；`--upload-failure` 可注入回传故障。新尝试使用不同 attempt。工具产生的本地验收输出属于维护者本地发起实验；服务端远程任务仍仅保留日志。
+
+只读封存目录和 root-owned 证据会阻止普通账户删除。清理先仅对任务树解除只读；权限不足时使用不联网的短生命周期 root 清理容器，只挂载该任务目录，授予 DAC_OVERRIDE/FOWNER，不跟随符号链接，不挂载 Docker socket。正常与上传失败路径已用真实 root-owned 只读夹具验证。

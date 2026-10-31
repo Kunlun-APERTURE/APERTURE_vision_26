@@ -153,3 +153,14 @@ class RetryAcceptanceTests(unittest.TestCase):
     if not successful:
      called=service.execute.call_args.args[0];self.assertEqual(called.attempt,99)
      self.assertTrue((life.logs/(called.key()+'.log')).exists())
+
+class SealedCleanupTests(unittest.TestCase):
+ def test_readonly_evidence_is_removed_without_following_links(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp);life=Lifecycle(root/'scratch',root/'logs',Mock());local=root/'local';local.mkdir();(local/'sentinel').write_text('keep')
+   def execute(r,w,valid):
+    sealed=w/'session-evidence';sealed.mkdir();(sealed/'manifest.json').write_text('{}');sealed.chmod(0o555)
+    (w/'external').symlink_to(local,target_is_directory=True)
+    return {'valid':True}
+   self.assertEqual(life.run(request(),execute,Mock()),'completed')
+   self.assertTrue((local/'sentinel').exists());self.assertFalse(life.workspace(request().key()).exists())

@@ -24,6 +24,20 @@ class Lifecycle:
         if room>0:
             with path.open('ab') as f:f.write((message+'\n').encode()[:room])
 
+    def remove_workspace(self,work):
+        # Session evidence deliberately seals directories read-only. Unseal only
+        # this task's tree; never follow symlinks into local data or dependencies.
+        import os
+        if not work.exists():return
+        if work.is_symlink():raise ValueError('Task root must not be a symlink')
+        try:
+            for directory,dirs,files in os.walk(work,followlinks=False):
+                Path(directory).chmod(0o700)
+            shutil.rmtree(work)
+        except PermissionError:
+            self.resources.purge_workspace(work)
+            work.rmdir()
+
     def run(self,request,execute,publish,valid=lambda:True):
         key=request.key();work=self.workspace(key)
         if (self.logs/(key+'.log')).exists():return 'already-attempted'
@@ -52,7 +66,7 @@ class Lifecycle:
                 try:
                     self.resources.remove(key)
                 finally:
-                    if work.exists():shutil.rmtree(work)
+                    self.remove_workspace(work)
                     self.log(key,'workspace removed')
 
     def recover(self):
@@ -67,5 +81,5 @@ class Lifecycle:
             self.workspace(work.name)
             try:self.resources.remove(work.name)
             finally:
-                shutil.rmtree(work)
+                self.remove_workspace(work)
                 self.log(work.name,'interrupted; startup cleanup complete; no automatic rerun')
