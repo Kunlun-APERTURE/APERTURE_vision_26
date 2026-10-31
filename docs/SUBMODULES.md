@@ -3,7 +3,7 @@
 ## 获取与更新
 
 ```bash
-git clone --recurse-submodules <主仓库URL> rm26
+git clone --recurse-submodules https://github.com/angjustinl/APERTURE_vision_26.git rm26
 cd rm26
 python3 tools/check-workspace.py
 # 拉取主仓库后，取其指定版本；有本地修改时先提交或自行保存。
@@ -37,3 +37,7 @@ git push --recurse-submodules=check origin HEAD
 Git引用只锁定源码，不分发镜像、数据、模型缓存或当前二进制。原验收清单继续记录这些摘要；重新构建不自动继承历史成绩。旧patch保留为历史审计，不再作为正常源码交付入口。
 
 远端尚未具备本阶段提交时，递归克隆将失败；本地验收通过受控URL覆盖，从两个本机仓库初始化，不改`.gitmodules`里的公开URL。正式上传后还需从远端新克隆一次。本机离线bundle可以保存提交，但主仓库bundle本身不包含子仓库Git对象。
+
+## 设备提交身份
+
+此工作站使用 `rm_workstation_26` 作为新提交的作者名称，邮箱沿用GitHub账户96008766对应的noreply邮箱。GitHub登录账户是 `angjustinl`；作者名称不等同于认证账户。已有历史作者及阶段标签保留。远端仓库名为APERTURE_vision_26，当前本机目录仍为/home/rm/rm26，以保持部署路径和既有实验可追溯性。

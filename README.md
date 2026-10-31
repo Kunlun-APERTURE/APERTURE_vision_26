@@ -1,4 +1,4 @@
-# RM26 仿真联调与实验平台
+# APERTURE_vision_26
 
 本仓库负责部署、图像/控制桥接、后台批量实验、评分与视觉验收；算法与模拟器保留独立仓库。当前阶段是**拟真核算与纠错**，尚未完成实车标定。
 
@@ -13,7 +13,7 @@
 
 |目录|仓库|职责|
 |---|---|---|
-|本目录|rm26 集成仓库|部署、桥接、实验、评分、版本清单|
+|本目录|https://github.com/angjustinl/APERTURE_vision_26|部署、桥接、实验、评分、版本清单|
 |`sp_vision_25/`|https://github.com/angjustinl/sp_vision_25|视觉估计、预测与开火建议；不依赖模拟器真值|
 |`vision_simulator_26/`|https://github.com/ANGJustinl/vision_simulator_26|场景、渲染、车辆/弹丸与命中事件|
 
