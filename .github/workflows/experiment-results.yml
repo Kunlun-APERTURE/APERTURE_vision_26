@@ -1,0 +1,36 @@
+name: Experiment results
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        required: true
+        type: string
+      text:
+        required: true
+        type: string
+      logs:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Write plain text results
+        env:
+          SCORE_TEXT: ${{ inputs.text }}
+          LOG_TEXT: ${{ inputs.logs }}
+        run: |
+          python3 - <<'PY'
+          import os,pathlib
+          pathlib.Path('scores.md').write_text(os.environ['SCORE_TEXT'])
+          pathlib.Path('experiment.log').write_text(os.environ['LOG_TEXT'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experiment-result-${{ inputs.request_id }}
+          path: |
+            scores.md
+            experiment.log
+          retention-days: 30

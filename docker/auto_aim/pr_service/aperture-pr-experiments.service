@@ -1,0 +1,18 @@
+[Unit]
+Description=APERTURE reviewer-approved PR experiments
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=rm
+WorkingDirectory=/home/rm/rm26
+Environment=PYTHONPATH=/home/rm/rm26/docker/auto_aim
+ExecStart=/usr/bin/python3 -m pr_service.service serve --config /etc/aperture-experiments/config.json
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=30
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
