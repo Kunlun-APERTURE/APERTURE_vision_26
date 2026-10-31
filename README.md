@@ -144,3 +144,5 @@ APERTURE_vision_26/
 视觉算法基于[同济大学 SuperPower 战队 sp_vision_25](https://github.com/TongjiSuperPower/sp_vision_25)继续开发；仿真部分基于[vision_simulator_26 / Daedalus](https://github.com/ANGJustinl/vision_simulator_26)。感谢相关开源项目及 OpenVINO、OpenCV、Eigen、Bevy、ROS 2 等工具生态的贡献者。
 
 子仓库及第三方组件的许可分别见其 LICENSE 文件：[算法 MIT 许可](https://github.com/ANGJustinl/sp_vision_25/blob/d5d012d6b5d50b9ac80a041647a9d7ba410fd476/LICENSE)、[模拟器 AGPL-3.0 许可](https://github.com/ANGJustinl/vision_simulator_26/blob/778c0c8fba8022835eeabb3f81c4c865f588a34e/LICENSE)。仓库组合不替代各组件的原许可。
+
+开发与协作：[团队本地开发](docs/DEVELOPMENT.md) · [审查触发的 PR 实验服务](docs/PR_EXPERIMENTS.md)。

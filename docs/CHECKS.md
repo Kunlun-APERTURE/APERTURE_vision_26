@@ -54,3 +54,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 ## 已验范围
 
 已有GitHub递归克隆、独立C++构建9目标/6测试程序、现有桌面命令入口和后台短测记录，见[检查摘要](../release/20261031-usability/validation.json)。这些结果不代表空机器安装、全部场景的UI等价或实车拟真已通过。原有测试夹具误用造成的段错误已经更正，详情见[当前状态](STATUS.md)。
+
+## 团队基线框架
+
+`PYTHONPATH=docker/auto_aim python3 -m benchmark.checks` 检查场景、协议、比较和可移植包。B1/E1 的基础/进阶射击、串行/双路复现、独立检出、UI特征及视频验收见 [阶段摘要](../release/20261031-baseline/README.md)。

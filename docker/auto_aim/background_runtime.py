@@ -39,6 +39,7 @@ class Worker:
         self.DESKTOP_CONTAINER = self.project+'-algorithm'
         self.metadata = load(self.bundle/'bundle.json')
         self.IMAGE = self.metadata['images']['simulator']
+        self.gpu_uuid=self.metadata.get('gpu_uuid')
         self.settings = dict(request['settings'])
         self.lockstep=self.settings.get('execution_mode')=='lockstep'
         self.PIPELINE_VERSION=request.get('protocol',1)
@@ -87,7 +88,12 @@ class Worker:
 
     def definition(self):
         s = self.settings
+        available=self.run(['nvidia-smi','--query-gpu=uuid','--format=csv,noheader'],capture=True).splitlines()
+        requested=os.environ.get('RM26_BENCHMARK_GPU')
+        self.gpu_uuid=requested or (self.gpu_uuid if self.gpu_uuid in available else available[0])
+        if self.gpu_uuid not in available:raise ValueError('Requested GPU unavailable')
         labels = {'rm26.background':'true','rm26.slot':str(self.slot),'rm26.workspace':str(self.OPS.parent.parent)}
+        if os.environ.get('RM26_PR_TASK'):labels['aperture.pr']=os.environ['RM26_PR_TASK']
         common = dict(init=True, restart='no', network_mode='host', ipc='private',
             labels=labels, logging={'driver':'json-file','options':{'max-size':'20m','max-file':'2'}})
         ros = {'ROS_DOMAIN_ID':str(self.domain),'RMW_IMPLEMENTATION':'rmw_fastrtps_cpp',
@@ -110,7 +116,7 @@ class Worker:
                 str(self.source_ops/'scenarios')+':/scenarios:ro',
                 str(self.RUNTIME/'scenarios')+':/run/rm26-scenarios:ro'],
             deploy={'resources':{'reservations':{'devices':[{'driver':'nvidia',
-                'device_ids':[self.metadata['gpu_uuid']],'capabilities':['gpu']}]}}},
+                'device_ids':[self.gpu_uuid],'capabilities':['gpu']}]}}},
             command=['bash','-c','mkdir -p "$$HOME" "$$XDG_RUNTIME_DIR"; chmod 700 "$$XDG_RUNTIME_DIR"; exec /app/daedalus'])
         if self.lockstep:
             simulator['environment'].update(DAEDALUS_EXECUTION_MODE='lockstep',DAEDALUS_STEP_SOCKET='/run/rm26-sim/lockstep.sock')
@@ -122,6 +128,8 @@ class Worker:
                 '--physics',s['physics'],'--fire-policy',s['fire_policy'],
                 '--fire-rate-hz',str(s['fire_rate_hz']),'--algorithm-profile',s['algorithm_profile']])
         bridge['environment']=dict(ros,RM26_RECORD_TIMING='1' if s.get('record_timing')=='on' else '0')
+        if self.metadata.get('algorithm'):
+            bridge['environment']['RM26_ALGORITHM_PROTOCOL']=self.metadata['algorithm']['protocol']
         if self.lockstep:
             bridge['environment'].update(DAEDALUS_EXECUTION_MODE='lockstep',RM26_SCENE=s['scene'],
                 RM26_TIMING_PROFILE='/opt/rm26/timing_profiles/'+s['timing_profile']+'.json')
@@ -141,6 +149,12 @@ class Worker:
                 f'--port={self.port} --fire={s["fire"]} --aim-origin={s["aim_origin"]} '
                 f'--algorithm-profile={s["algorithm_profile"]} --execution-mode={s.get("execution_mode","realtime")}'
                 +(' --detector-history=session' if s.get('detector_history')=='session' else '')])
+        if self.metadata.get('algorithm'):
+            import shlex
+            descriptor=self.metadata['algorithm']
+            argv=[a.format(port=self.port,**s) for a in descriptor['launch']]
+            setup=descriptor.get('setup','source /opt/intel/openvino/setupvars.sh >/dev/null')
+            algorithm['command']=[(setup+' && ' if setup else '')+'exec '+shlex.join(argv)]
         evaluator = dict(common, image=self.metadata['images']['evaluator'],
             profiles=['experiment'],user=f'{os.getuid()}:{os.getgid()}',
             environment=dict(ros, MPLCONFIGDIR='/tmp/matplotlib',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1'),
@@ -255,7 +269,7 @@ class Worker:
             shutil.copy2(actual,folder/'configuration/runtime-calibration.yaml')
         shutil.copy2(self.compose_path,folder/'configuration/worker-compose.json')
         shutil.copy2(self.bundle/'bundle.json',folder/'configuration/bundle.json')
-        manifest.update(ros_domain_id=self.domain,background={
+        manifest.update(execution_gpu_uuid=self.gpu_uuid,benchmark=self.metadata.get('benchmark'),algorithm_identity=self.metadata.get('algorithm'),environment_identity=self.metadata.get('environment'),ros_domain_id=self.domain,background={
             'job_id':self.request['job_id'],'item_id':self.request['item_id'],
             'attempt':self.request['attempt'],'slot':self.slot,'bridge_port':self.port,
             'headless':True,'requested_parallelism':self.request['parallelism'],
@@ -278,6 +292,9 @@ def main():
     keep_algorithm = False
     try:
         # Verify the frozen payload before any component can execute it.
+        if worker.metadata.get('benchmark_version'):
+            from benchmark.artifacts import verify
+            verify(worker.bundle)
         for name,digest in worker.metadata['files'].items():
             if experiments.digest(worker.bundle/name)!=digest:
                 raise RuntimeError('Frozen bundle checksum mismatch: '+name)
@@ -314,7 +331,8 @@ def main():
             for name in ('resources.jsonl','algorithm.log','simulator.log','bridge.log'):
                 if (folder/name).exists():evidence[name]=experiments.digest(folder/name)
             write(folder/'evidence-sha256.json',evidence)
-            experiments.publish_desktop(worker,folder)
+
+            if worker.DESKTOP.exists():experiments.publish_desktop(worker,folder)
             if worker.PIPELINE_VERSION==2:
                 budget=180 if worker.lockstep else 40
                 elapsed=time.monotonic()-worker.basic_started
@@ -334,7 +352,9 @@ def main():
                 # Refresh only changed small files after the evidence was exposed.
                 for name in ('timing.json','summary.json','report.html','report.md'):
                     source=folder/name;target=worker.DESKTOP/'.local/share/rm26-sim/experiments'/folder.name/name
-                    target.unlink(missing_ok=True);os.link(source,target)
+
+                    if target.parent.exists():
+                        target.unlink(missing_ok=True);os.link(source,target)
                 result=load(Path(request['result']),{})
                 if elapsed>budget:result['verdict']='invalid'
                 write(Path(request['result']),result)

@@ -11,7 +11,7 @@
 ./sim.sh experiment suite --tier advanced --cases variable,turn04 --list
 ./sim.sh experiment suite --tier advanced --cases variable,pursuit --pressure --list
 
-# 研究入口：需要已有v3/R4冻结包，先阅读下方执行边界。
+# 历史研究入口：仅用于旧 v3/R4 冻结包复现。新任务使用 sim.sh experiment suite。
 # 使用全新输出目录，不要复用归档研究目录。
 python3 docker/auto_aim/movement_study.py --tier advanced \
   --output docker/auto_aim/experiments/my-movement-study
@@ -48,4 +48,4 @@ python3 docker/auto_aim/movement_study.py --tier advanced \
 
 ## 执行边界
 
-研究控制器需要既有v3/R4冻结包及历史资料。新机器先用README中的单场景命令验证环境，不能直接运行旧研究并继承其验收。按需选择项目，采集前冻结条件与种子；完整视频按REVIEW_VIDEO.md准备，实际难度和射击成绩分开。
+研究控制器需要既有v3/R4冻结包及历史资料。统一 suite 已解除历史包依赖；新机器按 [团队基线](../../docs/BENCHMARK.md) 构建 B1 后运行。历史研究控制器不能继承为新基线验收。按需选择项目，采集前冻结条件与种子；完整视频按REVIEW_VIDEO.md准备，实际难度和射击成绩分开。

@@ -80,6 +80,9 @@ def limit(job,capacity,legacy_qualification):
         meta=json.loads((Path(job['bundle'])/'bundle.json').read_text())
         qualified=legacy_qualification.get('parallel_qualified') and legacy_qualification.get('runtime_signature')==background_jobs.stack_signature(meta)
         return min(2,job['parallelism'] or 1) if job['exploratory'] or qualified else 1
+    if spec.get('benchmark'):
+        from benchmark.qualification import limit as benchmark_limit
+        return benchmark_limit(job)
     requested=job['parallelism'] or MAX_LEVEL
     if job['exploratory']:return requested
     settings=json.loads(job['settings']) if 'settings' in job.keys() else {}

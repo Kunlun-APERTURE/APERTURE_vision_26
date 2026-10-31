@@ -1,0 +1,32 @@
+{
+  "B1-E1-basic-20261031": {
+    "path": "/home/rm/rm26/docker/auto_aim/experiments/B1-E1-basic-20261031",
+    "sha256": "c4cfb5b2e0fcb4433809663ac60b136770231124548a3e4162be66baf319ed1c",
+    "file": "results.json"
+  },
+  "B1-E1-advanced-20261031": {
+    "path": "/home/rm/rm26/docker/auto_aim/experiments/B1-E1-advanced-20261031",
+    "sha256": "602aceb783be0e11a5999ceb5bebaffdd9dd2651863045818aa889e88e2c4710",
+    "file": "results.json"
+  },
+  "B1-migration-r2-20261031": {
+    "path": "/home/rm/rm26/docker/auto_aim/experiments/B1-migration-r2-20261031",
+    "sha256": "8e1108727c05fcb8842f883670ef27312af4d406bae20045f2b0100c69f8a4dd",
+    "file": "migration.json"
+  },
+  "B1-rebuild-replay-20261031": {
+    "path": "/home/rm/rm26/docker/auto_aim/experiments/B1-rebuild-replay-20261031",
+    "sha256": "906966d1337b53220092e4acc67e8f82f3b53f4e62db49ef53fc0ea13b579e05",
+    "file": "validation.json"
+  },
+  "B1-review-hf_spin_pos-20261031": {
+    "path": "/home/rm/rm26/docker/auto_aim/experiments/B1-review-hf_spin_pos-20261031",
+    "sha256": "4c042034221c95477df2a8653424e1decab23904b414e5ecee62b9b8f296cd93",
+    "file": "validation.json"
+  },
+  "B1-review-adv_pursuit_pos-20261031": {
+    "path": "/home/rm/rm26/docker/auto_aim/experiments/B1-review-adv_pursuit_pos-20261031",
+    "sha256": "2418751b385346396e0cd50b46957bec3a81e3916140ce3ca547dcc8f2cd5a35",
+    "file": "validation.json"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "enabled": false,
+  "repository": "Kunlun-APERTURE/APERTURE_vision_26",
+  "app_id": 0,
+  "installation_id": 0,
+  "private_key": "/etc/aperture-experiments/app.pem",
+  "scratch": "/var/tmp/aperture-pr-experiments",
+  "logs": "/var/log/aperture-pr-experiments",
+  "build_image": "sp_vision_dev:2024.6.0",
+  "poll_seconds": 30
+}

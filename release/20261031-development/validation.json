@@ -1,0 +1,81 @@
+{
+  "real_executor": {
+    "base": "f53a24d39ed6f8ecc74d1151627831f712e300ac",
+    "head": "f53a24d39ed6f8ecc74d1151627831f712e300ac",
+    "valid": true,
+    "scores": [
+      {
+        "scene": "hf_static_5",
+        "base": {
+          "maximum_wall_s": 17.715238554999814,
+          "within_40s": true,
+          "scene": "hf_static_5",
+          "shots": 29,
+          "hits": 29,
+          "exact": 1.0,
+          "weighted": 0.9338735986304662,
+          "hits_per_s": 4.833333333333333,
+          "weighted_points_per_s": 4.513722393380586
+        },
+        "candidate": {
+          "maximum_wall_s": 23.3212572429984,
+          "within_40s": true,
+          "scene": "hf_static_5",
+          "shots": 29,
+          "hits": 29,
+          "exact": 1.0,
+          "weighted": 0.9338735986304662,
+          "hits_per_s": 4.833333333333333,
+          "weighted_points_per_s": 4.513722393380586
+        }
+      },
+      {
+        "scene": "adv_variable_pos",
+        "base": {
+          "maximum_wall_s": 23.097397863999504,
+          "within_40s": true,
+          "scene": "adv_variable_pos",
+          "shots": 10,
+          "hits": 6,
+          "exact": 0.6,
+          "weighted": 0.4482357652305457,
+          "hits_per_s": 0.6666666666666666,
+          "weighted_points_per_s": 0.4980397391450508
+        },
+        "candidate": {
+          "maximum_wall_s": 26.758651765998366,
+          "within_40s": true,
+          "scene": "adv_variable_pos",
+          "shots": 10,
+          "hits": 6,
+          "exact": 0.6,
+          "weighted": 0.4482357652305457,
+          "hits_per_s": 0.6666666666666666,
+          "weighted_points_per_s": 0.4980397391450508
+        }
+      }
+    ],
+    "initial_cleanup_failed": true,
+    "cleanup_fix": "unseal task-only directories; root-owned evidence removed through a restricted cleanup container",
+    "recovery_complete": true
+  },
+  "cleanup_cases": [
+    {
+      "upload_failure": false,
+      "status": "completed",
+      "workspace_removed": true,
+      "containers_removed": true
+    },
+    {
+      "upload_failure": true,
+      "status": "failed",
+      "workspace_removed": true,
+      "containers_removed": true
+    }
+  ],
+  "github_ci": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/actions/runs/41198136537",
+  "pr": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/pull/1",
+  "dependency_bundle": "exports/team-dependencies-20261031",
+  "online_app_verified": false,
+  "fresh_os_verified": false
+}

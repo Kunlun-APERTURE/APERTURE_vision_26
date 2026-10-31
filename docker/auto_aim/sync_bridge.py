@@ -314,7 +314,9 @@ def prepare(bridge,request):
         if bridge.input_contract=='aligned-v1':bridge.warmup_state='measuring'
         sync.measure();return bridge.status()
     scene=request.get('name')
-    if scene not in SCENES:raise ValueError('Unknown scene')
+    if scene not in SCENES:
+        from benchmark.scenarios import get
+        get(scene)
     bridge.control=False;bridge.fire_armed=False
     sync.phase('preparing',wait=False)
     req=SimScenarioLoad.Request();req.scenario_path='/run/rm26-scenarios/'+scene+'.toml';req.seed=request.get('seed',20261019)

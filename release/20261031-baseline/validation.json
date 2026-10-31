@@ -1,0 +1,627 @@
+{
+  "version": 1,
+  "algorithm": "B1",
+  "origin": "R4",
+  "environment": "E1",
+  "environment_model": "rm2017-yaw-corrected-raw",
+  "source_commits": {
+    "sp_vision_25": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476",
+    "vision_simulator_26": "778c0c8fba8022835eeabb3f81c4c865f588a34e"
+  },
+  "build": {
+    "id": "B1",
+    "version": 1,
+    "adapter": "r4",
+    "source_commit": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476",
+    "source_tree_sha256": "e514a7347e69c06df33e486e762751510b0ab084a170ec06ec349f3521877778",
+    "build_image": "sha256:29befeb0a1d4221f11212b5a1c5804c602715115714a9d97b3a92c50e17c787f",
+    "binary_sha256": "d5ad397e154bf1462c4db093d5b9988545d9d58a7562afbfc8b78736cd1dc98a",
+    "config_sha256": "57c5cc3fc825ec2fbe17536d6cac03ecf4a727c52ae9aba95e40e58f93253cfa",
+    "protocol": "rm26-image-v1",
+    "algorithm_profile": "tracking_fire_v3",
+    "capabilities": [
+      "simulation_clock",
+      "session_reset",
+      "fire_advice",
+      "r4_diagnostics"
+    ],
+    "launch": [
+      "/snapshot/sp_vision_25/build/simulator/sim_auto_aim",
+      "--config=/snapshot/sp_vision_25/configs/simulator.yaml",
+      "--runtime=/work/calibration.yaml",
+      "--view=false",
+      "--port={port}",
+      "--fire={fire}",
+      "--aim-origin={aim_origin}",
+      "--algorithm-profile=tracking_fire_v3",
+      "--execution-mode={execution_mode}",
+      "--detector-history=session"
+    ]
+  },
+  "historical_algorithm_changes": false,
+  "checks": {
+    "framework_tests": 9,
+    "background_tests": 10,
+    "input_contract_tests": 12,
+    "cpp_programs": 6,
+    "movement_scripts": 18
+  },
+  "qualification_rule": "session-relative-v1",
+  "raw_comparison_retained": true,
+  "ui_equivalence_certified": false,
+  "real_vehicle_validated": false,
+  "suites": {
+    "basic": {
+      "trials": 30,
+      "evidence_valid": true,
+      "within_40s": true,
+      "groups": [
+        {
+          "scene": "hf_static_5",
+          "trials": 3,
+          "shots": 85,
+          "hits": 85,
+          "exact": 1.0,
+          "weighted": 0.9477752617717604,
+          "hits_per_s": 4.722222222222222,
+          "weighted_points_per_s": 4.475605402811091
+        },
+        {
+          "scene": "hf_uniform_3",
+          "trials": 3,
+          "shots": 49,
+          "hits": 46,
+          "exact": 0.9387755102040817,
+          "weighted": 0.4363924561811383,
+          "hits_per_s": 3.066666666666667,
+          "weighted_points_per_s": 1.4255486901917185
+        },
+        {
+          "scene": "hf_turn90_3",
+          "trials": 3,
+          "shots": 50,
+          "hits": 39,
+          "exact": 0.78,
+          "weighted": 0.41325733180522845,
+          "hits_per_s": 2.3636363636363638,
+          "weighted_points_per_s": 1.2522949448643286
+        },
+        {
+          "scene": "hf_spin_pos",
+          "trials": 3,
+          "shots": 64,
+          "hits": 57,
+          "exact": 0.890625,
+          "weighted": 0.6542595543296406,
+          "hits_per_s": 3.1666666666666665,
+          "weighted_points_per_s": 2.326256193172055
+        },
+        {
+          "scene": "hf_spin_neg",
+          "trials": 3,
+          "shots": 62,
+          "hits": 58,
+          "exact": 0.9354838709677419,
+          "weighted": 0.6881945196351344,
+          "hits_per_s": 3.2222222222222223,
+          "weighted_points_per_s": 2.3704477898543517
+        },
+        {
+          "scene": "ego_right_centered",
+          "trials": 3,
+          "shots": 116,
+          "hits": 114,
+          "exact": 0.9827586206896551,
+          "weighted": 0.8737162387572466,
+          "hits_per_s": 4.75,
+          "weighted_points_per_s": 4.222961820660025
+        },
+        {
+          "scene": "basic_move3_spin_pos",
+          "trials": 3,
+          "shots": 30,
+          "hits": 18,
+          "exact": 0.6,
+          "weighted": 0.4510267631513687,
+          "hits_per_s": 0.6666666666666666,
+          "weighted_points_per_s": 0.5011408479459653
+        },
+        {
+          "scene": "basic_move3_spin_neg",
+          "trials": 3,
+          "shots": 20,
+          "hits": 16,
+          "exact": 0.8,
+          "weighted": 0.5974456119892184,
+          "hits_per_s": 0.5925925925925926,
+          "weighted_points_per_s": 0.44255230517719885
+        },
+        {
+          "scene": "basic_move4_spin_pos",
+          "trials": 3,
+          "shots": 19,
+          "hits": 16,
+          "exact": 0.8421052631578947,
+          "weighted": 0.6702775034135537,
+          "hits_per_s": 0.5925925925925926,
+          "weighted_points_per_s": 0.47167676166138967
+        },
+        {
+          "scene": "basic_move4_spin_neg",
+          "trials": 3,
+          "shots": 20,
+          "hits": 16,
+          "exact": 0.8,
+          "weighted": 0.5599445720998281,
+          "hits_per_s": 0.5925925925925926,
+          "weighted_points_per_s": 0.41477375711098374
+        }
+      ],
+      "binary_sha256": "27841820b13f309206f0e6fcc73e8ead264aaa5f12f4cff09b9c36757d2437a5",
+      "qualification": [
+        {
+          "scene": "hf_static_5",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "hf_static_5",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "hf_uniform_3",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "hf_uniform_3",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "hf_turn90_3",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "hf_turn90_3",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "hf_spin_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "hf_spin_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "hf_spin_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "hf_spin_neg",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "ego_right_centered",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "ego_right_centered",
+          "level": 2,
+          "passed": false
+        },
+        {
+          "scene": "basic_move3_spin_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "basic_move3_spin_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "basic_move3_spin_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "basic_move3_spin_neg",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "basic_move4_spin_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "basic_move4_spin_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "basic_move4_spin_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "basic_move4_spin_neg",
+          "level": 2,
+          "passed": true
+        }
+      ]
+    },
+    "advanced": {
+      "trials": 30,
+      "evidence_valid": true,
+      "within_40s": true,
+      "groups": [
+        {
+          "scene": "adv_variable_pos",
+          "trials": 3,
+          "shots": 24,
+          "hits": 17,
+          "exact": 0.7083333333333334,
+          "weighted": 0.542486024889565,
+          "hits_per_s": 0.6296296296296297,
+          "weighted_points_per_s": 0.4822097999018356
+        },
+        {
+          "scene": "adv_variable_neg",
+          "trials": 3,
+          "shots": 19,
+          "hits": 15,
+          "exact": 0.7894736842105263,
+          "weighted": 0.5840901395587538,
+          "hits_per_s": 0.5555555555555556,
+          "weighted_points_per_s": 0.4110263945043082
+        },
+        {
+          "scene": "adv_turn08_pos",
+          "trials": 3,
+          "shots": 27,
+          "hits": 21,
+          "exact": 0.7777777777777778,
+          "weighted": 0.5225634473986714,
+          "hits_per_s": 0.7777777777777778,
+          "weighted_points_per_s": 0.5225634473986714
+        },
+        {
+          "scene": "adv_turn08_neg",
+          "trials": 3,
+          "shots": 18,
+          "hits": 15,
+          "exact": 0.8333333333333334,
+          "weighted": 0.6238923205771215,
+          "hits_per_s": 0.5555555555555556,
+          "weighted_points_per_s": 0.41592821371808103
+        },
+        {
+          "scene": "adv_turn04_pos",
+          "trials": 3,
+          "shots": 44,
+          "hits": 33,
+          "exact": 0.75,
+          "weighted": 0.410519045248922,
+          "hits_per_s": 1.2222222222222223,
+          "weighted_points_per_s": 0.66899399966491
+        },
+        {
+          "scene": "adv_turn04_neg",
+          "trials": 3,
+          "shots": 41,
+          "hits": 26,
+          "exact": 0.6341463414634146,
+          "weighted": 0.3456032652650005,
+          "hits_per_s": 0.9629629629629629,
+          "weighted_points_per_s": 0.5248049583653711
+        },
+        {
+          "scene": "adv_spin_startstop_pos",
+          "trials": 3,
+          "shots": 19,
+          "hits": 15,
+          "exact": 0.7894736842105263,
+          "weighted": 0.6208009891325311,
+          "hits_per_s": 0.5555555555555556,
+          "weighted_points_per_s": 0.4368599553154848
+        },
+        {
+          "scene": "adv_spin_startstop_neg",
+          "trials": 3,
+          "shots": 18,
+          "hits": 14,
+          "exact": 0.7777777777777778,
+          "weighted": 0.6252399711422078,
+          "hits_per_s": 0.5185185185185185,
+          "weighted_points_per_s": 0.4168266474281385
+        },
+        {
+          "scene": "adv_pursuit_pos",
+          "trials": 3,
+          "shots": 77,
+          "hits": 65,
+          "exact": 0.8441558441558441,
+          "weighted": 0.43268296070203677,
+          "hits_per_s": 2.4074074074074074,
+          "weighted_points_per_s": 1.2339477027428456
+        },
+        {
+          "scene": "adv_pursuit_neg",
+          "trials": 3,
+          "shots": 83,
+          "hits": 63,
+          "exact": 0.7590361445783133,
+          "weighted": 0.4337448359890359,
+          "hits_per_s": 2.3333333333333335,
+          "weighted_points_per_s": 1.3333637550774067
+        }
+      ],
+      "binary_sha256": "27841820b13f309206f0e6fcc73e8ead264aaa5f12f4cff09b9c36757d2437a5",
+      "qualification": [
+        {
+          "scene": "adv_variable_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_variable_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_variable_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_variable_neg",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn08_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn08_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn08_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn08_neg",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn04_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn04_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn04_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_turn04_neg",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_spin_startstop_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_spin_startstop_pos",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_spin_startstop_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_spin_startstop_neg",
+          "level": 2,
+          "passed": true
+        },
+        {
+          "scene": "adv_pursuit_pos",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_pursuit_pos",
+          "level": 2,
+          "passed": false
+        },
+        {
+          "scene": "adv_pursuit_neg",
+          "level": 1,
+          "passed": true
+        },
+        {
+          "scene": "adv_pursuit_neg",
+          "level": 2,
+          "passed": false
+        }
+      ]
+    }
+  },
+  "serial_repeated_scenes": 20,
+  "parallel_qualified_scenes": 17,
+  "serial_only_scenes": [
+    "ego_right_centered",
+    "adv_pursuit_pos",
+    "adv_pursuit_neg"
+  ],
+  "migration": {
+    "passed": true,
+    "scenes": 6,
+    "source_sha256": "8e1108727c05fcb8842f883670ef27312af4d406bae20045f2b0100c69f8a4dd"
+  },
+  "rebuild_replay": {
+    "rows": [
+      {
+        "scene": "hf_static_5",
+        "identical": true,
+        "input_sha256": "0da8bc0a221ceb4f3dd905c4599d979f7926c655a4746e9cee684ae71816911d"
+      },
+      {
+        "scene": "hf_uniform_3",
+        "identical": true,
+        "input_sha256": "c658a7ae31d8d9bcfaa75b97aa8a0d7fb469140e7e93a6361f4c79d444a69762"
+      },
+      {
+        "scene": "hf_spin_pos",
+        "identical": true,
+        "input_sha256": "4203717d33706894ddb83e7165e688a5cf95931aa0948f1644cee9c9d82faceb"
+      },
+      {
+        "scene": "hf_spin_neg",
+        "identical": true,
+        "input_sha256": "ac80e9f32bd51fc52bb4c2711e7b9039936dd6d5f73d1ee19bddd1ac98c056fb"
+      },
+      {
+        "scene": "adv_variable_pos",
+        "identical": true,
+        "input_sha256": "38ce694391c3eb243235b197b44e1acaf088a6d6291bb8cc86f46665760a2c1f"
+      },
+      {
+        "scene": "adv_pursuit_pos",
+        "identical": true,
+        "input_sha256": "2eaa1722a50cf5ae60f702a3ae0dc25906b1d9276cd79916a8f5f87138ece15d"
+      }
+    ],
+    "passed": true
+  },
+  "ui_features": {
+    "rows": [
+      {
+        "scene": "hf_static_5",
+        "run_id": "20261031T082122_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_021e45fd",
+        "verdict": "pending_visual_review",
+        "complete_wall_s": 26.324264688999392
+      },
+      {
+        "scene": "hf_spin_pos",
+        "run_id": "20261031T082150_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ab0787de",
+        "verdict": "pending_visual_review",
+        "complete_wall_s": 26.290748725001322
+      },
+      {
+        "scene": "adv_variable_pos",
+        "run_id": "20261031T082218_adv_variable_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_d1599c0d",
+        "verdict": "pending_visual_review",
+        "complete_wall_s": 30.470858649001457
+      },
+      {
+        "scene": "adv_pursuit_pos",
+        "run_id": "20261031T082249_adv_pursuit_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_a6a7580e",
+        "verdict": "pending_visual_review",
+        "complete_wall_s": 30.525618198000302
+      }
+    ],
+    "ui_equivalence_certified": false
+  },
+  "clean_checkout": {
+    "basic": {
+      "complete": true,
+      "all_evidence_valid": true,
+      "within_cost_budget": true
+    },
+    "advanced": {
+      "complete": true,
+      "all_evidence_valid": true,
+      "within_cost_budget": true
+    }
+  },
+  "videos": {
+    "B1-review-hf_spin_pos-20261031": {
+      "passed": true,
+      "width": 2560,
+      "height": 1440,
+      "fps": 30,
+      "codec": "h264",
+      "frames": 910,
+      "duration_s": 30.333333333333332,
+      "paired_cases": 1,
+      "source_hashes_unchanged": true,
+      "final_scores_match": true,
+      "no_future_camera_frames": true,
+      "complete_measurement_and_settlement": true,
+      "review_status": "pending_team_review",
+      "ui_equivalence_certified": false,
+      "reproducibility": "Frozen inputs/code/font and deterministic pairing/events/statistics. Not a claim of cross-FFmpeg byte-identical encoding.",
+      "video_sha256": "8db9d01f0082b4f1350f02794230f79889df7fd8972e66a9a20b7a0208dd7624"
+    },
+    "B1-review-adv_pursuit_pos-20261031": {
+      "passed": true,
+      "width": 2560,
+      "height": 1440,
+      "fps": 30,
+      "codec": "h264",
+      "frames": 1005,
+      "duration_s": 33.5,
+      "paired_cases": 1,
+      "source_hashes_unchanged": true,
+      "final_scores_match": true,
+      "no_future_camera_frames": true,
+      "complete_measurement_and_settlement": true,
+      "review_status": "pending_team_review",
+      "ui_equivalence_certified": false,
+      "reproducibility": "Frozen inputs/code/font and deterministic pairing/events/statistics. Not a claim of cross-FFmpeg byte-identical encoding.",
+      "video_sha256": "b1532c16bf880d69df7b72e9f41a2bc6ee274c9d957aa0e13e04655bdce0447d"
+    }
+  },
+  "delivery": {
+    "content_id": "31d85a15447b48dd2ce132f99a496018c8467acc9e40b7ceb81c4e0b03d80fb9",
+    "export": {
+      "archive": "/home/rm/rm26/exports/B1-E1-delivery-20261031.tgz",
+      "sha256": "7b88e07a1cf90de92c999f2bebb467e7c00a63f0fd3bb2d9edbe88e667f57c87",
+      "images_included": true,
+      "images_sha256": "5513e2277d3b7a31fcb5552f3440343913a140926a6707fbd54123e3f63858a3"
+    },
+    "smoke": {
+      "complete": true,
+      "all_evidence_valid": true,
+      "within_cost_budget": true
+    }
+  },
+  "pressure_smoke": {
+    "complete": true,
+    "all_evidence_valid": true,
+    "within_cost_budget": true
+  },
+  "qualified_dispatch": {
+    "job": "job_benchmark_091fb95a0172",
+    "state": "completed",
+    "distinct_slots": true,
+    "overlap": true,
+    "valid": true
+  }
+}

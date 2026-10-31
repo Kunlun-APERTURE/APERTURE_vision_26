@@ -22,6 +22,9 @@ from gimbal_dynamics import MODELS as GIMBAL_DYNAMICS, simulator_image
 
 
 def add_parser(commands):
+    from benchmark.scenarios import REGISTRY
+    global SCENES
+    SCENES=tuple(dict.fromkeys((*SCENES,*REGISTRY)))
     root = commands.add_parser('experiment',help='Record, score and review a complete experiment')
     sub = root.add_subparsers(dest='experiment_action',required=True)
     run = sub.add_parser('run')
@@ -38,7 +41,7 @@ def add_parser(commands):
     run.add_argument('--fire-policy',choices=['advice','continuous'],default='advice')
     run.add_argument('--fire-rate-hz',type=float,default=5.0)
     run.add_argument('--aim-origin',choices=['muzzle','gimbal'],default='muzzle')
-    run.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr'],default='legacy')
+    run.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr','image_v1'],default='legacy')
     run.add_argument('--gimbal-dynamics',choices=GIMBAL_DYNAMICS,default='legacy')
     run.add_argument('--gimbal-profile',choices=['legacy','timing','feedforward','combined'],default='legacy')
     run.add_argument('--seed',type=int,default=20261019)
@@ -67,10 +70,17 @@ def add_parser(commands):
     submit.add_argument('--parallelism', choices=['auto']+[str(n) for n in range(1,9)], default=None)
     submit.add_argument('--paused', action='store_true')
     submit.add_argument('--exploratory', action='store_true', help='Allow unqualified parallel execution; recorded in evidence')
-    suite=sub.add_parser('suite',help='Frozen basic/advanced movement capability study')
+    from benchmark.cli import add_parser as add_algorithm_parser
+    add_algorithm_parser(sub)
+    suite=sub.add_parser('suite',help='Independent basic/advanced benchmark')
     suite.add_argument('--tier',choices=('basic','advanced'),default='basic')
     suite.add_argument('--cases');suite.add_argument('--pressure',action='store_true')
     suite.add_argument('--list',action='store_true');suite.add_argument('--output',type=Path)
+    suite.add_argument('--algorithm',default='B1');suite.add_argument('--environment',choices=('E1','legacy'),default='E1')
+    suite.add_argument('--bundle',type=Path);suite.add_argument('--artifact',type=Path);suite.add_argument('--sensor-seeds',default='8101,8102,8103')
+    suite.add_argument('--trajectory-seed',type=int,default=2026102207);suite.add_argument('--repeats',type=int,default=1)
+    suite.add_argument('--parallelism',choices=('1','2'),default='1')
+    suite.add_argument('--resume',action='store_true');suite.add_argument('--wait',action='store_true')
     sub.add_parser('list')
     compare = sub.add_parser('compare',help='Compare paired frozen background tasks')
     compare.add_argument('--baseline',required=True)
@@ -96,11 +106,23 @@ def add_parser(commands):
 
 def measurement_duration(scene, args):
     if scene in HIGHSPEED:return args.duration if args.duration is not None else DURATIONS[scene]
+    from benchmark.scenarios import REGISTRY,RegisteredScenario
+    if scene in REGISTRY and not isinstance(REGISTRY[scene],RegisteredScenario):
+        plan=REGISTRY[scene].generate(getattr(args,'seed',20261019))
+        return plan.metadata['duration_s']
     return args.duration if args.duration is not None else (6.0 if scene.startswith('distance_') else 18.0 if scene in EXTRA else 18.0 if scene in ('ego_sweep','ego_sweep_reverse') else 8.0 if scene.startswith('ego_') else 18.0 if scene=='line' else 6.0)
 
 
 def short_scenario(manager, scene, duration, seed=20261019):
     """Render only complete/trimmed segments; original 60 s scenario stays intact."""
+    if getattr(manager,'metadata',{}).get('benchmark_version'):
+        from benchmark.scenarios import get
+        plan=get(scene).generate(seed)
+        expected=plan.metadata.get('duration_s',plan.metadata.get('duration'))
+        if expected is not None and abs(expected-duration)>1e-6:raise ValueError('Benchmark scene duration differs from frozen plan')
+        destination=manager.RUNTIME/'scenarios'/f'{scene}.toml';destination.parent.mkdir(exist_ok=True)
+        destination.write_text(plan.script);write(destination.with_suffix('.json'),plan.metadata)
+        return destination
     if scene in EXTRA or scene in HIGHSPEED:
         text,plan=generated(scene,seed,duration)
         destination=manager.RUNTIME/'scenarios'/f'{scene}.toml';destination.parent.mkdir(exist_ok=True)
@@ -267,6 +289,7 @@ def record_failure(folder, reason):
 
 
 def publish_desktop(manager, folder):
+    if not manager.DESKTOP.exists():return
     # Hardlinks expose the same immutable evidence through the desktop's
     # persistent HOME, with no second copy of large videos.
     target = manager.DESKTOP/'.local/share/rm26-sim/experiments'/folder.name
@@ -377,6 +400,7 @@ def run_one(manager, scene, args):
         if shutil.disk_usage(folder).free < 3*1024**3:
             raise RuntimeError('Need at least 3 GiB free for a complete evidence recording')
         manager.compose('--profile','experiment','run','--detach','--no-deps','--name',container,
+            *(['--label','aperture.pr='+os.environ['RM26_PR_TASK']] if os.environ.get('RM26_PR_TASK') else []),
             'evaluator','python3','-u','/opt/rm26/evaluator.py','--output','/experiments/'+identifier,
             '--scene',scene,'--duration',str(duration),'--mode',args.mode,'--settlement','6',
             '--wall-budget',str(max(1,operation_deadline-time.monotonic())),
@@ -522,12 +546,12 @@ def run_one(manager, scene, args):
 
 def execute(manager, args):
     action = args.experiment_action
+    if action=='algorithm':
+        from benchmark.cli import execute
+        return execute(args)
     if action=='suite':
-        from movement_scenarios import select
-        if args.list:return print(json.dumps(select(args.tier,args.cases,args.pressure),ensure_ascii=False,indent=2))
-        if not args.output:raise ValueError('--output is required for suite acquisition')
-        from movement_study import run
-        return run(args.output,args.tier,args.cases,args.pressure)
+        from benchmark.runner import execute
+        return execute(args)
     if action=='run' and getattr(args,'execution_mode','realtime')=='lockstep':
         import background_jobs as jobs
         argv=['experiment','submit','--parallelism','1']

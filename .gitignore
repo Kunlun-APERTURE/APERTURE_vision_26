@@ -53,3 +53,6 @@
 
 # Source brand kit; selected presentation assets are tracked in docs/assets.
 /aperture-ink-kit.zip
+
+# Local development coverage artifacts.
+/.coverage-reports/

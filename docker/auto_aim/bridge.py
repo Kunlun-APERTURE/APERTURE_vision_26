@@ -321,7 +321,7 @@ class Bridge(Node):
     def publish_eligibility(self, enabled, command_stamp_ns):
         if self.sync:
             self._sync_eligible=bool(enabled);return
-        if self.algorithm_profile in ('tracking_fire_v2','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr'):
+        if self.algorithm_profile in ('tracking_fire_v2','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr','image_v1'):
             self.eligibility_publisher.publish(RosString(data=json.dumps({
                 'issued_ns':time.time_ns(),'command_stamp_ns':command_stamp_ns,'enabled':bool(enabled)})))
 
@@ -505,7 +505,7 @@ class Bridge(Node):
                 header['latest_muzzle_pose']={'stamp_ns':stamp_ns(latest_pose.header.stamp),
                     'yaw':math.atan2(matrix[3],matrix[0]),
                     'elevation':math.atan2(matrix[6],math.hypot(matrix[0],matrix[3]))}
-                if self.algorithm_profile in ('tracking_fire_v4mt','tracking_fire_v4mtr'):
+                if self.algorithm_profile in ('tracking_fire_v4mt','tracking_fire_v4mtr','image_v1'):
                     pose=header['latest_muzzle_pose'];old=self.previous_fire_pose
                     pose['rates_valid']=False
                     if old:
@@ -528,6 +528,9 @@ class Bridge(Node):
             return header, jpeg
 
     def result(self, result, expected, jpeg):
+        if os.environ.get('RM26_ALGORITHM_PROTOCOL')=='rm26-image-v1':
+            from benchmark.protocol import validate_result
+            validate_result(expected or {},result)
         with self.lock:
             if not expected or any(result.get(k) != expected[k] for k in ('seq','stamp_ns','session')):
                 raise ValueError('Command does not match the outstanding frame')
@@ -587,7 +590,7 @@ class Bridge(Node):
             cmd.pitch = -math.degrees(values[1])
             cmd.distance = values[2]
             cmd.yaw_diff = cmd.pitch_diff = 0.0
-            if result.get('temporal_command') and self.algorithm_profile in ('tracking_fire_v4mt','tracking_fire_v4mtr'):
+            if result.get('temporal_command') and self.algorithm_profile in ('tracking_fire_v4mt','tracking_fire_v4mtr','image_v1'):
                 cmd.temporal_valid=True
                 cmd.aim_stamp_ns=int(result['aim_stamp_ns'])
                 cmd.yaw_rate_radps=float(result['yaw_rate_radps'])
@@ -809,7 +812,7 @@ def main():
     parser.add_argument('--bullet-speed', type=float, default=25)
     parser.add_argument('--actual-bullet-speed',type=float,default=25)
     parser.add_argument('--fire',choices=['off','auto'],default='off')
-    parser.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr'],default='legacy')
+    parser.add_argument('--algorithm-profile',choices=['legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr','image_v1'],default='legacy')
     parser.add_argument('--fire-policy',choices=['advice','continuous'],default='advice')
     parser.add_argument('--fire-rate-hz',type=float,default=5.0)
     parser.add_argument('--physics',choices=['no-drag','drag'],default='no-drag')
