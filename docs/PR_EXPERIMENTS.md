@@ -43,3 +43,14 @@ python3 tools/pr_acceptance.py --repository Kunlun-APERTURE/APERTURE_vision_26 \
 相同 base/head 用于零差异检查；`--upload-failure` 可注入回传故障。新尝试使用不同 attempt。工具产生的本地验收输出属于维护者本地发起实验；服务端远程任务仍仅保留日志。
 
 只读封存目录和 root-owned 证据会阻止普通账户删除。清理先仅对任务树解除只读；权限不足时使用不联网的短生命周期 root 清理容器，只挂载该任务目录，授予 DAC_OVERRIDE/FOWNER，不跟随符号链接，不挂载 Docker socket。正常与上传失败路径已用真实 root-owned 只读夹具验证。
+
+## 首次线上验收操作
+
+使用仅修改文档的测试 PR，选择 variable 项目，保持算法与目标分支一致。由有写权限的非作者批准，等待服务完成后核对：
+
+- 同一个实验 Check 从排队、运行更新为完成。
+- PR 得分包含 base/head 提交、正反转三个种子的统计；相同算法应得到一致成绩。
+- GitHub 结果 workflow 提供文本成绩与日志 artifact。
+- 工作站任务目录、容器和任务镜像标签清空，仅保留文本日志。
+
+请在结果回传完成后再合并或关闭验收 PR；运行中关闭会按取消处理。
