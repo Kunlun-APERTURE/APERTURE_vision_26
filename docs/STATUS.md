@@ -45,3 +45,7 @@ Python 165个文件语法通过，28组场景生成与评分边界检查通过�
 当前源码在独立Docker构建目录的9个目标编译成功（包括原standard和auto_aim_test入口），6个测试程序及适配器help通过；未覆盖已验二进制。旧continuity程序换用正确测试夹具后同样通过：此前给它传默认legacy配置的调用不正确，不能据此认定源码/二进制损坏。测试配置现收录在tools/test-configs，程序对错误夹具仍缺少保护。
 
 公开lockstep示例已改用支持的hf_static_8，一轮后台完整18.70秒、会话审计通过。新构建候选未替换已验算法进行射击。详情见[可用性检查](CHECKS.md)。
+
+## 2026-10-31 GitHub发布
+
+主仓库已发布到[ANGJustinl/APERTURE_vision_26](https://github.com/ANGJustinl/APERTURE_vision_26)，私有、默认main。两个子仓库阶段分支与标签已先行推送，原默认分支保持。已从GitHub全新递归克隆并验证两个gitlink匹配；设备新提交用户名为rm_workstation_26。新机器镜像与原始实验仍另行准备；私有主仓库需给队友协作者访问。发布记录见release/20261031-publication.json。

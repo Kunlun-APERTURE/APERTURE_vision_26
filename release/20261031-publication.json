@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-31",
+  "account": "ANGJustinl",
+  "device_git_user": "rm_workstation_26",
+  "main_repository_private": true,
+  "main_default_branch": "main",
+  "published_branch": "milestone/20261030-fidelity",
+  "published_stage_tags": [
+    "stage-20261030-fidelity",
+    "stage-20261031-submodules",
+    "stage-20261031-usability"
+  ],
+  "repositories": {
+    "APERTURE_vision_26": {
+      "url": "https://github.com/angjustinl/APERTURE_vision_26.git",
+      "tested_commit": "515eff53a8aa7c1908ff34c71383127521d854a1"
+    },
+    "sp_vision_25": {
+      "url": "https://github.com/angjustinl/sp_vision_25",
+      "tested_commit": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476"
+    },
+    "vision_simulator_26": {
+      "url": "https://github.com/ANGJustinl/vision_simulator_26",
+      "tested_commit": "778c0c8fba8022835eeabb3f81c4c865f588a34e"
+    }
+  },
+  "remote_recursive_clone_passed": true,
+  "child_heads_match_gitlinks": true,
+  "git_auth_usable_on_host_and_desktop": true,
+  "child_default_branches_unchanged": true,
+  "limitations": "Source publication verified; Docker images, full experiments and review videos are separate distribution. Private main repository requires collaborator access."
+}
