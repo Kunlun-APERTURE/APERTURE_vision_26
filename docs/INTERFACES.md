@@ -12,3 +12,5 @@
 桥接与算法仿真协议由`bridge.py`、`sync_bridge.py`和`sim_auto_aim.cpp`实现；ROS消息定义在模拟器`rm_interfaces`中。算法仓库还包含上游可选ROS功能，“仿真入口无ROS依赖”不表示所有硬件目标都不涉及ROS。
 
 接口变更需更新配套提交并验证时间域、图像/姿态对齐、坐标与角度约定、弹速语义、过期控制、开火取消及事件终结。两个仓库分别能编译，不足以证明组合兼容。
+
+统一基线框架通过 Scenario、AlgorithmAdapter、EnvironmentSpec 和 ExperimentSpec 组合任务；场景、算法与环境分别版本化。独立进程接口为 rm26-image-v1，B1 是 R4 配置，E1 是修正云台环境。接入与执行命令见 [团队基线](BENCHMARK.md)。

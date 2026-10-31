@@ -462,7 +462,7 @@ def main():
     args = parser().parse_args(arguments)
     RUNTIME.mkdir(parents=True,exist_ok=True,mode=0o700)
     LOGS.mkdir(parents=True,exist_ok=True,mode=0o700)
-    if args.action=='experiment' and args.experiment_action=='suite':
+    if args.action=='experiment' and args.experiment_action in ('suite','algorithm'):
         import experiments
         return experiments.execute(sys.modules[__name__],args)
     if args.action == 'jobs' or (args.action == 'experiment' and args.experiment_action == 'submit'):

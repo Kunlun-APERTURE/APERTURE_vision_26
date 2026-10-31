@@ -54,3 +54,5 @@
 |云台正确公式及历史勘误|[REFERENCE_YAW.md](REFERENCE_YAW.md)|
 
 `*_study.py`、`*_report.py`和诊断脚本保留研究复现能力，不是队友日常首选入口。多数要求本机历史冻结包与原始实验资料；不应在空仓库里依次运行所有研究脚本。以CLI `--help` 查看当前支持参数。
+
+团队 B1/E1 的独立构建、基础/进阶统一入口与队友算法接入见 [基线指南](../../docs/BENCHMARK.md)。旧 movement_study.py 仅保留历史研究复现。

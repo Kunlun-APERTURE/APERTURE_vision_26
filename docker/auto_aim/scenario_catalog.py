@@ -10,6 +10,9 @@ SCENES=BASE+EXTRA+HIGHSPEED
 
 
 def semantics(scene):
+    from benchmark.scenarios import REGISTRY,RegisteredScenario
+    if scene in REGISTRY and not isinstance(REGISTRY[scene],RegisteredScenario):
+        return REGISTRY[scene].generate(0).metadata['semantics']
     if scene in HIGHSPEED:
         from highspeed_scenarios import semantics as hs_semantics
         return hs_semantics(scene)

@@ -133,12 +133,15 @@ def validate(settings):
         if s['session_evidence']=='off':raise ValueError('Lockstep requires complete session evidence')
         import re
         from sync_timing import load_profile,SCENES
-        if s['scene'] not in SCENES:raise ValueError('Lockstep v1 covers four focus scenes only')
-        if s['physics']!='no-drag' or s['algorithm_profile']!='tracking_fire_v3' or s['fire_policy']!='advice':
+        if s['scene'] not in SCENES:
+            from benchmark.scenarios import get
+            get(s['scene'])
+        if s['physics']!='no-drag' or s['algorithm_profile'] not in ('tracking_fire_v3','image_v1') or s['fire_policy']!='advice':
             raise ValueError('Lockstep v1 requires no-drag, tracking_fire_v3 and advice')
         if not s['timing_profile'] or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}',s['timing_profile']):
             raise ValueError('Expected timing profile name')
-        load_profile(OPS/'timing_profiles'/(s['timing_profile']+'.json'))
+        timing=load_profile(OPS/'timing_profiles'/(s['timing_profile']+'.json'))
+        if timing['kind']=='trace' and s['scene'] not in timing['scenes']:raise ValueError('Trace timing missing scene')
         s['algorithm_lifecycle']='fresh'
     for key in ('duration','bullet_speed','reported_bullet_speed','fire_rate_hz','max_fps'):
         if s[key] is not None and (isinstance(s[key],bool) or not math.isfinite(s[key])):
@@ -238,10 +241,11 @@ def expand(args):
     return rows,parallelism,spec
 
 
-def freeze(job_id,gimbal_dynamics="legacy"):
+def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None):
     import experiments
     from gimbal_dynamics import simulator_image
-    simulator_tag=simulator_image(gimbal_dynamics,manage.IMAGE)
+    image_tags=image_tags or {}
+    simulator_tag=simulator_image(gimbal_dynamics,image_tags.get("simulator",manage.IMAGE))
     bundle=STATE/'bundles'/job_id
     bundle.mkdir(parents=True)
     provenance=bundle/'provenance';provenance.mkdir()
@@ -250,8 +254,8 @@ def freeze(job_id,gimbal_dynamics="legacy"):
     for source in OPS.iterdir():
         if source.is_file() and source.suffix in ('.py','.yml','.json','.toml','.Dockerfile','.xml'):
             shutil.copy2(source,source_ops/source.name)
-    for name in ('scenarios','baselines','timing_profiles'):
-        if (OPS/name).exists():shutil.copytree(OPS/name,source_ops/name)
+    for name in ('scenarios','baselines','timing_profiles','benchmark'):
+        if (OPS/name).exists():shutil.copytree(OPS/name,source_ops/name,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     for name in ('sp_vision_25','vision_simulator_26'):
         root=manage.ROOT/name
         paths=subprocess.check_output(['git','-C',str(root),'ls-files','-z','--cached','--others','--exclude-standard']).decode().split('\0')
@@ -262,9 +266,9 @@ def freeze(job_id,gimbal_dynamics="legacy"):
             target=bundle/name/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
     shutil.copytree(manage.ROOT/'sp_vision_25/assets',bundle/'sp_vision_25/assets',dirs_exist_ok=True)
     binary=bundle/'sp_vision_25/build/simulator/sim_auto_aim';binary.parent.mkdir(parents=True)
-    shutil.copy2(manage.ROOT/'sp_vision_25/build/simulator/sim_auto_aim',binary)
+    shutil.copy2(algorithm_binary or manage.ROOT/'sp_vision_25/build/simulator/sim_auto_aim',binary)
     images={};retained_images={}
-    for key,tag in (('simulator',simulator_tag),('evaluator','daedalus:rm26-evaluator'),('algorithm','daedalus:rm26-algorithm')):
+    for key,tag in (('simulator',simulator_tag),('evaluator',image_tags.get('evaluator','daedalus:rm26-evaluator')),('algorithm',image_tags.get('algorithm','daedalus:rm26-algorithm'))):
         info=manage.inspect(tag)
         if not info:raise RuntimeError('Missing image '+tag+'; build background prerequisites first')
         images[key]=info['Id']
@@ -274,7 +278,7 @@ def freeze(job_id,gimbal_dynamics="legacy"):
             raise RuntimeError('Image changed while freezing '+tag+'; submit again')
         retained_images[key]=retained
     evaluator=manage.inspect(images['evaluator'])
-    if evaluator['Config'].get('Labels',{}).get('rm26.integration_image_id')!=manage.inspect(manage.IMAGE)['Id']:
+    if evaluator['Config'].get('Labels',{}).get('rm26.integration_image_id')!=manage.inspect(image_tags.get('simulator',manage.IMAGE))['Id']:
         raise RuntimeError('Evaluator interfaces differ; rebuild evaluator')
     # Reject an inconsistent source snapshot if an editor saved during copying.
     for name,before in repositories.items():
@@ -422,7 +426,7 @@ def reconcile(db):
 
 def daemon():
     STATE.mkdir(parents=True,exist_ok=True)
-    with (STATE/'daemon.lock').open('a') as lock:
+    with (STATE/'daemon.lock').open('a') as lock, (OPS/'.runtime/pr-resource.lock').open('a') as resource_lease:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         db=connect();reconcile(db)
         active={};active_limits={};stopping=False;idle_cleaned=False
@@ -521,6 +525,8 @@ def daemon():
                             if active and len(active)>=min(active_limits.values()):continue
                             chosen=row;break
                         if chosen is None:continue
+                        try:fcntl.flock(resource_lease,fcntl.LOCK_SH|fcntl.LOCK_NB)
+                        except BlockingIOError:continue
                         row=chosen;job_id=row['job_id'];item_id=row['id'];attempt_id='attempt_'+uuid.uuid4().hex[:12]
                         db.execute("UPDATE items SET state='running' WHERE id=?",(item_id,))
                         db.execute("UPDATE jobs SET state='running',updated=? WHERE id=?",(time.time(),job_id))
@@ -539,6 +545,7 @@ def daemon():
                     active_limits[slot]=limit
                     idle_cleaned=False
                     event(db,job_id,f'Started {attempt_id} in slot {slot}')
+                if not active:fcntl.flock(resource_lease,fcntl.LOCK_UN)
                 if not active and not idle_cleaned:
                     cleanup_slot(None)
                     idle_cleaned=True

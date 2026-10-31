@@ -670,7 +670,8 @@ class Evaluator(Node):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output',required=True)
-    parser.add_argument('--scene',choices=SCENES,required=True)
+    from benchmark.scenarios import REGISTRY
+    parser.add_argument('--scene',choices=tuple(dict.fromkeys((*SCENES,*REGISTRY))),required=True)
     parser.add_argument('--duration',type=float,default=60)
     parser.add_argument('--mode',choices=['track','shoot'],default='track')
     parser.add_argument('--settlement',type=float,default=6)
