@@ -101,3 +101,24 @@ class ArtifactRedirectTests(unittest.TestCase):
   self.assertIsNone(redirected.get_header('Authorization'))
   same=handler.redirect_request(req,None,302,'Found',{},'https://api.github.com/other')
   self.assertEqual(same.get_header('Authorization'),'Bearer test')
+
+class GitHubTransientReadTests(unittest.TestCase):
+ def test_read_retries_tls_error(self):
+  import urllib.error
+  api=GitHub('team/repo',1,2,'unused');api.token='token';api.expires=10**20
+  response=Mock();response.__enter__=Mock(return_value=io.BytesIO(json.dumps({'ok':True}).encode()));response.__exit__=Mock(return_value=False)
+  with patch('pr_service.github.urllib.request.urlopen',side_effect=[urllib.error.URLError('TLS EOF'),response]) as call,patch('pr_service.github.time.sleep'):
+   self.assertEqual(api.repo('GET','/test'),{'ok':True});self.assertEqual(call.call_count,2)
+ def test_writes_and_permission_errors_are_not_retried(self):
+  import urllib.error
+  api=GitHub('team/repo',1,2,'unused');api.token='token';api.expires=10**20
+  for method,error in [('POST',urllib.error.URLError('TLS EOF')),('GET',urllib.error.HTTPError('url',403,'Forbidden',{},None))]:
+   with patch('pr_service.github.urllib.request.urlopen',side_effect=error) as call:
+    with self.assertRaises(urllib.error.URLError):api.repo(method,'/test',{} if method=='POST' else None)
+    self.assertEqual(call.call_count,1)
+ def test_retries_are_bounded(self):
+  import urllib.error
+  api=GitHub('team/repo',1,2,'unused');api.token='token';api.expires=10**20
+  with patch('pr_service.github.urllib.request.urlopen',side_effect=urllib.error.URLError('offline')) as call,patch('pr_service.github.time.sleep'):
+   with self.assertRaises(urllib.error.URLError):api.repo('GET','/test')
+   self.assertEqual(call.call_count,3)
