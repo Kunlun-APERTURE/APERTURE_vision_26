@@ -19,7 +19,7 @@
 
 算法与模拟器目录现为 **submodule**，主仓库只记录各自提交，不复制源码。使用 `git clone --recurse-submodules <主仓库URL> rm26` 获取配套版本；已有克隆执行 `git submodule update --init --recursive`。原阶段标签 `stage-20261030-fidelity` 保留转换前状态；submodule转换使用新标签 `stage-20261031-submodules`，两个子仓库仍引用原已提交版本。源码选择以gitlink为准。
 
-检查工作区：`python3 tools/check-workspace.py`；VSCode打开 `RM26.code-workspace`。开发/上传流程见 [Submodule协作](docs/SUBMODULES.md)，组件职责见 [接口边界](docs/INTERFACES.md)。
+[可用性与C++自检](docs/CHECKS.md)。检查工作区：`python3 tools/check-workspace.py`；VSCode打开 `RM26.code-workspace`。开发/上传流程见 [Submodule协作](docs/SUBMODULES.md)，组件职责见 [接口边界](docs/INTERFACES.md)。
 
 ## 分享范围
 

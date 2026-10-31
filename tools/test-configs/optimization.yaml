@@ -1,0 +1,156 @@
+Q_pitch:
+- 9e6
+- 0
+Q_yaw:
+- 9e6
+- 0
+R_camera2gimbal:
+- -0.008319576004695461
+- 0.010498791137270739
+- 0.9999102759946804
+- -0.9996075613864775
+- -0.026835747568381807
+- -0.008035289131414894
+- 0.026748978935305992
+- -0.9995847227909708
+- 0.010717933047771133
+R_gimbal2imubody:
+- -1
+- 0
+- 0
+- 0
+- -1
+- 0
+- 0
+- 0
+- 1
+R_pitch:
+- 1
+R_yaw:
+- 1
+aim_time: 0.15
+algorithm_profile: tracking_fire_v4m
+auto_fire: true
+bullet_speed_canid: 257
+camera_matrix:
+- 1818.3669452465165
+- 0
+- 751.062265747035
+- 0
+- 1822.494494078506
+- 530.4367155611213
+- 0
+- 0
+- 1
+camera_name: hikrobot
+can_interface: can0
+classify_model: assets/tiny_resnet.onnx
+com_port: /dev/gimbal
+command_fire_gap: 0.08
+comming_angle: 60
+continuity_v2:
+  bearing_noise_rad: 0.003
+  fire_jump_deg: 1.0
+  fire_pose_max_age_s: 0.05
+  fire_recovery_frames: 3
+  fire_tolerance_deg: 0.5
+  innovation_limit: 13.276704135987622
+  maneuver_rotation_variance: 400.0
+  maneuver_translation_variance: 100.0
+  radial_acceleration_variance: 0.3
+  range_noise_m: 0.15
+  reprojection_max_px: 8.0
+  rotation_variance: 10.0
+  translation_variance: 30.0
+  trusted_timeout_s: 0.25
+  vertical_acceleration_variance: 0.1
+decision_speed: 8
+detect:
+  R_contours_max_area: 600
+  R_contours_min_area: 200
+  brightness:
+    blue: -120
+    red: -100
+  brightness_threshold:
+    blue: 120
+    red: 40
+  contrast: 1
+  dilate_size: 2
+  fanblades_body_contours_max_area: 4000
+  fanblades_body_contours_min_area: 1000
+  fanblades_head_contours_max_area: 8000
+  fanblades_head_contours_min_area: 3000
+  morphology_size:
+    blue: 3
+    red: 3
+  standard_fanblade_path: ./assets/standard_fanblade.jpg
+device: CPU
+distort_coeffs:
+- -0.07794462659956886
+- 0.1544782603148689
+- -0.0025714394278524674
+- 0.0008301631130127363
+- 0
+enemy_color: blue
+exposure_ms: 2
+fire_thresh: 0.003
+first_tolerance: 3
+gain: 16
+high_speed_delay_time: 0.03
+judge_distance: 2
+leaving_angle: 20
+low_speed_delay_time: 0.015
+max_angle_error: 45
+max_armor_ratio: 5
+max_lightbar_ratio: 20
+max_pitch_acc: 100
+max_rectangular_error: 25
+max_side_ratio: 1.5
+max_temp_lost_count: 15
+max_yaw_acc: 50
+min_armor_ratio: 1
+min_confidence: 0.8
+min_detect_count: 5
+min_lightbar_length: 8
+min_lightbar_ratio: 1.5
+optimization_v4:
+  maneuver_frames: 3
+  maneuver_sigma: 3.0
+outpost_max_temp_lost_count: 75
+pitch_offset: 0
+predict_time: 0.15
+quaternion_canid: 256
+robustness_v3:
+  color_refinement: true
+  color_refinement_max_lightbar_px: 0.0
+  constrained_pose: true
+  constrained_pose_max_lightbar_px: 0.0
+  fire_stability_requires_alignment: false
+  fire_stable_time_s: 0.02
+  fire_yaw_max_deg: 1.0
+  multi_scale_search: true
+  preferred_plate_hysteresis: 1.15
+  radial_acceleration_variance: 3.0
+  velocity_bootstrap: false
+  velocity_bootstrap_window_s: 0.2
+roi:
+  height: 600
+  width: 600
+  x: 420
+  y: 50
+second_tolerance: 2
+send_canid: 255
+t_camera2gimbal:
+- 0.09496930183353451
+- 0.09500629029800668
+- 0.05098706629175661
+threshold: 150
+use_roi: false
+use_traditional: true
+vid_pid: 2bdf:0001
+wait_time: 0.3
+yaw_offset: 0
+yolo11_model_path: assets/yolo11.xml
+yolo_name: yolov5
+yolov5_model_path: assets/yolov5.xml
+yolov8_model_path: assets/yolov8.xml

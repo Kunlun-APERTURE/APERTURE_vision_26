@@ -24,7 +24,7 @@
   --gimbal-profile feedforward --fire-policy advice --fire-rate-hz 5
 
 # 已验输入契约的非实时后台任务。
-./sim.sh experiment submit --scene hf_static_5 --terrain flat_range \
+./sim.sh experiment submit --scene hf_static_8 --terrain flat_range \
   --mode shoot --matrix single --algorithm-profile tracking_fire_v3 \
   --gimbal-profile feedforward --fire-policy advice --fire-rate-hz 5 \
   --input-contract aligned-v1 --detector-history session --sensor-seed 291001 \

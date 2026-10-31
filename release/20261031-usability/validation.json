@@ -1,0 +1,101 @@
+{
+  "passed_for_existing_workstation": true,
+  "cpp_source_fresh_build": true,
+  "cpp_targets": 9,
+  "cpp_test_programs": 6,
+  "cpp_checks": [
+    {
+      "test": "continuity_test",
+      "exit_code": 0,
+      "passed": true,
+      "binary_sha256": "a34ff657173d0caec36558f134af874f86ec22b308a59ab79a91d64edc937794",
+      "fixture": "build/sim/test-continuity.yaml",
+      "fixture_sha256": "d1bfc2a6be25f909a780eb24ef9a20f8b0df4f895409bc5b6a8fbc85e094bb99",
+      "tail": "target reversal recovery 0.133333 s; accepted 180/180\nclassification, duplicates, dropout, timestamps, yaw wrap, pitch and pose freshness passed\n",
+      "distributed_fixture": "tools/test-configs/continuity.yaml",
+      "distributed_fixture_sha256": "ab7b0072c6cf7c1e4f219decc50edeab1b727d3477d7272b9fa75484978fdd24"
+    },
+    {
+      "test": "robustness_test",
+      "exit_code": 0,
+      "passed": true,
+      "binary_sha256": "175a1f2f4f41cc4a2bd798dfe4412fa8de5959856a1346d6dac13093292fb5f1",
+      "fixture": "build/sim/robustness-test.yaml",
+      "fixture_sha256": "d62f354780864677751fbd3d126ea9626cbce802f6c701ca90b057b47e002466",
+      "tail": "Color/subpixel lightbars, identity, geometric gate, bounded recovery; Radial/diagonal velocity, covariance, gap, gate duration, identity, yaw wrap and stale pose passed\n",
+      "distributed_fixture": "tools/test-configs/robustness.yaml",
+      "distributed_fixture_sha256": "bdda7188d10a8720254bd399d309967eddb6d8831ca820a89bc42b018fd9efdb"
+    },
+    {
+      "test": "optimization_test",
+      "exit_code": 0,
+      "passed": true,
+      "binary_sha256": "f8c879a0520c792d36b096eccaa21ff1299bfa6a4f9948425b75912289d0fca8",
+      "fixture": "build/sim/v4-test.yaml",
+      "fixture_sha256": "2c076e1b09dbf5864b1d8b6d1bc6d4810a709aaf036c58b35c9ba8ec8b7e69aa",
+      "tail": "omega -3 estimated -3.00003 sigma 0.333567 active 1\nomega 3 estimated 3.00003 sigma 0.333567 active 1\nv4 stationary, PSD, confidence gate, maneuver hold and bidirectional phase checks passed\n",
+      "distributed_fixture": "tools/test-configs/optimization.yaml",
+      "distributed_fixture_sha256": "2c076e1b09dbf5864b1d8b6d1bc6d4810a709aaf036c58b35c9ba8ec8b7e69aa"
+    },
+    {
+      "test": "motion_test",
+      "exit_code": 0,
+      "passed": true,
+      "binary_sha256": "fece4ec35783851bc16e91b6d1deb782b638da60b459e4268eaa438b541483f7",
+      "fixture": "configs/simulator.yaml",
+      "fixture_sha256": "85ec061790da6d986f636d38346c25f7f8216368347e491b4f6e4ecb5c47f02e",
+      "tail": "PASSED 2094 motion checks\n",
+      "distributed_fixture": "sp_vision_25/configs/simulator.yaml",
+      "distributed_fixture_sha256": "85ec061790da6d986f636d38346c25f7f8216368347e491b4f6e4ecb5c47f02e"
+    },
+    {
+      "test": "perception_test",
+      "exit_code": 0,
+      "passed": true,
+      "binary_sha256": "39379009ece81e6981acf468351eb3d486b83b4229746d73353366387d047381",
+      "fixture": "configs/simulator.yaml",
+      "fixture_sha256": "85ec061790da6d986f636d38346c25f7f8216368347e491b4f6e4ecb5c47f02e",
+      "tail": "PASSED 94 perception checks\n",
+      "distributed_fixture": "sp_vision_25/configs/simulator.yaml",
+      "distributed_fixture_sha256": "85ec061790da6d986f636d38346c25f7f8216368347e491b4f6e4ecb5c47f02e"
+    },
+    {
+      "test": "maneuver_filter_test",
+      "exit_code": 0,
+      "passed": true,
+      "binary_sha256": "186137219e7941204e7bb15efb8dba68097ea009f27391a9156646bc8838bfc5",
+      "fixture": null,
+      "fixture_sha256": null,
+      "tail": "PASSED 4471 maneuver checks\n"
+    },
+    {
+      "test": "sim_auto_aim --help",
+      "exit_code": 0,
+      "passed": true
+    }
+  ],
+  "old_continuity_with_correct_fixture_passed": true,
+  "previous_segfault_note": "Previous invocation used legacy production config instead of the required continuity fixture. No algorithm fix applied.",
+  "readme_lockstep_scene_fixed": true,
+  "backend": {
+    "job_id": "job_20261031T041809_77eb3bc6",
+    "run_id": "20261031T041812_hf_static_8_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_c47d2fdf",
+    "complete_wall_s": 18.697152614593506,
+    "verdict": "passed",
+    "session_evidence_passed": true,
+    "shots": 15,
+    "hits": 15,
+    "used_frozen_existing_algorithm": true
+  },
+  "remote_clone_verified": false,
+  "clean_machine_install_verified": false,
+  "protected_algorithm_not_replaced": true,
+  "source_changes_to_children": false,
+  "original_entry_targets_compiled": [
+    "standard",
+    "auto_aim_test"
+  ],
+  "independent_build_log_sha256": "c1dbb945a8d52f450c34d19ff950ea8f1306d722869f13080f75cf63432a3850",
+  "original_entry_build_log_sha256": "82c8abb091ad5198fddfbb4ad56fe9353ec272f086473b168785200bed28627e",
+  "fixture_distribution_note": "Distributed YAML strips trailing whitespace only; original executed fixture SHA and distributed SHA are recorded separately."
+}

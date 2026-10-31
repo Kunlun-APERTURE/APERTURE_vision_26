@@ -11,3 +11,5 @@
 `session-evidence/`保存暖机、测量、结算的输入与结果及摘要；`session-evidence-audit.json`为完整性核对。完整会话证据和可重复性不等于实物拟真，也不自动认证UI命中统计等价。实际显示、传感器时间、返回链路干预和算法改变应分别比较。
 
 本轮yaw部件与后台静止复现结论见 [阶段状态](../../docs/STATUS.md)。通用lockstep尝试预算180秒；本阶段预登记短测另外要求完整尝试≤40秒。
+
+公开CLI当前仅接受 `hf_static_8`、`hf_uniform_3`、`hf_turn90_3`、`hf_spin_neg` 的lockstep提交；`hf_static_5`等研究专用条件不能直接套用该入口。其它基础/进阶项目的研究控制器另有冻结与复现检查，不代表已开放通用CLI支持。
