@@ -1,0 +1,23 @@
+{
+  "stage": "stage-20261031-submodules",
+  "previous_stage": "stage-20261030-fidelity",
+  "integration_conversion_commit": "2b6062e1ab6d10176e87f2c7aa5d019c897f5b61",
+  "source_selection": "main repository gitlinks; release file is a historical summary",
+  "submodules": {
+    "sp_vision_25": {
+      "commit": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476",
+      "tree": "828b341cdf7197845d50d8d8e7df8d5da7fadd76",
+      "url": "https://github.com/angjustinl/sp_vision_25"
+    },
+    "vision_simulator_26": {
+      "commit": "778c0c8fba8022835eeabb3f81c4c865f588a34e",
+      "tree": "8a90105dc916a93ce45128bd7a457b6b873d6b08",
+      "url": "https://github.com/ANGJustinl/vision_simulator_26"
+    }
+  },
+  "validation_sha256": "62bfdd9ec441b787a44f244029326ec02c708ed2739f375c43db3b5f9de58190",
+  "child_source_changes": false,
+  "desktop_recreated": false,
+  "remote_published": false,
+  "remote_recursive_clone_pending": true
+}

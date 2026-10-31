@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "child_heads_unchanged": true,
+  "child_histories_and_gitdirs_preserved": true,
+  "protected_runtime_files_unchanged": true,
+  "fresh_submodule_initialization_from_local_url_overrides": true,
+  "committed_urls_remain_https": true,
+  "source_snapshot_records_identical": true,
+  "container_git_visibility": {
+    "existing": true,
+    "fresh": true
+  },
+  "live_desktop_git_visibility": true,
+  "standalone_child_clones": true,
+  "checker_rejects_pointer_mismatch": true,
+  "remote_recursive_clone_verified": false,
+  "live_desktop_mounts_recreated": false,
+  "simulation_or_algorithm_behavior_changed": false
+}
