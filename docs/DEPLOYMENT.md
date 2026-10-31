@@ -1,10 +1,18 @@
-# 部署与工作站前提
+# 部署与工作站
 
-## 使用现有工作站
+## 先选择使用方式
 
-当前已验环境：Ubuntu宿主机、NVIDIA GPU与容器工具链、Docker Compose/Buildx；Sunshine容器 `sp_vision_sunshine` 提供GNOME显示和OpenVINO开发环境。模拟器运行在宿主机独立Docker容器，桥接器/评估器另行运行，不使用嵌套Docker。
+|方式|准备与入口|
+|---|---|
+|使用现有工作站|保留已有镜像、桌面与运行产物，在宿主机`/home/rm/rm26`执行`sim.sh`|
+|新机器获取源码|先配置GitHub读取权限，再递归克隆主仓库；submodule不自动安装依赖|
+|独立使用算法/模拟器|在对应子仓库按其构建入口准备环境；组合运行仍需主仓库的桥接与配套接口|
 
-现有工作站路径为 `/home/rm/rm26`，Sunshine源码挂载为 `/workspace/sp_vision_25`、`/workspace/vision_simulator_26`。UI显示为 `:20`，使用工作站时保持VT8；切换TTY可能影响NVIDIA呈现。后台运行可以慢于实时，但本部署仍使用既有GPU/显示设施，并不是无GPU的纯数值模拟。
+当前主仓库为私有，队友须有访问权限并在自己设备上配置GitHub认证。Git提交作者名称与登录认证是两回事。
+
+## 已有工作站
+
+当前部署采用Ubuntu宿主机、NVIDIA GPU与容器工具链、Docker Compose/Buildx。Sunshine容器`sp_vision_sunshine`提供GNOME显示和OpenVINO开发环境；模拟器、ROS桥接与评估器在宿主机Docker中运行，不使用嵌套Docker。
 
 ```bash
 cd /home/rm/rm26
@@ -13,29 +21,32 @@ cd /home/rm/rm26
 ./sim.sh jobs list
 ```
 
-Sunshine由宿主机服务管理；UI模拟器/桥接手动启停。实验调度器为宿主机服务，重启后中断尝试留档、队列暂停，核对证据后用 `jobs resume JOB_ID` 恢复。停止模拟器不会停止桌面。不要在有实验运行时重建镜像或替换算法二进制。
+UI显示使用`:20`和VT8，切换TTY可能影响Vulkan呈现。后台可以慢于实时，但现有部署仍使用GPU/显示设施。
 
-## 新机器部署边界
+|组件|重启行为|
+|---|---|
+|Sunshine|由宿主机`rm26-sunshine`服务和既有容器重启策略管理|
+|手动联调模拟器/桥接|通过`sim.sh`启停，不作为自动恢复任务|
+|后台调度器|宿主机服务；重启后中断尝试留档、队列暂停，检查后用`jobs resume JOB_ID`恢复|
 
-本阶段交付是工作站集成源码，**尚非一键跨机器安装包**。新机器需要先准备：
+停止联调不会关闭桌面。实验运行期间不要重建镜像或替换其算法二进制；已冻结任务继续使用自己的产物。
 
-- Docker、NVIDIA驱动与容器GPU支持，以及显示会话；
-- 算法OpenVINO/C++依赖环境（参考算法仓库Dockerfile和readme）；
-- ROS 2 Jazzy + Bevy模拟器镜像（`ros2 bench`特性）；
-- Sunshine桌面或适配现有显示方案，以及对应挂载、用户、服务和桌面命令。
+## 桌面工作区
 
-[现有显示部署脚本](../docker/deploy-sunshine.sh)和[独立模拟器说明](../docker/daedalus/README.md)面向上述固定工作站；运行前检查路径、显卡、代理与挂载。Sunshine持久HOME、密钥和宿主机服务状态不随Git分发。
+现有容器的真实源码挂载是`/workspace/sp_vision_25`和`/workspace/vision_simulator_26`；`~/workspaces/rm26-sim`是主仓库的独立同步副本。当前桌面打开`~/workspaces/RM26-三仓库.code-workspace`，不要将联调副本误当成完整递归clone，或在宿主机与副本同时修改主仓库。
 
-`./sim.sh build`要求桌面开发环境已存在。`./sim.sh build --component background`也要求本地 `sp_vision_dev:2024.6.0`。构建默认代理 `http://127.0.0.1:7890`；根据网络设置 `RM26_BUILD_PROXY`，直连可设为空。
+新部署定义支持完整工作区`/workspace/rm26`及旧路径/Git元数据兼容入口，已在辅助容器核对Git可见性。它尚未应用到正在运行的Sunshine；需要安排容器重建后，才使用完整挂载中的根`RM26.code-workspace`。
 
-## 已验镜像与重新构建
+## 新机器前提
 
-版本清单记录本机已验镜像ID及算法二进制SHA。`input-contract-runtime.json`是已验输入契约描述，运行时会检查镜像及算法摘要；新机器自行构建的产物不保证具有相同SHA，不能直接把摘要改成新值宣称验收通过。
+新机器需要另行准备Docker、NVIDIA驱动与容器GPU支持、显示会话、算法OpenVINO/C++依赖环境，以及ROS 2 Jazzy/Bevy模拟器镜像。集成模拟器须启用`ros2 bench`特性。
 
-正确yaw模型镜像通过10月29日的增量构建验证，依赖旧冻结builder及Cargo缓存。源码完整保存在模拟器仓库，但本轮未在空机器重新构建这些镜像。交给队友直接复现时，需要另行提供镜像包/镜像仓库，以及选择性原始实验资料；本次Git推送不包含这些大文件。
+本仓库当前没有经过空机器验证的一键安装流程。Sunshine持久HOME、密钥、宿主机服务状态和`docker/sunshine`本地构建上下文不随Git提供。[桌面部署脚本](../docker/deploy-sunshine.sh)和[普通模拟器入口](../docker/daedalus/README.md)供维护已有工作站时使用，运行前核对路径、显卡、代理与挂载。
 
-重新构建可以改变已有二进制；当前已验v3二进制可能与工作树实验候选源码不同。先冻结现有任务和记录，再建立新候选、构建与验收，不能继承旧二进制的成绩。
+`./sim.sh build`要求已有桌面开发环境；`./sim.sh build --component background`也依赖本地`sp_vision_dev:2024.6.0`。构建默认代理为`http://127.0.0.1:7890`，可设置`RM26_BUILD_PROXY`，直连时设为空。详细算法组件检查见[自检说明](CHECKS.md)。
 
-## Submodule部署兼容
+## 镜像与验收身份
 
-新的桌面部署定义增加完整项目挂载 `/workspace/rm26`，并保留旧算法/模拟器挂载和对应Git元数据入口。启动脚本从自身位置推导主仓库路径，显示/用户/宿主机服务仍使用既有工作站约定。本次没有重建正在运行的Sunshine；它继续使用原有挂载。现有布局与标准新克隆均经过独立辅助容器的Git可见性检查。后续重建桌面时改用根工作区文件，见 [协作说明](SUBMODULES.md)。
+`input-contract-runtime.json`核对已验算法二进制和专用模拟器/评估器镜像摘要。新构建产物通常不会具有相同摘要；不能直接改验收描述来继承旧资格。应建立新候选、记录产物并重新验收。
+
+参考yaw模型镜像通过增量构建验证，依赖既有冻结builder与Cargo缓存；尚未在空机器完成全链路重建。需要队友直接复现实验时，应另行分发镜像及所需原始证据。源码SHA或镜像digest只能标识内容，不是下载地址。

@@ -1,0 +1,46 @@
+{
+  "brand": {
+    "source_archive": "user supplied aperture-ink-kit.zip",
+    "archive_sha256": "7a65409ee39073389a728af0f29f638ac4680b24f3bd0aa1e347ee153221e054",
+    "static_transform": "Freeze animation masks to complete state and star opacity=1; preserve paths/colors/ink filters; add #F6F5F0 background rectangle"
+  },
+  "demo": {
+    "source_study": "rotation-optimization-20261027-visual-review",
+    "source_video_sha256": "588133149358e966a13dda84cd30e2050e843c38aa03abb7617cc60734aeee9c",
+    "source_export_sha256": "42a4dae004aafd9e941b7f95cf04aaba66ca5234e4718ee31ef984b07bb1900f",
+    "source_still_sha256": "214be6d34118c7f5c7636f0c38e27e81864a1c8d2dc65ac5f6c7aa7269e9871a",
+    "scene": "hf_spin_pos",
+    "sensor_seed": 4701,
+    "variants": [
+      "v3",
+      "R4 research candidate"
+    ],
+    "source_runs": [
+      {
+        "variant": "baseline",
+        "run_id": "20261027T061431_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_bbe8af10"
+      },
+      {
+        "variant": "R4",
+        "run_id": "20261027T061403_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6913d2bc"
+      }
+    ],
+    "source_interval_s": [
+      24.533333,
+      28.533333
+    ],
+    "derived_gif_fps": 8,
+    "derived_size": [
+      1280,
+      720
+    ],
+    "scope": "Historical UI legacy-gimbal experiment illustration; not current real-robot performance or default promotion"
+  },
+  "files": {
+    "brand/aperture-ink-loop.svg": "0e536d8ab144be8af514194bdbd0b0c154a0ca32d0b2ad339b16150dd34127e5",
+    "brand/aperture-ink-preview.gif": "c4661031b97111efd3a097520c50105e4395722bb9a28c09ef3266728bde7cb4",
+    "brand/aperture-ink.svg": "dd4e2ac87ae7904792a5af3b0c504a34a238d42a9cd04fde34c14f12b6459ff5",
+    "demo/rotation-review.gif": "83c703ce203ed51b4992ebd694cd351a463928b0438e0d0054f8330d902df2d9",
+    "demo/rotation-review.png": "214be6d34118c7f5c7636f0c38e27e81864a1c8d2dc65ac5f6c7aa7269e9871a"
+  }
+}

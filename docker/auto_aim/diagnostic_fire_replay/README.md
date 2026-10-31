@@ -1,5 +1,7 @@
 # 换向诊断用离线 Shooter 适配器
 
+以下是依赖2026-10-20历史冻结数据的研究流程。普通联调请使用[实验操作](../README.md)；源码或数据摘要与旧研究不同会被拒绝，不能在新clone中直接复现。
+
 该工具直接编译已有 `shooter.cpp` 和 `math_tools.cpp`，从 stdin 读取不含目标真值的
 JSONL，只调用 `Shooter::shoot_current` 并输出结果。没有网络、ROS、场景或发射接口。
 不会构建或替换 `sim_auto_aim`，不改变核心算法源文件。

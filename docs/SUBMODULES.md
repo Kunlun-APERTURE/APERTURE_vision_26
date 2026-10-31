@@ -1,43 +1,52 @@
 # 三仓库协作
 
+主仓库固定算法与模拟器的提交组合；两个submodule各自保留远端、分支、历史、构建方式和许可证。
+
 ## 获取与更新
 
 ```bash
-git clone --recurse-submodules https://github.com/angjustinl/APERTURE_vision_26.git rm26
-cd rm26
+git clone --recurse-submodules https://github.com/angjustinl/APERTURE_vision_26.git
+cd APERTURE_vision_26
 python3 tools/check-workspace.py
-# 拉取主仓库后，取其指定版本；有本地修改时先提交或自行保存。
-git submodule update --init --recursive
 ```
 
-主仓库的gitlink是源码版本的唯一依据；`.gitmodules`只提供仓库URL。不要用`update --remote`替代固定版本复现。submodule常处于detached HEAD，这是固定提交的正常状态，修改代码前先创建自己的分支。
+已有完整克隆先提交或自行保存本地修改，再更新：
+
+```bash
+git pull --ff-only
+git submodule update --init --recursive
+python3 tools/check-workspace.py
+```
+
+主仓库记录的gitlink是源码版本依据；`.gitmodules`提供下载URL。`update --remote`会选择另一提交，不用于固定版本复现。初始化后的detached HEAD是正常状态，修改前需在子仓库创建开发分支。
+
+## 独立开发与上传
+
+以算法为例：
 
 ```bash
 git -C sp_vision_25 switch -c feature/my-change
-# 在对应子仓库修改、测试、提交并push。
+# 在算法仓库完成修改、测试并提交。
 git -C sp_vision_25 push -u origin feature/my-change
-# 集成方核验后，在主仓库更新引用。
+
+# 验证组合后，在主仓库记录新的子提交。
 git add sp_vision_25
 git commit -m 'chore(deps): select validated algorithm revision'
 git push --recurse-submodules=check origin HEAD
 ```
 
-`check`只检查远端可达性，不代替测试。先push子仓库的分支/标签，再push主仓库；队友必须有三个仓库的读取权限。统一阶段标签是便于导航的约定，实际依赖仍由主仓库记录的SHA确定。算法与模拟器不需要每次一起发版。
+模拟器使用相同流程，路径换为`vision_simulator_26`。先上传子仓库提交，再上传主仓库引用；`check`检查引用是否已在子仓库远端可获取，不代替功能测试。队友需要三个仓库的读取权限，当前主仓库为私有。
 
-## 原有工作站与标准新克隆
+统一阶段标签便于定位组合；已有标签保留原义，新阶段使用新标签。算法与模拟器不必同步发版，组合提交仍由主仓库确定。
 
-当前主机保留子目录原有独立`.git/`目录（Git支持的旧式submodule布局），以保持已有容器单独挂载的兼容性；不要直接在运行中的工作站执行`absorbgitdirs`。子仓库历史、分支、远端和源码未变。
+## 工作区与容器
 
-新递归克隆通常使用子目录`.git`文件，元数据在主仓库`.git/modules/`。新桌面部署脚本将完整工作区挂到`/workspace/rm26`，保留既有两条源码路径，并映射它们相对引用所需的元数据；VSCode可打开根目录`RM26.code-workspace`。
+标准新克隆的子目录`.git`通常是文件，实际元数据位于主仓库`.git/modules/`。容器只挂载子目录时可能无法访问这些元数据。新部署定义提供完整项目挂载`/workspace/rm26`及旧路径兼容入口；完整工作区可打开根目录`RM26.code-workspace`。
 
-已运行Sunshine的挂载不自动改变；当前桌面继续使用原有两个真实源码挂载和同步后的联调副本。桌面副本不是宿主机主仓库的实时映射，不能在两份主仓库同时开发。未来安排桌面容器重建后，统一使用`/workspace/rm26`，不再依赖副本。本轮不重启正在使用的桌面。
+现有工作站保留子目录的独立`.git/`目录，以兼容已运行容器。不要在未调整挂载时执行`absorbgitdirs`。运行中的Sunshine使用两个真实源码挂载，联调目录为单独同步副本；具体位置见[部署说明](DEPLOYMENT.md)，不要在两份主仓库同时开发。
 
-## 分发与验收
+## 源码与运行产物
 
-Git引用只锁定源码，不分发镜像、数据、模型缓存或当前二进制。原验收清单继续记录这些摘要；重新构建不自动继承历史成绩。旧patch保留为历史审计，不再作为正常源码交付入口。
+GitHub递归克隆已验证。Git引用只锁定源码，Docker镜像、原始实验、视频与已验二进制需另行准备。新构建不自动继承旧成绩。
 
-远端尚未具备本阶段提交时，递归克隆将失败；本地验收通过受控URL覆盖，从两个本机仓库初始化，不改`.gitmodules`里的公开URL。正式上传后还需从远端新克隆一次。本机离线bundle可以保存提交，但主仓库bundle本身不包含子仓库Git对象。
-
-## 设备提交身份
-
-此工作站使用 `rm_workstation_26` 作为新提交的作者名称，邮箱沿用GitHub账户96008766对应的noreply邮箱。GitHub登录账户是 `angjustinl`；作者名称不等同于认证账户。已有历史作者及阶段标签保留。远端仓库名为APERTURE_vision_26，当前本机目录仍为/home/rm/rm26，以保持部署路径和既有实验可追溯性。
+离线交接需要主仓库及两个子仓库各自的bundle；主仓库bundle不包含子仓库对象。历史patch是审计备份，正常获取源码使用submodule。
