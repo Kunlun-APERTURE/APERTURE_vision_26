@@ -69,7 +69,9 @@ class GitHubTests(unittest.TestCase):
   with zipfile.ZipFile(buffer,'w') as archive:archive.writestr('request.json',json.dumps({'review_id':1}))
   api=GitHub('team/repo',1,2,'/key');api.token='token';api.repo=Mock(side_effect=[{'workflow_runs':[{'id':3}]},{'artifacts':[{'name':'experiment-request','expired':False,'archive_download_url':'https://example.org/artifact'}]}])
   response=Mock();response.__enter__=Mock(return_value=io.BytesIO(buffer.getvalue()));response.__exit__=Mock(return_value=False)
-  with patch('pr_service.github.urllib.request.urlopen',return_value=response):self.assertEqual(api.request_snapshot(1),{'review_id':1})
+  with patch('pr_service.github.urllib.request.build_opener') as opener:
+   opener.return_value.open.return_value=response
+   self.assertEqual(api.request_snapshot(1),{'review_id':1})
   api.repo=Mock(return_value={'workflow_runs':[]});self.assertIsNone(api.request_snapshot(2))
  def test_service_check_disabled(self):
   with tempfile.TemporaryDirectory() as tmp:
@@ -88,3 +90,14 @@ class CICommitAcceptanceTests(unittest.TestCase):
   self.assertTrue(api.ci_passed(dict(head={'sha':'head'},merge_commit_sha='merge')))
   api.checks=Mock(return_value=[])
   self.assertFalse(api.ci_passed(dict(head={'sha':'head'})))
+
+class ArtifactRedirectTests(unittest.TestCase):
+ def test_cross_host_removes_credentials(self):
+  import urllib.request
+  from pr_service.github import ArtifactRedirect
+  req=urllib.request.Request('https://api.github.com/archive',headers={'Authorization':'Bearer test'})
+  handler=ArtifactRedirect()
+  redirected=handler.redirect_request(req,None,302,'Found',{},'https://storage.example/artifact?signature=abc')
+  self.assertIsNone(redirected.get_header('Authorization'))
+  same=handler.redirect_request(req,None,302,'Found',{},'https://api.github.com/other')
+  self.assertEqual(same.get_header('Authorization'),'Bearer test')
