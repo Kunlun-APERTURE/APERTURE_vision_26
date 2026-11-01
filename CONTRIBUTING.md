@@ -32,6 +32,8 @@ git push --recurse-submodules=check -u origin feature/my-algorithm
 
 模板默认选择“不申请服务器实验”。申请时取消此项，按中文名称选择项目；压力实验只能配合变速移动或动态追击。保留每项后的 HTML 注释标识，服务也兼容旧版 `experiment:` 明文选项。项目定义见 [实验指南](docs/EXPERIMENTS.md#选择项目)。
 
+文档、模板和发布工作流改动通常保持“不申请服务器实验”；它们使用“开发检查”和相应的平台验证。Release 发版流程见 [版本与镜像发布](docs/RELEASES.md)，不通过实验选项触发镜像发布。
+
 ## 审查与服务器实验
 
 1. “开发检查”工作流通过，PR 处于非草稿状态。

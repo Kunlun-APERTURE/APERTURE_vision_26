@@ -14,37 +14,20 @@ python3 tools/check-workspace.py
 
 ## C++构建与回归测试
 
-以下命令需要本机已有`aperture_vision:26-11-1`依赖镜像，在宿主机的完整主仓库根目录执行。源码只读挂载，构建与测试输出写入独立目录，不覆盖已验的`sp_vision_25/build/simulator`。
+先按 [快速开始](QUICKSTART.md#获取依赖包) 获取统一镜像，然后在仓库根目录执行：
 
 ```bash
 mkdir -p docker/auto_aim/.runtime/cpp-checks
-docker run --rm --user "$(id -u):$(id -g)" \
+docker run --rm --network none --user "$(id -u):$(id -g)" \
   --volume "$PWD:/project:ro" \
   --volume "$PWD/docker/auto_aim/.runtime/cpp-checks:/work" \
-  --workdir /work \
-  --entrypoint bash aperture_vision:26-11-1 -c '
-    set -e
-    source /opt/intel/openvino/setupvars.sh >/dev/null
-    ln -sfn /project/sp_vision_25/assets /work/assets
-    cmake -S /project/sp_vision_25 -B /work/build \
-      -DBUILD_SIMULATOR_ADAPTER=ON -DCMAKE_BUILD_TYPE=Release \
-      -DOpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4
-    cmake --build /work/build --target standard auto_aim_test sim_auto_aim \
-      continuity_test robustness_test optimization_test motion_test \
-      perception_test maneuver_filter_test -j4
-    /work/build/continuity_test /project/tools/test-configs/continuity.yaml
-    /work/build/robustness_test /project/tools/test-configs/robustness.yaml
-    /work/build/optimization_test /project/tools/test-configs/optimization.yaml
-    /work/build/motion_test /project/sp_vision_25/configs/simulator.yaml
-    /work/build/perception_test /project/sp_vision_25/configs/simulator.yaml
-    /work/build/maneuver_filter_test
-    /work/build/sim_auto_aim --help
-  '
+  --workdir /work aperture_vision:26-11-1 \
+  bash /project/tools/validate-ubuntu24-components.sh
 ```
 
-三个专用配置是测试夹具，不是生产配置。不要用默认legacy配置替代continuity/robustness/optimization夹具。motion/perception测试在可写`/work`生成临时配置，模型资源从算法目录读取。
+[组件脚本](../tools/validate-ubuntu24-components.sh) 是构建与回归程序列表的唯一执行入口，加载 ROS/OpenVINO 后构建9个目标并运行6个回归程序。源码只读，结果写入上述独立目录。专用 YAML 是测试夹具，不替代生产配置；不要直接在宿主机运行容器构建的二进制。
 
-宿主机直接运行容器构建的二进制可能缺少共享库。空机器需先准备依赖镜像，见[部署说明](DEPLOYMENT.md)。
+模拟器源码编译见 [开发指南](DEVELOPMENT.md#编译模拟器)，其已知单元测试失败见 [能力与限制](STATUS.md)。完整环境镜像重建与发布分别见运维和发布指南。
 
 ## 后台冒烟
 

@@ -15,32 +15,20 @@ python3 tools/dependency_bundle.py check exports/aperture-new
 
 ## 镜像自动发布
 
-[依赖清单](../release/dependencies.json) 的 version=3 只允许一个包 `ghcr.io/kunlun-aperture/aperture_vision`，固定 OCI 索引 digest、平台 manifest 和配置身份，兼容不同 Docker 存储后端。build_sources 记录镜像来源，acceptance 固定对应验收报告的 SHA256。验收失败、报告被改动或镜像身份不符时禁止发布。
+Release 日期、镜像清单、发版步骤和失败恢复统一见 [版本与镜像发布](RELEASES.md)。日常只使用“发布统一镜像”工作流；首次迁移记录见归档。
 
-[发布工作流](../.github/workflows/dependency-release.yml) 在 Release 发布时触发。标签使用 `26-11-1` 形式，旧的 `26-11-01` Release 名也可读取，镜像日期会去掉月份和日期的前导零。工作流从固定 digest 复制已验收镜像，保留所有层与证明，验证匿名下载后附加 `aperture-dependencies.json`。文件同时记录镜像构建来源和本次 Release 的主仓库、两个子仓库提交。
+## 维护构建
 
-文档或算法源码改动不要求重新构建环境。依赖和平台程序没变时，新日期标签引用原镜像 digest。需要更新镜像时，先重新构建，完成组件测试和全服务同镜像闭环验收，再更新依赖清单与验收记录。Rust 上游现有失败必须明确记录并检查是否新增，不能宣称全部单测通过。
-
-统一环境构建命令：
+本节面向重建统一环境的维护者。新人从快速开始拉取最终镜像，无需取得下列旧构建材料。当前 Dockerfile 从修正云台模拟器继承平台程序，并加入算法和开发依赖：
 
 ```bash
 docker build --network host --progress plain \
   --file docker/auto_aim/Unified.Dockerfile --tag aperture_vision:26-11-1 .
 ```
 
-维护构建需已有原 OpenVINO 开发镜像、修正云台模拟器镜像及 `rust:1.98-slim-bookworm`。前两者来自旧 Release 离线包，Rust 来源为 Docker Hub 官方 rust 镜像；日常开发者只需取得最终统一镜像。构建源码、基础镜像身份及兼容验证见 [统一镜像验收](../release/20261101-unified/README.md)。
+本命令重建当前环境，不代表发布了新版本。维护构建需已有 `sp_vision_dev:2024.6.0`、`daedalus:rm26-reference-yaw-corrected-20261029` 和 `rust:1.98-slim-bookworm`；前两者在 [历史 26-11-01 Release](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01) 的五镜像离线附件，Rust 来自 Docker Hub 官方镜像。历史导入方法见该 Release，仅作为重建来源，不进入新人路径。
 
-[首次发布工作流](../.github/workflows/dependency-bootstrap.yml) 从 `26-11-01` 附件取得已验收的统一归档，核对归档 SHA256 后推送同一包。来源清单是 [unified-bootstrap.json](../release/unified-bootstrap.json)。历史五包迁移信息保存在 release/20261101-ghcr，不再用于当前发布。
-
-GitHub Actions 使用临时 GITHUB_TOKEN，只申请镜像写和 Release 附件写权限。GHCR 新包首次默认私有，维护者在 Packages 中将 `aperture_vision` 设为 Public，并确认本仓库有 Actions 写权限。公开下载未通过前，快速开始使用真实可获取的离线附件。
-
-失败先看“发布依赖镜像”日志。修复网络或访问设置后，在 Actions 手动运行并输入相同 Release 日期。已有不同内容的日期标签或 Release 清单禁止覆盖；相同内容可重试。首次发布前的旧源码标签缺少工具，应通过首次发布工作流补发，不移动历史 Git 标签。
-
-本地维护者装有 Skopeo 时可验证全部层的匿名下载：
-
-```bash
-python3 tools/dependency_registry.py verify-public --download
-```
+平台源码改变时必须先更新并验收模拟器基础产物；仅修改 Rust 源码或运行算法构建命令，不会替换镜像里的模拟器程序。候选环境仍需通过 [组件检查](CHECKS.md)、同镜像闭环与公开分发校验，不能直接覆盖已发布日期标签。当前验证结果保存于 release/20261101-unified/。
 
 ## 本地实验调度器
 
@@ -68,7 +56,7 @@ systemctl status aperture-pr-experiments.service --no-pager
 journalctl -u aperture-pr-experiments.service -n 50 --no-pager
 ```
 
-`check` 只验证认证及仓库读取，不替代权限、workflow 和完整实验验收。main 必须包含 “开发检查”“实验申请”“实验结果”三个工作流；批准请求 artifact 保留7天，结果 artifact 保留30天。当前已完成一次真实批准到成绩回传与清理的烟测，不代表所有故障场景均已线上认证。
+`check` 只验证认证及仓库读取，不替代权限、workflow 和完整实验验收。“实验申请”只保存批准请求，工作站异步执行后通过“实验结果”回传文本；触发条件和用途见 [工作流职责](RELEASES.md#工作流职责)。批准请求 artifact 保留7天，结果 artifact 保留30天。当前已完成一次真实批准到成绩回传与清理的烟测，不代表所有故障场景均已线上认证。
 
 ## 网络与调度
 
