@@ -8,5 +8,11 @@
   "default_b1_build": true,
   "default_b1_closed_loop": true,
   "release_sources_corrected": true,
-  "original_bootstrap_manifest_retained": true
+  "original_bootstrap_manifest_retained": true,
+  "release": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-1",
+  "release_event_workflow": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/actions/runs/41280778354",
+  "release_event_passed": true,
+  "release_sources_verified": true,
+  "release_commit": "5613e796d0cde6e19d24a04183b4ea8755a9381e",
+  "image_digest_reused": true
 }
