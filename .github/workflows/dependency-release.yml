@@ -1,0 +1,62 @@
+name: 发布依赖镜像
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 已存在的 Release 日期标签，例如 26-11-01
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: dependency-release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      packages: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: 检出发版源码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+      - name: 检查版本与清单
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, 'tools')
+          from dependency_registry import load, release_tag
+          release_tag(os.environ['RELEASE_TAG'])
+          load('release/dependencies.json')
+          PY
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+      - name: 安装镜像复制工具
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends skopeo
+      - name: 登录组织镜像仓库
+        run: printf '%s' "$GH_TOKEN" | skopeo login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: 为本版本发布已验证依赖
+        run: python3 tools/dependency_registry.py publish --tag "$RELEASE_TAG" --output exports/dependencies.json
+      - name: 验证公开下载
+        run: python3 tools/dependency_registry.py verify-public --manifest exports/dependencies.json --download
+      - name: 附加固定版本清单
+        run: python3 tools/dependency_registry.py attach --manifest exports/dependencies.json
+      - name: 保存发布诊断
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependencies-${{ github.run_id }}
+          path: exports/dependencies.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: 退出镜像仓库
+        if: always()
+        run: skopeo logout ghcr.io || true

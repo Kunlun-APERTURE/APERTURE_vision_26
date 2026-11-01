@@ -18,6 +18,28 @@ python3 tools/dependency_bundle.py export exports/team-dependencies-new
 
 当前镜像包括构建基础、算法运行、输入链路、评分和修正云台镜像。归档及 manifest 必须一起分发，镜像 digest 不是下载地址。新分发位置确定后只修改快速开始中的来源表。导出/同机导入已验，完整新系统安装未验。
 
+## 镜像自动发布
+
+镜像目录由 [依赖清单](../release/dependencies.json) 统一记录。本地名称兼容现有 CLI，reference 固定 GHCR digest，image_id 固定 OCI 索引，manifest_id 和 config_id 兼容不同 Docker 版本报告的本地身份。更新依赖时先完成构建与实验验收，再更新清单；源码或文档发版可以复用同一组镜像。
+
+[发布工作流](../.github/workflows/dependency-release.yml) 在 Release 发布时触发，镜像标签与 Release 日期一致，例如 `26-11-01`。工作流检出该标签，校验全部来源，复制到本版本标签，匿名下载验证全部镜像层后，才向 Release 附加 `dependencies.json`。不重新编译算法，也不替代 GPU 实验验收。
+
+工作流只申请镜像写权限和 Release 附件写权限，使用临时 GITHUB_TOKEN；队员拉取公开镜像无需登录。同一日期标签已指向其他镜像时直接失败，不覆盖；相同内容允许重试。已有 Release 清单内容不同时也拒绝覆盖。
+
+首次迁移使用 [迁移工作流](../.github/workflows/dependency-bootstrap.yml)：从 `26-11-01` 的离线附件分片重组归档，核对分片与完整 SHA256，再推送已验收镜像。迁移清单在 [dependencies-bootstrap.json](../release/dependencies-bootstrap.json)。OCI 索引和 digest 全程保留，后续发版直接从 GHCR 复制。
+
+GHCR 包首次创建默认私有。维护者需在组织 Packages 页面将五个包设置为 Public，确认关联本仓库，并允许本仓库的 Actions 写入。公开下载未验证通过前，快速开始继续使用离线包，不把 GHCR 视作可用来源。
+
+失败先查看“发布依赖镜像”日志。修复网络或包访问设置后，从 Actions 页面手动运行，输入同一 Release 日期即可；无需移动 Git 标签或重新发布 Release。首次发布前的旧标签缺少发布工具，应通过迁移工作流处理，不使用常规重试入口。
+
+本地已安装 Skopeo 的维护者可验证匿名下载：
+
+```bash
+python3 tools/dependency_registry.py verify-public --download
+```
+
+新人只需要 Docker，在线拉取入口为 `python3 tools/dependency_registry.py pull`；仅在公开下载验收完成并更新快速开始后作为主流程使用。离线导入入口继续保留。
+
 ## 本地实验调度器
 
 普通开发者可前台运行 daemon，见快速开始。长期工作站安装宿主服务：
