@@ -21,10 +21,11 @@ mkdir -p docker/auto_aim/.runtime/cpp-checks
 docker run --rm --user "$(id -u):$(id -g)" \
   --volume "$PWD:/project:ro" \
   --volume "$PWD/docker/auto_aim/.runtime/cpp-checks:/work" \
-  --workdir /project/sp_vision_25 \
+  --workdir /work \
   --entrypoint bash sp_vision_dev:2024.6.0 -c '
     set -e
     source /opt/intel/openvino/setupvars.sh >/dev/null
+    ln -sfn /project/sp_vision_25/assets /work/assets
     cmake -S /project/sp_vision_25 -B /work/build \
       -DBUILD_SIMULATOR_ADAPTER=ON -DCMAKE_BUILD_TYPE=Release \
       -DOpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4
@@ -34,8 +35,8 @@ docker run --rm --user "$(id -u):$(id -g)" \
     /work/build/continuity_test /project/tools/test-configs/continuity.yaml
     /work/build/robustness_test /project/tools/test-configs/robustness.yaml
     /work/build/optimization_test /project/tools/test-configs/optimization.yaml
-    /work/build/motion_test configs/simulator.yaml
-    /work/build/perception_test configs/simulator.yaml
+    /work/build/motion_test /project/sp_vision_25/configs/simulator.yaml
+    /work/build/perception_test /project/sp_vision_25/configs/simulator.yaml
     /work/build/maneuver_filter_test
     /work/build/sim_auto_aim --help
   '
@@ -47,14 +48,10 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 ## 后台冒烟
 
-按[实验操作](../docker/auto_aim/README.md)的lockstep示例提交一轮，再执行`jobs status JOB_ID`和`jobs report JOB_ID`。
+按[快速开始](QUICKSTART.md)提交首轮实验，再从仓库根目录执行 `./sim.sh jobs status JOB_ID` 和 `./sim.sh jobs report JOB_ID`；将 `JOB_ID` 替换为提交返回的实际 ID。
 
 检查任务完成、summary.json未判invalid、session-evidence-audit.json通过、控制与射击记录存在、所有已发射弹丸结算。零射击或低命中可以是有效场景结果；若要验收射击链路，应另外确认实际发生发射。运行耗时、命中表现与运动强度分开判断。
 
-## 已验范围
+## 框架自动测试
 
-已有GitHub递归克隆、独立C++构建9目标/6测试程序、现有桌面命令入口和后台短测记录，见[检查摘要](../release/20261031-usability/validation.json)。这些结果不代表空机器安装、全部场景的UI等价或实车拟真已通过。原有测试夹具误用造成的段错误已经更正，详情见[当前状态](STATUS.md)。
-
-## 团队基线框架
-
-`PYTHONPATH=docker/auto_aim python3 -m benchmark.checks` 检查场景、协议、比较和可移植包。B1/E1 的基础/进阶射击、串行/双路复现、独立检出、UI特征及视频验收见 [阶段摘要](../release/20261031-baseline/README.md)。
+统一测试入口与 Coverage 门槛在 [开发指南](DEVELOPMENT.md#自动测试与覆盖率) 维护。后台首轮验收见 [快速开始](QUICKSTART.md)，历史验收不会自动继承给新产物。

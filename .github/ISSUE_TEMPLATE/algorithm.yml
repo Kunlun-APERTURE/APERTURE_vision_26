@@ -1,0 +1,42 @@
+name: 算法问题与建议
+description: 反馈算法问题或提出改进建议。
+title: "[算法] "
+body:
+  - type: markdown
+    attributes:
+      value: 请提供可复现的信息；日志请删除令牌、私钥和其他敏感内容。
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 反馈类型
+      options:
+        - 问题反馈
+        - 改进建议
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题或需求
+      description: 描述实际现象或需要解决的问题，以及预期行为。
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 版本与运行条件
+      description: 请提供主仓库提交版本，以及算法提交版本、配置及输入条件。未涉及运行时请填写“不适用”。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤或建议方案
+      description: 问题请附从仓库根目录执行的命令；建议请描述期望方案与验收方式。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 验证与附件
+      description: 附相关日志、截图、实验结果，以及已经尝试的排查步骤。

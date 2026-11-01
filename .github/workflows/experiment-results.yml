@@ -1,14 +1,17 @@
-name: Experiment results
+name: 实验结果
 on:
   workflow_dispatch:
     inputs:
       request_id:
+        description: 实验请求编号
         required: true
         type: string
       text:
+        description: 成绩文本
         required: true
         type: string
       logs:
+        description: 实验日志
         required: true
         type: string
 permissions:
@@ -17,7 +20,7 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     steps:
-      - name: Write plain text results
+      - name: 写入成绩与文本日志
         env:
           SCORE_TEXT: ${{ inputs.text }}
           LOG_TEXT: ${{ inputs.logs }}

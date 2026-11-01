@@ -11,6 +11,8 @@ def selection(body):
     chosen=[]
     for line in (body or '').splitlines():
         m=re.fullmatch(r'\s*- \[([ xX])\] experiment:([a-z0-9_]+)\s*',line)
+        if not m:
+            m=re.fullmatch(r'\s*- \[([ xX])\] [^<>]+?\s*<!--\s*experiment:([a-z0-9_]+)\s*-->\s*',line)
         if m:
             if m[2] not in OPTIONS+('none',):raise ValueError('Unknown experiment choice')
             if m[1].lower()=='x':chosen.append(m[2])

@@ -1,4 +1,4 @@
-name: Development
+name: 开发检查
 on:
   pull_request:
   push:
