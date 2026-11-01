@@ -1,0 +1,22 @@
+{
+  "base_image": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+  "candidate_image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+  "simulator_base": "778c0c8fba8022835eeabb3f81c4c865f588a34e",
+  "source_patch_sha256": "41d8d2a9e8cc232b38a39460f585a010192cbca6f96cf28af3159b5753ce2abb",
+  "binary_sha256": "da1baef0a0fe66ee0dd2408f9a01be2c2d1badf4075f881d06f7c19a7f673f73",
+  "features": "default + ros2 bench",
+  "tests": {
+    "bench": {
+      "passed": 295,
+      "failed": 0,
+      "ignored": 1
+    },
+    "default": {
+      "passed": 171,
+      "failed": 0,
+      "ignored": 1
+    }
+  },
+  "ignored": "systems::gimbal_pid::tests::corrected_angle_loop_csv: CSV component diagnostic; run explicitly with --nocapture",
+  "verified_source_commit": "f8d66244cc2944214114170091216033ec1488b5"
+}

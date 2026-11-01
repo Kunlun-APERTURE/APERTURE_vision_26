@@ -1,0 +1,2820 @@
+{
+  "runs": [
+    {
+      "run_id": "20261101T122352_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_e6058a14",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110101,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 29,
+      "hits": 29,
+      "exact": 1.0,
+      "weighted": 0.9317061108951828,
+      "weighted_points_per_s": 4.50324620266005,
+      "shots_per_s": 4.833333333333333,
+      "hits_per_s": 4.833333333333333,
+      "stage_counts": {
+        "advice": 155,
+        "not_tracking": 10,
+        "no_detection": 7,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 17,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 0,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 18,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 166,
+        "visible_plate": 142,
+        "no_detection_visible": 7,
+        "valid_pose": 166,
+        "tracking": 156,
+        "aim": 173,
+        "advice": 155,
+        "forwarded": 28,
+        "discontinuity": 0
+      },
+      "tracker_states": {
+        "tracking": 156,
+        "temp_lost": 17
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 156
+      },
+      "association_reasons": {
+        "accepted": 156,
+        "association_distance": 6
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122415_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_42186fb5",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110102,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 27,
+      "hits": 27,
+      "exact": 1.0,
+      "weighted": 0.94161402362534,
+      "weighted_points_per_s": 4.23726310631403,
+      "shots_per_s": 4.5,
+      "hits_per_s": 4.5,
+      "stage_counts": {
+        "advice": 137,
+        "no_detection": 18,
+        "not_tracking": 13,
+        "stability_or_other": 5
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 31,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 0,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 36,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 155,
+        "visible_plate": 142,
+        "no_detection_visible": 14,
+        "valid_pose": 155,
+        "tracking": 142,
+        "aim": 173,
+        "advice": 137,
+        "forwarded": 26,
+        "discontinuity": 0
+      },
+      "tracker_states": {
+        "tracking": 142,
+        "temp_lost": 31
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 142
+      },
+      "association_reasons": {
+        "accepted": 142,
+        "association_distance": 10
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122434_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_a5de3849",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110103,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 28,
+      "hits": 28,
+      "exact": 1.0,
+      "weighted": 0.934292284839548,
+      "weighted_points_per_s": 4.360030662584557,
+      "shots_per_s": 4.666666666666667,
+      "hits_per_s": 4.666666666666667,
+      "stage_counts": {
+        "advice": 142,
+        "no_detection": 13,
+        "not_tracking": 16,
+        "stability_or_other": 2
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 29,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 0,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 31,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 160,
+        "visible_plate": 141,
+        "no_detection_visible": 10,
+        "valid_pose": 160,
+        "tracking": 144,
+        "aim": 173,
+        "advice": 142,
+        "forwarded": 27,
+        "discontinuity": 0
+      },
+      "tracker_states": {
+        "tracking": 144,
+        "temp_lost": 29
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 144,
+        "innovation": 1
+      },
+      "association_reasons": {
+        "accepted": 144,
+        "association_distance": 3,
+        "innovation": 1
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122454_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ecc6a21f",
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110101,
+      "frames": 144,
+      "duration_s": 5.0,
+      "shots": 17,
+      "hits": 15,
+      "exact": 0.8823529411764706,
+      "weighted": 0.4486302987409979,
+      "weighted_points_per_s": 1.5253430157193928,
+      "shots_per_s": 3.4,
+      "hits_per_s": 3.0,
+      "stage_counts": {
+        "advice": 53,
+        "fire_alignment": 66,
+        "no_detection": 15,
+        "not_tracking": 9,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 24,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 77,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 91,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 129,
+        "visible_plate": 144,
+        "no_detection_visible": 15,
+        "valid_pose": 129,
+        "tracking": 120,
+        "aim": 143,
+        "advice": 53,
+        "forwarded": 16,
+        "discontinuity": 11
+      },
+      "tracker_states": {
+        "tracking": 120,
+        "temp_lost": 22,
+        "lost": 1,
+        "detecting": 1
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 1
+      },
+      "update_reasons": {
+        "accepted": 154
+      },
+      "association_reasons": {
+        "accepted": 154,
+        "association_distance": 6,
+        "innovation": 1
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122516_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b489e577",
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110102,
+      "frames": 144,
+      "duration_s": 5.0,
+      "shots": 17,
+      "hits": 13,
+      "exact": 0.7647058823529411,
+      "weighted": 0.4944821680217912,
+      "weighted_points_per_s": 1.6812393712740898,
+      "shots_per_s": 3.4,
+      "hits_per_s": 2.6,
+      "stage_counts": {
+        "advice": 50,
+        "fire_alignment": 63,
+        "no_detection": 9,
+        "not_tracking": 22
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 31,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 81,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 94,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 135,
+        "visible_plate": 144,
+        "no_detection_visible": 9,
+        "valid_pose": 135,
+        "tracking": 113,
+        "aim": 140,
+        "advice": 50,
+        "forwarded": 16,
+        "discontinuity": 14
+      },
+      "tracker_states": {
+        "tracking": 113,
+        "temp_lost": 24,
+        "lost": 4,
+        "detecting": 3
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 2
+      },
+      "update_reasons": {
+        "accepted": 148
+      },
+      "association_reasons": {
+        "accepted": 148,
+        "association_distance": 13
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122533_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_aa9892be",
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110103,
+      "frames": 144,
+      "duration_s": 5.0,
+      "shots": 16,
+      "hits": 15,
+      "exact": 0.9375,
+      "weighted": 0.47674983121321773,
+      "weighted_points_per_s": 1.5255994598822968,
+      "shots_per_s": 3.2,
+      "hits_per_s": 3.0,
+      "stage_counts": {
+        "advice": 64,
+        "fire_alignment": 59,
+        "not_tracking": 13,
+        "no_detection": 7,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 20,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 69,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 80,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 137,
+        "visible_plate": 144,
+        "no_detection_visible": 7,
+        "valid_pose": 137,
+        "tracking": 124,
+        "aim": 144,
+        "advice": 64,
+        "forwarded": 15,
+        "discontinuity": 8
+      },
+      "tracker_states": {
+        "tracking": 124,
+        "temp_lost": 20
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 154
+      },
+      "association_reasons": {
+        "accepted": 154,
+        "association_distance": 15
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122554_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4b1ede7d",
+      "scene": "hf_turn90_3",
+      "sensor_seed": 2026110101,
+      "frames": 159,
+      "duration_s": 5.5,
+      "shots": 18,
+      "hits": 14,
+      "exact": 0.7777777777777778,
+      "weighted": 0.3641102895341283,
+      "weighted_points_per_s": 1.1916336748389653,
+      "shots_per_s": 3.272727272727273,
+      "hits_per_s": 2.5454545454545454,
+      "stage_counts": {
+        "advice": 72,
+        "fire_alignment": 71,
+        "stability_or_other": 2,
+        "no_detection": 8,
+        "not_tracking": 6
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 14,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 78,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 87,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 151,
+        "visible_plate": 159,
+        "no_detection_visible": 8,
+        "valid_pose": 151,
+        "tracking": 145,
+        "aim": 159,
+        "advice": 72,
+        "forwarded": 17,
+        "discontinuity": 15
+      },
+      "tracker_states": {
+        "tracking": 145,
+        "temp_lost": 14
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 192
+      },
+      "association_reasons": {
+        "accepted": 192,
+        "association_distance": 6
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122617_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_e1e99da0",
+      "scene": "hf_turn90_3",
+      "sensor_seed": 2026110102,
+      "frames": 159,
+      "duration_s": 5.5,
+      "shots": 18,
+      "hits": 13,
+      "exact": 0.7222222222222222,
+      "weighted": 0.3057280855616662,
+      "weighted_points_per_s": 1.000564643656362,
+      "shots_per_s": 3.272727272727273,
+      "hits_per_s": 2.3636363636363638,
+      "stage_counts": {
+        "advice": 72,
+        "fire_alignment": 57,
+        "not_tracking": 18,
+        "no_detection": 12
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 30,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 72,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 87,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 147,
+        "visible_plate": 159,
+        "no_detection_visible": 12,
+        "valid_pose": 147,
+        "tracking": 129,
+        "aim": 159,
+        "advice": 72,
+        "forwarded": 17,
+        "discontinuity": 20
+      },
+      "tracker_states": {
+        "tracking": 129,
+        "temp_lost": 26,
+        "detecting": 4
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 1
+      },
+      "update_reasons": {
+        "accepted": 176,
+        "innovation": 2
+      },
+      "association_reasons": {
+        "accepted": 176,
+        "association_distance": 24,
+        "innovation": 2
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122636_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9dd7d1c2",
+      "scene": "hf_turn90_3",
+      "sensor_seed": 2026110103,
+      "frames": 159,
+      "duration_s": 5.5,
+      "shots": 19,
+      "hits": 13,
+      "exact": 0.6842105263157895,
+      "weighted": 0.355565679078897,
+      "weighted_points_per_s": 1.2283178004543716,
+      "shots_per_s": 3.4545454545454546,
+      "hits_per_s": 2.3636363636363638,
+      "stage_counts": {
+        "advice": 55,
+        "fire_alignment": 76,
+        "no_detection": 14,
+        "not_tracking": 13,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 27,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 85,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 104,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 145,
+        "visible_plate": 159,
+        "no_detection_visible": 14,
+        "valid_pose": 145,
+        "tracking": 132,
+        "aim": 159,
+        "advice": 55,
+        "forwarded": 18,
+        "discontinuity": 12
+      },
+      "tracker_states": {
+        "tracking": 132,
+        "temp_lost": 27
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 178,
+        "innovation": 1
+      },
+      "association_reasons": {
+        "accepted": 178,
+        "association_distance": 18,
+        "innovation": 1
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122657_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ff5ed739",
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110101,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 21,
+      "hits": 20,
+      "exact": 0.9523809523809523,
+      "weighted": 0.7090787292162147,
+      "weighted_points_per_s": 2.4817755522567517,
+      "shots_per_s": 3.5,
+      "hits_per_s": 3.3333333333333335,
+      "stage_counts": {
+        "advice": 87,
+        "not_tracking": 18,
+        "no_detection": 3,
+        "fire_alignment": 65
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 21,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 72,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 86,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 170,
+        "visible_plate": 167,
+        "no_detection_visible": 3,
+        "valid_pose": 170,
+        "tracking": 152,
+        "aim": 173,
+        "advice": 87,
+        "forwarded": 20,
+        "discontinuity": 19
+      },
+      "tracker_states": {
+        "tracking": 152,
+        "temp_lost": 17,
+        "detecting": 4
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 1
+      },
+      "update_reasons": {
+        "accepted": 108
+      },
+      "association_reasons": {
+        "accepted": 108,
+        "association_distance": 105
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122717_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_0cba160a",
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110102,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 24,
+      "hits": 22,
+      "exact": 0.9166666666666666,
+      "weighted": 0.6859492493756735,
+      "weighted_points_per_s": 2.743796997502694,
+      "shots_per_s": 4.0,
+      "hits_per_s": 3.6666666666666665,
+      "stage_counts": {
+        "advice": 103,
+        "no_detection": 1,
+        "not_tracking": 6,
+        "fire_alignment": 63
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 7,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 64,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 70,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 172,
+        "visible_plate": 167,
+        "no_detection_visible": 0,
+        "valid_pose": 172,
+        "tracking": 166,
+        "aim": 173,
+        "advice": 103,
+        "forwarded": 23,
+        "discontinuity": 18
+      },
+      "tracker_states": {
+        "tracking": 166,
+        "temp_lost": 7
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 88
+      },
+      "association_reasons": {
+        "accepted": 88,
+        "association_distance": 111
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122737_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9d81b713",
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110103,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 23,
+      "hits": 22,
+      "exact": 0.9565217391304348,
+      "weighted": 0.7221200701631727,
+      "weighted_points_per_s": 2.7681269356254954,
+      "shots_per_s": 3.8333333333333335,
+      "hits_per_s": 3.6666666666666665,
+      "stage_counts": {
+        "advice": 101,
+        "no_detection": 2,
+        "fire_alignment": 63,
+        "not_tracking": 6,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 8,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 63,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 72,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 171,
+        "visible_plate": 166,
+        "no_detection_visible": 1,
+        "valid_pose": 171,
+        "tracking": 165,
+        "aim": 173,
+        "advice": 101,
+        "forwarded": 22,
+        "discontinuity": 19
+      },
+      "tracker_states": {
+        "tracking": 165,
+        "temp_lost": 8
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 95
+      },
+      "association_reasons": {
+        "accepted": 95,
+        "association_distance": 115
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122800_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ba700c44",
+      "scene": "hf_spin_neg",
+      "sensor_seed": 2026110101,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 23,
+      "hits": 22,
+      "exact": 0.9565217391304348,
+      "weighted": 0.6837071318043635,
+      "weighted_points_per_s": 2.6208773385833934,
+      "shots_per_s": 3.8333333333333335,
+      "hits_per_s": 3.6666666666666665,
+      "stage_counts": {
+        "advice": 86,
+        "not_tracking": 8,
+        "no_detection": 3,
+        "fire_alignment": 70,
+        "stability_or_other": 6
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 11,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 72,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 87,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 170,
+        "visible_plate": 167,
+        "no_detection_visible": 3,
+        "valid_pose": 170,
+        "tracking": 162,
+        "aim": 173,
+        "advice": 86,
+        "forwarded": 22,
+        "discontinuity": 24
+      },
+      "tracker_states": {
+        "tracking": 162,
+        "temp_lost": 11
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 98
+      },
+      "association_reasons": {
+        "accepted": 98,
+        "association_distance": 124
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122820_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6120957e",
+      "scene": "hf_spin_neg",
+      "sensor_seed": 2026110102,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 23,
+      "hits": 20,
+      "exact": 0.8695652173913043,
+      "weighted": 0.6825693023002659,
+      "weighted_points_per_s": 2.616515658817686,
+      "shots_per_s": 3.8333333333333335,
+      "hits_per_s": 3.3333333333333335,
+      "stage_counts": {
+        "advice": 90,
+        "no_detection": 5,
+        "not_tracking": 7,
+        "fire_alignment": 70,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 12,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 73,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 83,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 168,
+        "visible_plate": 167,
+        "no_detection_visible": 4,
+        "valid_pose": 168,
+        "tracking": 161,
+        "aim": 173,
+        "advice": 90,
+        "forwarded": 22,
+        "discontinuity": 22
+      },
+      "tracker_states": {
+        "tracking": 161,
+        "temp_lost": 12
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 88
+      },
+      "association_reasons": {
+        "accepted": 88,
+        "association_distance": 122
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122842_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_c4015b0a",
+      "scene": "hf_spin_neg",
+      "sensor_seed": 2026110103,
+      "frames": 173,
+      "duration_s": 6.0,
+      "shots": 21,
+      "hits": 19,
+      "exact": 0.9047619047619048,
+      "weighted": 0.7055870552968602,
+      "weighted_points_per_s": 2.4695546935390102,
+      "shots_per_s": 3.5,
+      "hits_per_s": 3.1666666666666665,
+      "stage_counts": {
+        "advice": 84,
+        "no_detection": 6,
+        "fire_alignment": 62,
+        "not_tracking": 18,
+        "stability_or_other": 3
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 24,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 79,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 89,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 167,
+        "visible_plate": 166,
+        "no_detection_visible": 5,
+        "valid_pose": 167,
+        "tracking": 149,
+        "aim": 173,
+        "advice": 84,
+        "forwarded": 20,
+        "discontinuity": 31
+      },
+      "tracker_states": {
+        "tracking": 149,
+        "temp_lost": 20,
+        "detecting": 4
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 1
+      },
+      "update_reasons": {
+        "accepted": 110
+      },
+      "association_reasons": {
+        "accepted": 110,
+        "association_distance": 103
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122905_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6c3c6f5a",
+      "scene": "ego_right_centered",
+      "sensor_seed": 2026110101,
+      "frames": 231,
+      "duration_s": 8.0,
+      "shots": 39,
+      "hits": 38,
+      "exact": 0.9743589743589743,
+      "weighted": 0.8796689051005914,
+      "weighted_points_per_s": 4.288385912365383,
+      "shots_per_s": 4.875,
+      "hits_per_s": 4.75,
+      "stage_counts": {
+        "advice": 211,
+        "no_detection": 13,
+        "not_tracking": 2,
+        "stability_or_other": 1,
+        "fire_alignment": 4
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 15,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 4,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 20,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 218,
+        "visible_plate": 210,
+        "no_detection_visible": 12,
+        "valid_pose": 218,
+        "tracking": 216,
+        "aim": 231,
+        "advice": 211,
+        "forwarded": 38,
+        "discontinuity": 0
+      },
+      "tracker_states": {
+        "tracking": 216,
+        "temp_lost": 15
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 220
+      },
+      "association_reasons": {
+        "accepted": 220,
+        "association_distance": 2
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122932_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_02da632d",
+      "scene": "ego_right_centered",
+      "sensor_seed": 2026110102,
+      "frames": 231,
+      "duration_s": 8.0,
+      "shots": 39,
+      "hits": 39,
+      "exact": 1.0,
+      "weighted": 0.8772432277911018,
+      "weighted_points_per_s": 4.276560735481621,
+      "shots_per_s": 4.875,
+      "hits_per_s": 4.875,
+      "stage_counts": {
+        "advice": 209,
+        "no_detection": 14,
+        "not_tracking": 3,
+        "fire_alignment": 5
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 17,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 5,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 22,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 217,
+        "visible_plate": 215,
+        "no_detection_visible": 14,
+        "valid_pose": 217,
+        "tracking": 214,
+        "aim": 231,
+        "advice": 209,
+        "forwarded": 38,
+        "discontinuity": 0
+      },
+      "tracker_states": {
+        "tracking": 214,
+        "temp_lost": 17
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 216,
+        "innovation": 1
+      },
+      "association_reasons": {
+        "accepted": 216,
+        "association_distance": 2,
+        "innovation": 1
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T122955_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_0c49775b",
+      "scene": "ego_right_centered",
+      "sensor_seed": 2026110103,
+      "frames": 231,
+      "duration_s": 8.0,
+      "shots": 38,
+      "hits": 38,
+      "exact": 1.0,
+      "weighted": 0.8939996344865527,
+      "weighted_points_per_s": 4.246498263811126,
+      "shots_per_s": 4.75,
+      "hits_per_s": 4.75,
+      "stage_counts": {
+        "advice": 204,
+        "not_tracking": 5,
+        "no_detection": 15,
+        "stability_or_other": 3,
+        "fire_alignment": 4
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 20,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 4,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 27,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 216,
+        "visible_plate": 213,
+        "no_detection_visible": 14,
+        "valid_pose": 216,
+        "tracking": 211,
+        "aim": 231,
+        "advice": 204,
+        "forwarded": 37,
+        "discontinuity": 0
+      },
+      "tracker_states": {
+        "tracking": 211,
+        "temp_lost": 20
+      },
+      "reset_reasons": {},
+      "update_reasons": {
+        "accepted": 216
+      },
+      "association_reasons": {
+        "accepted": 216,
+        "association_distance": 5
+      },
+      "phase_frames": []
+    },
+    {
+      "run_id": "20261101T123018_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_27ccfb99",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110101,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 11,
+      "hits": 6,
+      "exact": 0.5454545454545454,
+      "weighted": 0.4522349699195758,
+      "weighted_points_per_s": 0.5527316299017038,
+      "shots_per_s": 1.2222222222222223,
+      "hits_per_s": 0.6666666666666666,
+      "stage_counts": {
+        "advice": 41,
+        "not_tracking": 124,
+        "fire_alignment": 92,
+        "no_detection": 1,
+        "fire_measurement_or_target": 2
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 127,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 194,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 219,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 259,
+        "visible_plate": 257,
+        "no_detection_visible": 1,
+        "valid_pose": 259,
+        "tracking": 135,
+        "aim": 259,
+        "advice": 41,
+        "forwarded": 10,
+        "discontinuity": 51
+      },
+      "tracker_states": {
+        "tracking": 135,
+        "temp_lost": 88,
+        "detecting": 36,
+        "lost": 1
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 9
+      },
+      "update_reasons": {
+        "accepted": 169
+      },
+      "association_reasons": {
+        "accepted": 169,
+        "association_distance": 124
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "not_tracking": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 3,
+            "fire_alignment": 20,
+            "not_tracking": 34
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 43,
+            "fire_alignment": 15
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 26,
+            "not_tracking": 30,
+            "advice": 2
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 15,
+            "fire_alignment": 31,
+            "advice": 9,
+            "no_detection": 1,
+            "fire_measurement_or_target": 2
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123043_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_a60453e0",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110102,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 6,
+      "hits": 6,
+      "exact": 1.0,
+      "weighted": 0.7594669525484153,
+      "weighted_points_per_s": 0.5063113016989436,
+      "shots_per_s": 0.6666666666666666,
+      "hits_per_s": 0.6666666666666666,
+      "stage_counts": {
+        "advice": 33,
+        "no_detection": 11,
+        "fire_alignment": 79,
+        "not_tracking": 136,
+        "fire_measurement_or_target": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 148,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 201,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 227,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 249,
+        "visible_plate": 258,
+        "no_detection_visible": 11,
+        "valid_pose": 249,
+        "tracking": 113,
+        "aim": 256,
+        "advice": 33,
+        "forwarded": 6,
+        "discontinuity": 64
+      },
+      "tracker_states": {
+        "tracking": 113,
+        "temp_lost": 103,
+        "lost": 4,
+        "detecting": 40
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 10
+      },
+      "update_reasons": {
+        "accepted": 144,
+        "innovation": 1
+      },
+      "association_reasons": {
+        "accepted": 144,
+        "innovation": 1,
+        "association_distance": 106
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "no_detection": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 6,
+            "fire_alignment": 27,
+            "not_tracking": 20,
+            "no_detection": 4
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 18,
+            "fire_measurement_or_target": 1,
+            "not_tracking": 39
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 22,
+            "not_tracking": 36
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 41,
+            "fire_alignment": 12,
+            "no_detection": 5
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123108_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_14a332f5",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110103,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 6,
+      "hits": 5,
+      "exact": 0.8333333333333334,
+      "weighted": 0.725772452214336,
+      "weighted_points_per_s": 0.483848301476224,
+      "shots_per_s": 0.6666666666666666,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 31,
+        "no_detection": 2,
+        "fire_alignment": 82,
+        "not_tracking": 145
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 147,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 188,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 229,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 258,
+        "visible_plate": 257,
+        "no_detection_visible": 1,
+        "valid_pose": 258,
+        "tracking": 113,
+        "aim": 260,
+        "advice": 31,
+        "forwarded": 5,
+        "discontinuity": 62
+      },
+      "tracker_states": {
+        "tracking": 113,
+        "temp_lost": 103,
+        "detecting": 44
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 11
+      },
+      "update_reasons": {
+        "accepted": 147
+      },
+      "association_reasons": {
+        "accepted": 147,
+        "association_distance": 121
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 28,
+            "no_detection": 1
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 3,
+            "fire_alignment": 25,
+            "not_tracking": 28,
+            "no_detection": 1
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 43,
+            "fire_alignment": 15
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 22,
+            "not_tracking": 36
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 38,
+            "fire_alignment": 20
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123138_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4ac27ca4",
+      "scene": "basic_move3_spin_neg",
+      "sensor_seed": 2026110101,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 11,
+      "hits": 7,
+      "exact": 0.6363636363636364,
+      "weighted": 0.43437164967164504,
+      "weighted_points_per_s": 0.5308986829320106,
+      "shots_per_s": 1.2222222222222223,
+      "hits_per_s": 0.7777777777777778,
+      "stage_counts": {
+        "advice": 35,
+        "not_tracking": 95,
+        "fire_alignment": 110,
+        "no_detection": 12,
+        "fire_measurement_or_target": 5,
+        "stability_or_other": 3
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 112,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 207,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 225,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 248,
+        "visible_plate": 257,
+        "no_detection_visible": 12,
+        "valid_pose": 248,
+        "tracking": 153,
+        "aim": 259,
+        "advice": 35,
+        "forwarded": 10,
+        "discontinuity": 73
+      },
+      "tracker_states": {
+        "tracking": 153,
+        "temp_lost": 74,
+        "detecting": 32,
+        "lost": 1
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 8
+      },
+      "update_reasons": {
+        "accepted": 138
+      },
+      "association_reasons": {
+        "accepted": 138,
+        "association_distance": 127,
+        "innovation": 1
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "not_tracking": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 4,
+            "fire_alignment": 40,
+            "not_tracking": 4,
+            "no_detection": 4,
+            "fire_measurement_or_target": 3,
+            "stability_or_other": 2
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 36,
+            "fire_measurement_or_target": 2,
+            "advice": 3,
+            "no_detection": 4,
+            "not_tracking": 13
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 2,
+            "not_tracking": 42,
+            "fire_alignment": 13,
+            "advice": 1
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 21,
+            "not_tracking": 34,
+            "no_detection": 2,
+            "stability_or_other": 1
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123206_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b5571216",
+      "scene": "basic_move3_spin_neg",
+      "sensor_seed": 2026110102,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 5,
+      "hits": 5,
+      "exact": 1.0,
+      "weighted": 0.6958997481333522,
+      "weighted_points_per_s": 0.3866109711851957,
+      "shots_per_s": 0.5555555555555556,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 28,
+        "no_detection": 16,
+        "fire_alignment": 67,
+        "not_tracking": 143,
+        "fire_measurement_or_target": 4,
+        "stability_or_other": 2
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 163,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 225,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 232,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 244,
+        "visible_plate": 258,
+        "no_detection_visible": 16,
+        "valid_pose": 244,
+        "tracking": 101,
+        "aim": 255,
+        "advice": 28,
+        "forwarded": 5,
+        "discontinuity": 92
+      },
+      "tracker_states": {
+        "tracking": 101,
+        "temp_lost": 111,
+        "lost": 5,
+        "detecting": 43
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 11
+      },
+      "update_reasons": {
+        "accepted": 136,
+        "innovation": 1
+      },
+      "association_reasons": {
+        "accepted": 136,
+        "association_distance": 103,
+        "innovation": 1
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "no_detection": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "no_detection": 7,
+            "advice": 1,
+            "fire_alignment": 33,
+            "not_tracking": 11,
+            "fire_measurement_or_target": 4,
+            "stability_or_other": 1
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 50,
+            "no_detection": 2,
+            "fire_alignment": 6
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 1,
+            "not_tracking": 38,
+            "fire_alignment": 18,
+            "stability_or_other": 1
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 44,
+            "no_detection": 4,
+            "fire_alignment": 10
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123234_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_14ff3c95",
+      "scene": "basic_move3_spin_neg",
+      "sensor_seed": 2026110103,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 6,
+      "hits": 5,
+      "exact": 0.8333333333333334,
+      "weighted": 0.7021817247972453,
+      "weighted_points_per_s": 0.46812114986483017,
+      "shots_per_s": 0.6666666666666666,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 30,
+        "no_detection": 15,
+        "fire_alignment": 55,
+        "not_tracking": 159,
+        "stability_or_other": 1
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 174,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 224,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 230,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 245,
+        "visible_plate": 257,
+        "no_detection_visible": 14,
+        "valid_pose": 245,
+        "tracking": 86,
+        "aim": 260,
+        "advice": 30,
+        "forwarded": 5,
+        "discontinuity": 77
+      },
+      "tracker_states": {
+        "tracking": 86,
+        "temp_lost": 118,
+        "detecting": 56
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 14
+      },
+      "update_reasons": {
+        "accepted": 129,
+        "innovation": 2
+      },
+      "association_reasons": {
+        "accepted": 129,
+        "association_distance": 118,
+        "innovation": 2
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 28,
+            "no_detection": 1
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 2,
+            "fire_alignment": 23,
+            "not_tracking": 26,
+            "no_detection": 5,
+            "stability_or_other": 1
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 40,
+            "fire_alignment": 16,
+            "no_detection": 2
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 46,
+            "no_detection": 6,
+            "fire_alignment": 6
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 47,
+            "fire_alignment": 10,
+            "no_detection": 1
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123258_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_69602c81",
+      "scene": "basic_move4_spin_pos",
+      "sensor_seed": 2026110101,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 6,
+      "hits": 5,
+      "exact": 0.8333333333333334,
+      "weighted": 0.7362146633177792,
+      "weighted_points_per_s": 0.4908097755451861,
+      "shots_per_s": 0.6666666666666666,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 30,
+        "not_tracking": 112,
+        "fire_alignment": 103,
+        "fire_measurement_or_target": 5,
+        "stability_or_other": 1,
+        "no_detection": 9
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 126,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 222,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 230,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 251,
+        "visible_plate": 257,
+        "no_detection_visible": 9,
+        "valid_pose": 251,
+        "tracking": 139,
+        "aim": 260,
+        "advice": 30,
+        "forwarded": 5,
+        "discontinuity": 79
+      },
+      "tracker_states": {
+        "tracking": 139,
+        "temp_lost": 87,
+        "detecting": 34
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 9
+      },
+      "update_reasons": {
+        "accepted": 166
+      },
+      "association_reasons": {
+        "accepted": 166,
+        "association_distance": 79
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "not_tracking": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 3,
+            "fire_alignment": 43,
+            "not_tracking": 5,
+            "fire_measurement_or_target": 5,
+            "stability_or_other": 1
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 26,
+            "not_tracking": 32
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 41,
+            "fire_alignment": 17
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 32,
+            "fire_alignment": 17,
+            "no_detection": 9
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123323_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4f213a03",
+      "scene": "basic_move4_spin_pos",
+      "sensor_seed": 2026110102,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 7,
+      "hits": 6,
+      "exact": 0.8571428571428571,
+      "weighted": 0.6629830801532759,
+      "weighted_points_per_s": 0.5156535067858813,
+      "shots_per_s": 0.7777777777777778,
+      "hits_per_s": 0.6666666666666666,
+      "stage_counts": {
+        "advice": 34,
+        "no_detection": 13,
+        "fire_alignment": 94,
+        "not_tracking": 119
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 132,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 206,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 226,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 247,
+        "visible_plate": 258,
+        "no_detection_visible": 13,
+        "valid_pose": 247,
+        "tracking": 128,
+        "aim": 253,
+        "advice": 34,
+        "forwarded": 7,
+        "discontinuity": 67
+      },
+      "tracker_states": {
+        "tracking": 128,
+        "temp_lost": 89,
+        "lost": 7,
+        "detecting": 36
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 9
+      },
+      "update_reasons": {
+        "accepted": 159,
+        "innovation": 4
+      },
+      "association_reasons": {
+        "accepted": 159,
+        "innovation": 4,
+        "association_distance": 67
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "no_detection": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 3,
+            "fire_alignment": 37,
+            "not_tracking": 17
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 39,
+            "no_detection": 1,
+            "fire_alignment": 18
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 29,
+            "fire_alignment": 23,
+            "advice": 4,
+            "no_detection": 2
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 34,
+            "fire_alignment": 16,
+            "no_detection": 8
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123348_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_3587701a",
+      "scene": "basic_move4_spin_pos",
+      "sensor_seed": 2026110103,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 6,
+      "hits": 5,
+      "exact": 0.8333333333333334,
+      "weighted": 0.7257397590478418,
+      "weighted_points_per_s": 0.48382650603189453,
+      "shots_per_s": 0.6666666666666666,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 31,
+        "no_detection": 12,
+        "fire_alignment": 65,
+        "not_tracking": 152
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 164,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 205,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 229,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 248,
+        "visible_plate": 257,
+        "no_detection_visible": 11,
+        "valid_pose": 248,
+        "tracking": 96,
+        "aim": 255,
+        "advice": 31,
+        "forwarded": 5,
+        "discontinuity": 65
+      },
+      "tracker_states": {
+        "tracking": 96,
+        "temp_lost": 114,
+        "lost": 5,
+        "detecting": 45
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 13
+      },
+      "update_reasons": {
+        "accepted": 128
+      },
+      "association_reasons": {
+        "accepted": 128,
+        "association_distance": 90
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 28,
+            "no_detection": 1
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 3,
+            "fire_alignment": 15,
+            "not_tracking": 32,
+            "no_detection": 7
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 38,
+            "fire_alignment": 20
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 40,
+            "fire_alignment": 18
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 42,
+            "fire_alignment": 12,
+            "no_detection": 4
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123412_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9971eb49",
+      "scene": "basic_move4_spin_neg",
+      "sensor_seed": 2026110101,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 6,
+      "hits": 5,
+      "exact": 0.8333333333333334,
+      "weighted": 0.6190834477097503,
+      "weighted_points_per_s": 0.4127222984731669,
+      "shots_per_s": 0.6666666666666666,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 29,
+        "not_tracking": 47,
+        "fire_alignment": 23,
+        "no_detection": 161
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 208,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 229,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 231,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 99,
+        "visible_plate": 120,
+        "no_detection_visible": 24,
+        "valid_pose": 99,
+        "tracking": 52,
+        "aim": 110,
+        "advice": 29,
+        "forwarded": 5,
+        "discontinuity": 170
+      },
+      "tracker_states": {
+        "tracking": 52,
+        "temp_lost": 50,
+        "detecting": 8,
+        "lost": 150
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 6
+      },
+      "update_reasons": {
+        "accepted": 53,
+        "innovation": 2
+      },
+      "association_reasons": {
+        "accepted": 53,
+        "association_distance": 19,
+        "innovation": 4
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "not_tracking": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 2,
+            "fire_alignment": 22,
+            "not_tracking": 25,
+            "no_detection": 8
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 1,
+            "no_detection": 37,
+            "not_tracking": 20
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 58
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 58
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123439_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_8dbd8858",
+      "scene": "basic_move4_spin_neg",
+      "sensor_seed": 2026110102,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 5,
+      "hits": 5,
+      "exact": 1.0,
+      "weighted": 0.6959003015992204,
+      "weighted_points_per_s": 0.38661127866623357,
+      "shots_per_s": 0.5555555555555556,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 28,
+        "no_detection": 164,
+        "fire_alignment": 17,
+        "not_tracking": 51
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 215,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 229,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 232,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 96,
+        "visible_plate": 121,
+        "no_detection_visible": 27,
+        "valid_pose": 96,
+        "tracking": 45,
+        "aim": 110,
+        "advice": 28,
+        "forwarded": 5,
+        "discontinuity": 174
+      },
+      "tracker_states": {
+        "tracking": 45,
+        "temp_lost": 54,
+        "detecting": 11,
+        "lost": 150
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 6
+      },
+      "update_reasons": {
+        "accepted": 51
+      },
+      "association_reasons": {
+        "accepted": 51,
+        "association_distance": 30
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 27,
+            "no_detection": 2
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "no_detection": 10,
+            "advice": 1,
+            "fire_alignment": 17,
+            "not_tracking": 29
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "not_tracking": 22,
+            "no_detection": 36
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 58
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 58
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "20261101T123505_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4a834518",
+      "scene": "basic_move4_spin_neg",
+      "sensor_seed": 2026110103,
+      "frames": 260,
+      "duration_s": 9.0,
+      "shots": 7,
+      "hits": 5,
+      "exact": 0.7142857142857143,
+      "weighted": 0.6018981065834763,
+      "weighted_points_per_s": 0.4681429717871482,
+      "shots_per_s": 0.7777777777777778,
+      "hits_per_s": 0.5555555555555556,
+      "stage_counts": {
+        "advice": 31,
+        "no_detection": 96,
+        "fire_alignment": 55,
+        "not_tracking": 78
+      },
+      "overlapping_fire_blocks": {
+        "valid": {
+          "false": 174,
+          "unknown": 0
+        },
+        "pose_valid": {
+          "false": 0,
+          "unknown": 0
+        },
+        "aligned": {
+          "false": 224,
+          "unknown": 0
+        },
+        "eligible": {
+          "false": 229,
+          "unknown": 0
+        }
+      },
+      "flow_frames": {
+        "detection": 164,
+        "visible_plate": 184,
+        "no_detection_visible": 22,
+        "valid_pose": 164,
+        "tracking": 86,
+        "aim": 167,
+        "advice": 31,
+        "forwarded": 6,
+        "discontinuity": 137
+      },
+      "tracker_states": {
+        "tracking": 86,
+        "temp_lost": 62,
+        "detecting": 19,
+        "lost": 93
+      },
+      "reset_reasons": {
+        "trusted_update_timeout": 7
+      },
+      "update_reasons": {
+        "accepted": 101,
+        "innovation": 4
+      },
+      "association_reasons": {
+        "accepted": 101,
+        "association_distance": 39,
+        "innovation": 4
+      },
+      "phase_frames": [
+        {
+          "name": "initial",
+          "t0": 0.0,
+          "t1": 1.0,
+          "frames": 29,
+          "stage_counts": {
+            "advice": 28,
+            "no_detection": 1
+          }
+        },
+        {
+          "name": "stage_1",
+          "t0": 1.0,
+          "t1": 3.0,
+          "frames": 57,
+          "stage_counts": {
+            "advice": 2,
+            "fire_alignment": 29,
+            "not_tracking": 23,
+            "no_detection": 3
+          }
+        },
+        {
+          "name": "stage_2",
+          "t0": 3.0,
+          "t1": 5.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 21,
+            "not_tracking": 33,
+            "no_detection": 3,
+            "advice": 1
+          }
+        },
+        {
+          "name": "stage_3",
+          "t0": 5.0,
+          "t1": 7.0,
+          "frames": 58,
+          "stage_counts": {
+            "fire_alignment": 5,
+            "not_tracking": 22,
+            "no_detection": 31
+          }
+        },
+        {
+          "name": "stage_4",
+          "t0": 7.0,
+          "t1": 9.0,
+          "frames": 58,
+          "stage_counts": {
+            "no_detection": 58
+          }
+        }
+      ]
+    }
+  ],
+  "repeated_trials": [
+    {
+      "scene": "hf_static_5",
+      "seed": 2026110101,
+      "reference": "20261101T122352_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_e6058a14",
+      "repeat": "20261101T123538_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9c575f5a",
+      "event_counts": [
+        408,
+        408
+      ],
+      "first_event_difference": null,
+      "first_changed_fields": [],
+      "identical_relative_events": true,
+      "identical_jpegs": true,
+      "identical_relative_shots": true,
+      "reference_metrics": {
+        "algorithm_fire_suggestions": 155,
+        "fire_pulses": 29,
+        "shots_fired": 29,
+        "target_armor_hits": 29,
+        "target_hit_rate": 1.0,
+        "other_robot_hits": 0,
+        "environment_hits": 0,
+        "shots_with_environment_contact": 0,
+        "no_hit_events": 0,
+        "flight_time_p50_s": 0.17522339522838593,
+        "flight_time_p95_s": 0.17776840925216675,
+        "maximum_launch_spacing_s": 0.275310735,
+        "minimum_launch_spacing_s": 0.206483051,
+        "first_hit_s": 0.222215093,
+        "hit_contact_missing": 0,
+        "hit_trace_gap_max_m": 0.008499819289093552,
+        "projectile_trace_packets": 667,
+        "shot_sample_available": true,
+        "impact_quality_version": 1,
+        "impact_geometry_missing": 0,
+        "weighted_hit_score_sum": 27.019477215960304,
+        "weighted_hit_rate": 0.9317061108951828,
+        "useful_armor_hits": 29,
+        "useful_armor_hit_rate": 1.0,
+        "impact_center_distance_p50_m": 0.004146916366637951,
+        "impact_center_distance_p95_m": 0.009209211707333466,
+        "impact_x_bias_m": -0.0019269513127181655,
+        "impact_y_bias_m": 0.00047685518198164724,
+        "scoring_version": 2,
+        "target_hits_per_s": 4.833333333333333,
+        "front_armor_hits": 29,
+        "front_armor_hit_rate": 1.0,
+        "hits_per_s": 4.833333333333333,
+        "weighted_points_per_s": 4.50324620266005
+      },
+      "repeat_metrics": {
+        "algorithm_fire_suggestions": 155,
+        "fire_pulses": 29,
+        "shots_fired": 29,
+        "target_armor_hits": 29,
+        "target_hit_rate": 1.0,
+        "other_robot_hits": 0,
+        "environment_hits": 0,
+        "shots_with_environment_contact": 0,
+        "no_hit_events": 0,
+        "flight_time_p50_s": 0.1815902292728424,
+        "flight_time_p95_s": 0.18413522839546204,
+        "maximum_launch_spacing_s": 0.275310735,
+        "minimum_launch_spacing_s": 0.206483051,
+        "first_hit_s": 0.222215093,
+        "hit_contact_missing": 0,
+        "hit_trace_gap_max_m": 0.008499819289093552,
+        "projectile_trace_packets": 667,
+        "shot_sample_available": true,
+        "impact_quality_version": 1,
+        "impact_geometry_missing": 0,
+        "weighted_hit_score_sum": 27.019477215960304,
+        "weighted_hit_rate": 0.9317061108951828,
+        "useful_armor_hits": 29,
+        "useful_armor_hit_rate": 1.0,
+        "impact_center_distance_p50_m": 0.004146916366637951,
+        "impact_center_distance_p95_m": 0.009209211707333466,
+        "impact_x_bias_m": -0.0019269513127181655,
+        "impact_y_bias_m": 0.00047685518198164724,
+        "scoring_version": 2,
+        "target_hits_per_s": 4.833333333333333,
+        "front_armor_hits": 29,
+        "front_armor_hit_rate": 1.0,
+        "hits_per_s": 4.833333333333333,
+        "weighted_points_per_s": 4.50324620266005
+      }
+    },
+    {
+      "scene": "basic_move3_spin_pos",
+      "seed": 2026110101,
+      "reference": "20261101T123018_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_27ccfb99",
+      "repeat": "20261101T123603_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_c2bdcdb2",
+      "event_counts": [
+        582,
+        582
+      ],
+      "first_event_difference": null,
+      "first_changed_fields": [],
+      "identical_relative_events": true,
+      "identical_jpegs": true,
+      "identical_relative_shots": true,
+      "reference_metrics": {
+        "algorithm_fire_suggestions": 41,
+        "fire_pulses": 11,
+        "shots_fired": 11,
+        "target_armor_hits": 6,
+        "target_hit_rate": 0.5454545454545454,
+        "other_robot_hits": 0,
+        "environment_hits": 5,
+        "shots_with_environment_contact": 5,
+        "no_hit_events": 0,
+        "flight_time_p50_s": 0.2445554882287979,
+        "flight_time_p95_s": 0.3052115738391876,
+        "maximum_launch_spacing_s": 5.783491944,
+        "minimum_launch_spacing_s": 0.206483051,
+        "first_hit_s": 0.281210251,
+        "hit_contact_missing": 0,
+        "hit_trace_gap_max_m": 0.008500214932986427,
+        "projectile_trace_packets": 328,
+        "shot_sample_available": true,
+        "impact_quality_version": 1,
+        "impact_geometry_missing": 0,
+        "weighted_hit_score_sum": 4.974584669115334,
+        "weighted_hit_rate": 0.4522349699195758,
+        "useful_armor_hits": 6,
+        "useful_armor_hit_rate": 0.5454545454545454,
+        "impact_center_distance_p50_m": 0.007830247855551822,
+        "impact_center_distance_p95_m": 0.03127648201345075,
+        "impact_x_bias_m": 0.006621433853215294,
+        "impact_y_bias_m": 0.002740417878609208,
+        "scoring_version": 2,
+        "target_hits_per_s": 0.6666666666666666,
+        "front_armor_hits": 6,
+        "front_armor_hit_rate": 0.5454545454545454,
+        "hits_per_s": 0.6666666666666666,
+        "weighted_points_per_s": 0.5527316299017038
+      },
+      "repeat_metrics": {
+        "algorithm_fire_suggestions": 41,
+        "fire_pulses": 9,
+        "shots_fired": 11,
+        "target_armor_hits": 6,
+        "target_hit_rate": 0.5454545454545454,
+        "other_robot_hits": 0,
+        "environment_hits": 5,
+        "shots_with_environment_contact": 5,
+        "no_hit_events": 0,
+        "flight_time_p50_s": 0.2445554882287979,
+        "flight_time_p95_s": 0.3052115738391876,
+        "maximum_launch_spacing_s": 5.783491944,
+        "minimum_launch_spacing_s": 0.206483051,
+        "first_hit_s": 0.281210251,
+        "hit_contact_missing": 0,
+        "hit_trace_gap_max_m": 0.008500214932986427,
+        "projectile_trace_packets": 328,
+        "shot_sample_available": true,
+        "impact_quality_version": 1,
+        "impact_geometry_missing": 0,
+        "weighted_hit_score_sum": 4.974584669115334,
+        "weighted_hit_rate": 0.4522349699195758,
+        "useful_armor_hits": 6,
+        "useful_armor_hit_rate": 0.5454545454545454,
+        "impact_center_distance_p50_m": 0.007830247855551822,
+        "impact_center_distance_p95_m": 0.03127648201345075,
+        "impact_x_bias_m": 0.006621433853215294,
+        "impact_y_bias_m": 0.002740417878609208,
+        "scoring_version": 2,
+        "target_hits_per_s": 0.6666666666666666,
+        "front_armor_hits": 6,
+        "front_armor_hit_rate": 0.5454545454545454,
+        "hits_per_s": 0.6666666666666666,
+        "weighted_points_per_s": 0.5527316299017038
+      }
+    }
+  ],
+  "selected_runs": [
+    "20261101T123206_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b5571216",
+    "20261101T123108_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_14a332f5",
+    "20261101T123439_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_8dbd8858",
+    "20261101T123348_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_3587701a"
+  ],
+  "limitations": [
+    "Stage counts are ordered observations, not causal ablations.",
+    "Frame advice/forwarding counts are not shot counts.",
+    "Sensor seeds vary noise, not motion trajectories.",
+    "A single repeat does not establish statistical stability."
+  ]
+}

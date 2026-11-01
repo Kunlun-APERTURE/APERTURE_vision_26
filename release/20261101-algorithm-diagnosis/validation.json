@@ -1,0 +1,371 @@
+{
+  "passed": true,
+  "base_trials": 30,
+  "repeat_trials": 2,
+  "payload_identity": "d0ee70e497ae202c0ddc3eedcfc9f068b4eaf886980c98ba6cc0de6ac821cc51",
+  "bundle": "/home/rm/rm26/docker/auto_aim/.runtime/jobs/bundles/benchmark_89840c5470d4",
+  "algorithm": {
+    "id": "B1",
+    "version": 1,
+    "adapter": "r4",
+    "source_commit": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476",
+    "source_tree_sha256": "e514a7347e69c06df33e486e762751510b0ab084a170ec06ec349f3521877778",
+    "build_image": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+    "binary_sha256": "578b015766d115326f9626780d570f87f04133c2162b76a8e240915a1a0da493",
+    "config_sha256": "57c5cc3fc825ec2fbe17536d6cac03ecf4a727c52ae9aba95e40e58f93253cfa",
+    "protocol": "rm26-image-v1",
+    "algorithm_profile": "tracking_fire_v3",
+    "capabilities": [
+      "simulation_clock",
+      "session_reset",
+      "fire_advice",
+      "r4_diagnostics"
+    ],
+    "launch": [
+      "/snapshot/sp_vision_25/build/simulator/sim_auto_aim",
+      "--config=/snapshot/sp_vision_25/configs/simulator.yaml",
+      "--runtime=/work/calibration.yaml",
+      "--view=false",
+      "--port={port}",
+      "--fire={fire}",
+      "--aim-origin={aim_origin}",
+      "--algorithm-profile=tracking_fire_v3",
+      "--execution-mode={execution_mode}",
+      "--detector-history=session"
+    ],
+    "image": "aperture_vision:26-11-1",
+    "runtime_image": "aperture_vision:26-11-1"
+  },
+  "environment": {
+    "id": "E1",
+    "gimbal_dynamics": "rm2017-yaw-corrected-raw",
+    "timing_profile": "ui-aligned-v7-clock"
+  },
+  "renderer": {
+    "backend": "nvidia",
+    "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+    "implementation": "nvidia-vulkan"
+  },
+  "runs": [
+    {
+      "run_id": "20261101T122352_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_e6058a14",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110101,
+      "shots": 29,
+      "hits": 29,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "9ce87b61a9b6c52350c90d6110beb55d8afc30b56cd0e3d221b7001151790ff7"
+    },
+    {
+      "run_id": "20261101T122415_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_42186fb5",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110102,
+      "shots": 27,
+      "hits": 27,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "5f6c6008095d863bd53554af22f9fda6b143f393731a677b0ce4f81429790197"
+    },
+    {
+      "run_id": "20261101T122434_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_a5de3849",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110103,
+      "shots": 28,
+      "hits": 28,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "97dd60c54154c7c71321a5862b61ffb3ff831a2ff4bf7ca15ae86a0c6bdbb2c0"
+    },
+    {
+      "run_id": "20261101T122454_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ecc6a21f",
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110101,
+      "shots": 17,
+      "hits": 15,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "d729a3e134b0c5deb5b5a2c38f6f359611a0ca5f472c4f1b84561a6c5e83e629"
+    },
+    {
+      "run_id": "20261101T122516_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b489e577",
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110102,
+      "shots": 17,
+      "hits": 13,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "969fd9020e0d5e7b68d1f5f6ad55f00d6ba5cfd425e156e81059c6b652bca4fb"
+    },
+    {
+      "run_id": "20261101T122533_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_aa9892be",
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110103,
+      "shots": 16,
+      "hits": 15,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "0559c9d6e7492c0c4a87f6f9144bd5db5c502f15b51a253f36baef690f5e1523"
+    },
+    {
+      "run_id": "20261101T122554_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4b1ede7d",
+      "scene": "hf_turn90_3",
+      "sensor_seed": 2026110101,
+      "shots": 18,
+      "hits": 14,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "37a12ec40b94526086465c28365448bdfe9388131bccc7af4dc75f4b0ba77b54"
+    },
+    {
+      "run_id": "20261101T122617_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_e1e99da0",
+      "scene": "hf_turn90_3",
+      "sensor_seed": 2026110102,
+      "shots": 18,
+      "hits": 13,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "dc68674f5262047c2e684e504e1c26d9497bc68575f70663c8a7b832503a6b1e"
+    },
+    {
+      "run_id": "20261101T122636_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9dd7d1c2",
+      "scene": "hf_turn90_3",
+      "sensor_seed": 2026110103,
+      "shots": 19,
+      "hits": 13,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "0e7d1f69927e00676844e4dd6fd580442f8b39ec417b8566743daf1624730145"
+    },
+    {
+      "run_id": "20261101T122657_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ff5ed739",
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110101,
+      "shots": 21,
+      "hits": 20,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "1e027a6a1533a2ff70f579fa1e813d44286b016ebff0125c07199d0d9f5f3ff2"
+    },
+    {
+      "run_id": "20261101T122717_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_0cba160a",
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110102,
+      "shots": 24,
+      "hits": 22,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "75e4321368168d31c8c1178bafd3713d9734d408db92faf9037aaea82a1dc3a2"
+    },
+    {
+      "run_id": "20261101T122737_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9d81b713",
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110103,
+      "shots": 23,
+      "hits": 22,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "528d9d2943ec6422a2e49255aa1d010363103a1b85ad6530bdda07efc9a91ea9"
+    },
+    {
+      "run_id": "20261101T122800_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_ba700c44",
+      "scene": "hf_spin_neg",
+      "sensor_seed": 2026110101,
+      "shots": 23,
+      "hits": 22,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "abd053d20a7de15f7c7ffd81e8792e3459b847873d8bfe032fd929b98817ea04"
+    },
+    {
+      "run_id": "20261101T122820_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6120957e",
+      "scene": "hf_spin_neg",
+      "sensor_seed": 2026110102,
+      "shots": 23,
+      "hits": 20,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "6a833ad3090822dfdd5b48b5e735b51e6dfde25c4aa9e597c00049bbd0ad6a2a"
+    },
+    {
+      "run_id": "20261101T122842_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_c4015b0a",
+      "scene": "hf_spin_neg",
+      "sensor_seed": 2026110103,
+      "shots": 21,
+      "hits": 19,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "309af2dd6edfbffa2ac9dbda96e60a5c00e6ef3269abdfc08fe8c472917af924"
+    },
+    {
+      "run_id": "20261101T122905_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6c3c6f5a",
+      "scene": "ego_right_centered",
+      "sensor_seed": 2026110101,
+      "shots": 39,
+      "hits": 38,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "ddcc3a48d0939bc0d7ade1c09ca3704b63cbb28c71e24190c1091cfe09656c5d"
+    },
+    {
+      "run_id": "20261101T122932_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_02da632d",
+      "scene": "ego_right_centered",
+      "sensor_seed": 2026110102,
+      "shots": 39,
+      "hits": 39,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "53c1a52c318363f7345c97ccf6c1049e784e7ca9c9d436e1272078954f2835ec"
+    },
+    {
+      "run_id": "20261101T122955_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_0c49775b",
+      "scene": "ego_right_centered",
+      "sensor_seed": 2026110103,
+      "shots": 38,
+      "hits": 38,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "0d1f716da8f923552693a2aa88c5f531a728692547d2430767f4470caf3f76f2"
+    },
+    {
+      "run_id": "20261101T123018_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_27ccfb99",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110101,
+      "shots": 11,
+      "hits": 6,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "5a5289462b7044ce90f3c648073a56c82ffc795989cd17b227f1a5ec207178c4"
+    },
+    {
+      "run_id": "20261101T123043_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_a60453e0",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110102,
+      "shots": 6,
+      "hits": 6,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "6b9cbcb7a4fcdcda1bb6c56b1a12b7bbc6aab8ec0be4e4099e4b0f53241c68ad"
+    },
+    {
+      "run_id": "20261101T123108_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_14a332f5",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110103,
+      "shots": 6,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "0d2ccd8852b802ee78605935e37227990584e328517bc56797f5405239ef0ef4"
+    },
+    {
+      "run_id": "20261101T123138_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4ac27ca4",
+      "scene": "basic_move3_spin_neg",
+      "sensor_seed": 2026110101,
+      "shots": 11,
+      "hits": 7,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "1d1510f09c2557beb7b6e61d12fd963f3882b0cca6378cd8f4998f5d6b70c64c"
+    },
+    {
+      "run_id": "20261101T123206_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_b5571216",
+      "scene": "basic_move3_spin_neg",
+      "sensor_seed": 2026110102,
+      "shots": 5,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "5d53edc7cbea0dff448da7c819741428260c09b6da4ede4d778e68c8102ed0b4"
+    },
+    {
+      "run_id": "20261101T123234_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_14ff3c95",
+      "scene": "basic_move3_spin_neg",
+      "sensor_seed": 2026110103,
+      "shots": 6,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "bbb8722dde89f6b922805e0687afec1963f89022892e2c6cffd37a2491612d9d"
+    },
+    {
+      "run_id": "20261101T123258_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_69602c81",
+      "scene": "basic_move4_spin_pos",
+      "sensor_seed": 2026110101,
+      "shots": 6,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "a5344fe011773ed8210be0b345d414160c8a902b65ff114bbdfde5be067f3efb"
+    },
+    {
+      "run_id": "20261101T123323_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4f213a03",
+      "scene": "basic_move4_spin_pos",
+      "sensor_seed": 2026110102,
+      "shots": 7,
+      "hits": 6,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "f49ec9552b5a4e4a752f987025a5a92210b95bab9da0019336852218c30a7142"
+    },
+    {
+      "run_id": "20261101T123348_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_3587701a",
+      "scene": "basic_move4_spin_pos",
+      "sensor_seed": 2026110103,
+      "shots": 6,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "2b0b24a43cb57c5b921e812bac0f0e1382f6e53ab7d306fcee6b8f3ac39fe743"
+    },
+    {
+      "run_id": "20261101T123412_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9971eb49",
+      "scene": "basic_move4_spin_neg",
+      "sensor_seed": 2026110101,
+      "shots": 6,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "b2924aaccef43d8d1d34efc80d98686b085fb44bcedf8b6a67f07aa7e7cafa36"
+    },
+    {
+      "run_id": "20261101T123439_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_8dbd8858",
+      "scene": "basic_move4_spin_neg",
+      "sensor_seed": 2026110102,
+      "shots": 5,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "5cebb00c6e27b9c115d62855b1865a2271d0e8eb543dbc9dae12dc2947e8eb07"
+    },
+    {
+      "run_id": "20261101T123505_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4a834518",
+      "scene": "basic_move4_spin_neg",
+      "sensor_seed": 2026110103,
+      "shots": 7,
+      "hits": 5,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "cb40bc33a62f12be1fef3e2bf0cba0f76d571b9649934b64842e63dfa861d4bb"
+    },
+    {
+      "run_id": "20261101T123538_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_9c575f5a",
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110101,
+      "shots": 29,
+      "hits": 29,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "9e48c137e9cd1b443b22d6d4ac9137cc8caf6606a323470c2bc52c7441eed47b"
+    },
+    {
+      "run_id": "20261101T123603_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_c2bdcdb2",
+      "scene": "basic_move3_spin_pos",
+      "sensor_seed": 2026110101,
+      "shots": 11,
+      "hits": 6,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "f58c66f0a5b8784a2ce4cc2412ee61afe80b9a2ab4902477b90e0bec71c4d8d5"
+    }
+  ]
+}

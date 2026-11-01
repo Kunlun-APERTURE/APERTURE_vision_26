@@ -1,0 +1,30 @@
+[
+  {
+    "name": "rm26-eval-6a1fb3371b62",
+    "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null
+  },
+  {
+    "name": "rm26-worker-1-algorithm",
+    "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null
+  },
+  {
+    "name": "rm26-worker-1-bridge",
+    "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null
+  },
+  {
+    "name": "rm26-worker-1-simulator",
+    "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null
+  }
+]

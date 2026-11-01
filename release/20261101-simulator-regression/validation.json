@@ -1,0 +1,249 @@
+{
+  "passed": true,
+  "base_image": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+  "candidate_image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+  "simulator_base": "778c0c8fba8022835eeabb3f81c4c865f588a34e",
+  "source_patch_sha256": "41d8d2a9e8cc232b38a39460f585a010192cbca6f96cf28af3159b5753ce2abb",
+  "binary_sha256": "da1baef0a0fe66ee0dd2408f9a01be2c2d1badf4075f881d06f7c19a7f673f73",
+  "features": "default + ros2 bench",
+  "tests": {
+    "bench": {
+      "passed": 295,
+      "failed": 0,
+      "ignored": 1
+    },
+    "default": {
+      "passed": 171,
+      "failed": 0,
+      "ignored": 1
+    }
+  },
+  "ignored": "systems::gimbal_pid::tests::corrected_angle_loop_csv: CSV component diagnostic; run explicitly with --nocapture",
+  "cpp_targets": 9,
+  "cpp_regression_programs": 6,
+  "python_tests": 70,
+  "benchmark_tests": 9,
+  "coverage": {
+    "statements": 83.85,
+    "branches": 74.04
+  },
+  "runs": [
+    {
+      "run_id": "20261101T120324_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_cee18c87",
+      "scene": "hf_static_5",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 29,
+      "hits": 29,
+      "wall_seconds": 18.757613847992616,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "2df8f994626d70a832f1784bb2a41b0eaee345ff99f0faa92b36482114a6e866"
+    },
+    {
+      "run_id": "20261101T120344_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_606fb64e",
+      "scene": "hf_uniform_3",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 17,
+      "hits": 15,
+      "wall_seconds": 17.53918294199684,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "ceaa592aeff2464e5f53cf0bc5ebc3c5fadfffcdbb30233c514bf9f789f82c1b"
+    },
+    {
+      "run_id": "20261101T120402_hf_turn90_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_f1d42ee5",
+      "scene": "hf_turn90_3",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 18,
+      "hits": 14,
+      "wall_seconds": 18.075951094011543,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "b0e6050e09b2fb579402fbd5676c6f5b8335153547d66c6a280f0ce8fc3e47f6"
+    },
+    {
+      "run_id": "20261101T120421_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_466528ec",
+      "scene": "hf_spin_pos",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 21,
+      "hits": 20,
+      "wall_seconds": 23.00245996900776,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "9fdb25370cd12c38c614a598680ce970b3ac4bfe66be4f2f3dcc29a66c9b5089"
+    },
+    {
+      "run_id": "20261101T120444_hf_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_20f0d1af",
+      "scene": "hf_spin_neg",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 23,
+      "hits": 22,
+      "wall_seconds": 19.254059244005475,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "ee40b08e462d1d4a2dc5606102b582fcd612d30a7221a32b58287d9b0a0a07ec"
+    },
+    {
+      "run_id": "20261101T120504_ego_right_centered_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_5df802fb",
+      "scene": "ego_right_centered",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 39,
+      "hits": 38,
+      "wall_seconds": 25.932370927999727,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "a01adc7790797f435952e25367071c27b7af3552920827897aad7340ed1baad7"
+    },
+    {
+      "run_id": "20261101T120530_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_0ca1772d",
+      "scene": "basic_move3_spin_pos",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 11,
+      "hits": 6,
+      "wall_seconds": 23.770614723005565,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "51951fe9d6e017d4ee1ed1ca4aff8e3469b9dd8f8d337ebfa77b16d22d493ca1"
+    },
+    {
+      "run_id": "20261101T120555_basic_move3_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_d91a100b",
+      "scene": "basic_move3_spin_neg",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 11,
+      "hits": 7,
+      "wall_seconds": 24.620088670009864,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "50096964c64587adb505b2d11f134c5ac21be51b232cd087c84a8f933fb0d13e"
+    },
+    {
+      "run_id": "20261101T120620_basic_move4_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_91547a89",
+      "scene": "basic_move4_spin_pos",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 6,
+      "hits": 5,
+      "wall_seconds": 27.799877684999956,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "2e7aa7a3401ac20ec33dfa65c2cab422d89a714e4a4489b8693c10fe4580d958"
+    },
+    {
+      "run_id": "20261101T120648_basic_move4_spin_neg_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_1e9b274e",
+      "scene": "basic_move4_spin_neg",
+      "renderer": {
+        "backend": "nvidia",
+        "gpu_uuid": "GPU-aca00240-d0ca-7870-6935-38abc7d898e5",
+        "implementation": "nvidia-vulkan"
+      },
+      "shots": 6,
+      "hits": 5,
+      "wall_seconds": 22.89571798799443,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "d288d3cecf0de2c1150e214eb19db20d83f5bd30257cb086ab4404cd59c9f267"
+    },
+    {
+      "run_id": "20261101T120713_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_f35f272c",
+      "scene": "hf_static_5",
+      "renderer": {
+        "backend": "cpu",
+        "gpu_uuid": null,
+        "implementation": "mesa-lavapipe"
+      },
+      "shots": 28,
+      "hits": 28,
+      "wall_seconds": 541.3017395009956,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "6ef84378f50864f553147cd29408df4d0578ab8227d242f1e1443e487ab71752"
+    },
+    {
+      "run_id": "20261101T121615_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_bd5dd69d",
+      "scene": "hf_uniform_3",
+      "renderer": {
+        "backend": "cpu",
+        "gpu_uuid": null,
+        "implementation": "mesa-lavapipe"
+      },
+      "shots": 18,
+      "hits": 17,
+      "wall_seconds": 457.08147443499183,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "843dcd267452422919b9d554cc128bc1efa7e11b87e0e58c05599fd03b9e8efa"
+    }
+  ],
+  "cpu_device_isolation": [
+    {
+      "name": "rm26-eval-6a1fb3371b62",
+      "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null
+    },
+    {
+      "name": "rm26-worker-1-algorithm",
+      "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null
+    },
+    {
+      "name": "rm26-worker-1-bridge",
+      "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null
+    },
+    {
+      "name": "rm26-worker-1-simulator",
+      "image": "sha256:ee7a7980b3ed9f659584bc7799327baec476721939d58be2f74fccd758efd673",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null
+    }
+  ],
+  "published_image_unchanged": true,
+  "limitations": [
+    "Candidate image is local; release/dependencies.json continues to describe the published E1.",
+    "CPU exceeds 40-second cost goal.",
+    "Image equivalence across rendering backends is not certified."
+  ],
+  "verified_source_commit": "f8d66244cc2944214114170091216033ec1488b5"
+}
