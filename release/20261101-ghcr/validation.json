@@ -1,0 +1,63 @@
+{
+  "release": "26-11-01",
+  "bootstrap_run": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/actions/runs/41272191295",
+  "published_images": [
+    {
+      "local": "sp_vision_dev:2024.6.0",
+      "repository": "ghcr.io/kunlun-aperture/rm26-development",
+      "image_id": "sha256:29befeb0a1d4221f11212b5a1c5804c602715115714a9d97b3a92c50e17c787f",
+      "manifest_id": "sha256:a4f190aa0e916cc8d12cd5a72861e4d2b3e90346429d5f618c43ec8d88114917",
+      "config_id": "sha256:8c7c7d46943e8d05ddfddd93f27dc1b006948a7a91c1c31cc0b45175b433839e",
+      "reference": "ghcr.io/kunlun-aperture/rm26-development@sha256:29befeb0a1d4221f11212b5a1c5804c602715115714a9d97b3a92c50e17c787f"
+    },
+    {
+      "local": "daedalus:rm26-algorithm",
+      "repository": "ghcr.io/kunlun-aperture/rm26-algorithm",
+      "image_id": "sha256:88aaedf09af730079203463dbcd29cd8a2c3c1022bf05fdda66b24e3b76b416f",
+      "manifest_id": "sha256:f20ea49d2ada511fbf3c3a07f24b8ec2d7477101e1e8e8b052018cc32f5e7f69",
+      "config_id": "sha256:7b7da6d78139d619a879ba46ae064c8a33bdc784b9a47d516213ed692486754c",
+      "reference": "ghcr.io/kunlun-aperture/rm26-algorithm@sha256:88aaedf09af730079203463dbcd29cd8a2c3c1022bf05fdda66b24e3b76b416f"
+    },
+    {
+      "local": "daedalus:rm26-input-contract-v2",
+      "repository": "ghcr.io/kunlun-aperture/rm26-input",
+      "image_id": "sha256:f9a10aa9e19766c6fefd7a062fb64f538b7941635c299351deec566ae66ed75a",
+      "manifest_id": "sha256:6d667c480b3ab75c389eeab2dac3d70e6e0a7a051d20cc1b7dfe0b8ca728ea9b",
+      "config_id": "sha256:77294bb9dc8ff1390b8dd4b8235770f20bc325dbe1ae14a9317acc94130ac1b4",
+      "reference": "ghcr.io/kunlun-aperture/rm26-input@sha256:f9a10aa9e19766c6fefd7a062fb64f538b7941635c299351deec566ae66ed75a"
+    },
+    {
+      "local": "daedalus:rm26-evaluator-input-contract-v2",
+      "repository": "ghcr.io/kunlun-aperture/rm26-evaluator",
+      "image_id": "sha256:46b336a16db9b3fa5d4a12eaf713e665aee332736a2f716b6092fc5977be700f",
+      "manifest_id": "sha256:75aeda27404bce62210633149110dfebd8d273833a73eca30867e45c59e33bdd",
+      "config_id": "sha256:3861ebe3be129c3e219cb94e7902204fb5d9fff0d1e95c1419274ef6fe9195e0",
+      "reference": "ghcr.io/kunlun-aperture/rm26-evaluator@sha256:46b336a16db9b3fa5d4a12eaf713e665aee332736a2f716b6092fc5977be700f"
+    },
+    {
+      "local": "daedalus:rm26-reference-yaw-corrected-20261029",
+      "repository": "ghcr.io/kunlun-aperture/rm26-simulator",
+      "image_id": "sha256:370746accca944e39ef52785a5791c5b3b36cf5a7b8bba66128bc90b7019aa43",
+      "manifest_id": "sha256:632b0a9f20c0e9893385acaa2904f623ac634f7f5af76b87d596e5f434a3253b",
+      "config_id": "sha256:c8a28e2d0eb9b63ff7d3cf2074179206e868d2c0b0de8da33bb5ebc4587df303",
+      "reference": "ghcr.io/kunlun-aperture/rm26-simulator@sha256:370746accca944e39ef52785a5791c5b3b36cf5a7b8bba66128bc90b7019aa43"
+    }
+  ],
+  "archive_sha256": "0d95f38a00bdc65c6a0cc0b73b34e538b45ca876827cb0c921b320a5949683f0",
+  "checks": {
+    "archive_parts_uploaded": true,
+    "hosted_archive_checksum": true,
+    "registry_publish": true,
+    "index_digests_preserved": true,
+    "local_image_identity": true,
+    "registry_tool_tests": 11,
+    "actionlint": true
+  },
+  "pending": [
+    "GHCR package visibility Public",
+    "anonymous full-layer download",
+    "release dependencies.json attachment",
+    "pull request review and merge"
+  ],
+  "empty_machine_gpu_certified": false
+}

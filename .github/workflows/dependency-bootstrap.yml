@@ -1,10 +1,6 @@
 name: 首批依赖镜像迁移
 on:
   workflow_dispatch:
-  # 首次迁移完成后移除此临时分支触发条件。
-  push:
-    branches: [feat/ghcr-release]
-    paths: [release/dependencies-bootstrap.json]
 permissions:
   contents: read
 concurrency:

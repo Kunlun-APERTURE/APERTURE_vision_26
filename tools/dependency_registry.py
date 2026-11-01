@@ -54,7 +54,7 @@ def load(path, require_reference=True):
         names.add(local)
         repositories.add(repository)
         if not all(DIGEST.fullmatch(entry[key]) for key in ('image_id', 'manifest_id', 'config_id')):
-            raise ValueError('镜像配置身份无效')
+            raise ValueError('镜像索引、平台清单或配置身份无效')
         reference = entry.get('reference', '')
         if require_reference or reference:
             prefix = repository + '@'

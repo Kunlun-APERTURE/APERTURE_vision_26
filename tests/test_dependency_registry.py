@@ -39,6 +39,23 @@ class RegistryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 registry.release_tag(invalid)
 
+    @patch.object(registry, 'inspect_manifest', return_value=RAW)
+    def test_source_index_must_match_exact_bytes(self, inspect):
+        registry.verify_source(ENTRY, 'oci-archive:bundle.tar:2024.6.0')
+        inspect.return_value = RAW + ' '
+        with self.assertRaises(ValueError):
+            registry.verify_source(ENTRY, 'oci-archive:bundle.tar:2024.6.0')
+
+    @patch.object(registry, 'run')
+    def test_local_identity_supports_classic_and_containerd_docker(self, run):
+        entry = dict(ENTRY, manifest_id='sha256:' + 'c' * 64, config_id='sha256:' + 'd' * 64)
+        for identity in (entry['image_id'], entry['manifest_id'], entry['config_id']):
+            run.return_value = json.dumps([dict(Id=identity, Os='linux', Architecture='amd64')])
+            registry.check_local(entry, entry['local'])
+        run.return_value = json.dumps([dict(Id=ID, Os='linux', Architecture='arm64')])
+        with self.assertRaises(ValueError):
+            registry.check_local(entry, entry['local'])
+
     @patch.object(registry.subprocess, 'run')
     @patch.object(registry, 'run')
     def test_pull_checks_identity_before_changing_local_alias(self, run, command):
