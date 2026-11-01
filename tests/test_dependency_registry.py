@@ -35,9 +35,35 @@ class RegistryTests(unittest.TestCase):
 
     def test_date_tag(self):
         self.assertEqual(registry.release_tag('26-11-01'), '26-11-01')
+        self.assertEqual(registry.image_tag('26-11-01'), '26-11-1')
+        self.assertEqual(registry.image_tag('26-11-1'), '26-11-1')
         for invalid in ('latest', '26-02-30', '2026-11-01', '../tag'):
             with self.assertRaises(ValueError):
                 registry.release_tag(invalid)
+
+    def test_unified_manifest_requires_one_image(self):
+        repo = 'ghcr.io/kunlun-aperture/aperture_vision'
+        entry = dict(ENTRY, local='aperture_vision:26-11-1', repository=repo, reference=repo+'@'+ID)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/'dependencies.json'
+            data = dict(DATA, version=3, images=[entry])
+            path.write_text(json.dumps(data))
+            self.assertEqual(registry.load(path), data)
+            path.write_text(json.dumps(dict(data, images=[entry, ENTRY])))
+            with self.assertRaises(ValueError):
+                registry.load(path)
+
+    @patch.object(registry, 'ROOT')
+    @patch.object(registry.subprocess, 'run')
+    def test_unaccepted_unified_image_cannot_be_published(self, command, root):
+        with tempfile.TemporaryDirectory() as temporary:
+            proof = Path(temporary)/'validation.json'
+            proof.write_text(json.dumps(dict(passed=False, image_id=ID)))
+            data = dict(DATA, version=3, acceptance=dict(path='validation.json', sha256=registry.sha(proof)))
+            with patch.object(registry, 'ROOT', Path(temporary)):
+                with self.assertRaises(ValueError):
+                    registry.publish(data, '26-11-1', Path(temporary)/'out.json')
+            command.assert_not_called()
 
     @patch.object(registry, 'inspect_manifest', return_value=RAW)
     def test_source_index_must_match_exact_bytes(self, inspect):
@@ -45,6 +71,23 @@ class RegistryTests(unittest.TestCase):
         inspect.return_value = RAW + ' '
         with self.assertRaises(ValueError):
             registry.verify_source(ENTRY, 'oci-archive:bundle.tar:2024.6.0')
+
+    @patch.object(registry, 'verify_source')
+    @patch.object(registry, 'existing_reference', return_value=ENTRY['reference'])
+    @patch.object(registry, 'run')
+    def test_release_sources_use_target_tag_instead_of_workflow_head(self, run, existing, verify):
+        target='c'*40
+        run.side_effect=lambda args: target if args[1]=='rev-parse' else '160000 commit '+'d'*40+' submodule'
+        with tempfile.TemporaryDirectory() as temporary:
+            proof=Path(temporary)/'validation.json'
+            proof.write_text(json.dumps(dict(passed=True,image_id=ID)))
+            data=dict(DATA,version=3,acceptance=dict(path='validation.json',sha256=registry.sha(proof)))
+            output=Path(temporary)/'published.json'
+            with patch.object(registry,'ROOT',Path(temporary)):
+                registry.publish(data,'26-11-1',output)
+            result=json.loads(output.read_text())
+            self.assertEqual(result['release_sources']['main'],target)
+            run.assert_any_call(['git','rev-parse','26-11-1^{commit}'])
 
     @patch.object(registry, 'run')
     def test_local_identity_supports_classic_and_containerd_docker(self, run):

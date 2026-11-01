@@ -4,41 +4,43 @@
 
 ## 依赖包分发
 
-实际取得位置由 [快速开始](QUICKSTART.md#获取依赖包) 统一维护。包有 images.tar 与 manifest.json，分发前核验：
+实际获取位置统一在 [快速开始](QUICKSTART.md#获取依赖包) 维护。当前只导出清单中的一个统一镜像，使用新目录：
 
 ```bash
-python3 tools/dependency_bundle.py check exports/team-dependencies-20261031
+python3 tools/dependency_bundle.py export exports/aperture-new
+python3 tools/dependency_bundle.py check exports/aperture-new
 ```
 
-重新导出需新目录，避免覆盖已有归档：
-
-```bash
-python3 tools/dependency_bundle.py export exports/team-dependencies-new
-```
-
-当前镜像包括构建基础、算法运行、输入链路、评分和修正云台镜像。归档及 manifest 必须一起分发，镜像 digest 不是下载地址。新分发位置确定后只修改快速开始中的来源表。导出/同机导入已验，完整新系统安装未验。
+导出的 `images.tar` 和 `manifest.json` 必须一起交付。历史离线包的 import/check 仍兼容原清单，不修改历史镜像或实验记录。
 
 ## 镜像自动发布
 
-镜像目录由 [依赖清单](../release/dependencies.json) 统一记录。本地名称兼容现有 CLI，reference 固定 GHCR digest，image_id 固定 OCI 索引，manifest_id 和 config_id 兼容不同 Docker 版本报告的本地身份。更新依赖时先完成构建与实验验收，再更新清单；源码或文档发版可以复用同一组镜像。
+[依赖清单](../release/dependencies.json) 的 version=3 只允许一个包 `ghcr.io/kunlun-aperture/aperture_vision`，固定 OCI 索引 digest、平台 manifest 和配置身份，兼容不同 Docker 存储后端。build_sources 记录镜像来源，acceptance 固定对应验收报告的 SHA256。验收失败、报告被改动或镜像身份不符时禁止发布。
 
-[发布工作流](../.github/workflows/dependency-release.yml) 在 Release 发布时触发，镜像标签与 Release 日期一致，例如 `26-11-01`。工作流检出该标签，校验全部来源，复制到本版本标签，匿名下载验证全部镜像层后，才向 Release 附加 `dependencies.json`。不重新编译算法，也不替代 GPU 实验验收。
+[发布工作流](../.github/workflows/dependency-release.yml) 在 Release 发布时触发。标签使用 `26-11-1` 形式，旧的 `26-11-01` Release 名也可读取，镜像日期会去掉月份和日期的前导零。工作流从固定 digest 复制已验收镜像，保留所有层与证明，验证匿名下载后附加 `aperture-dependencies.json`。文件同时记录镜像构建来源和本次 Release 的主仓库、两个子仓库提交。
 
-工作流只申请镜像写权限和 Release 附件写权限，使用临时 GITHUB_TOKEN；队员拉取公开镜像无需登录。同一日期标签已指向其他镜像时直接失败，不覆盖；相同内容允许重试。已有 Release 清单内容不同时也拒绝覆盖。
+文档或算法源码改动不要求重新构建环境。依赖和平台程序没变时，新日期标签引用原镜像 digest。需要更新镜像时，先重新构建，完成组件测试和全服务同镜像闭环验收，再更新依赖清单与验收记录。Rust 上游现有失败必须明确记录并检查是否新增，不能宣称全部单测通过。
 
-首次迁移使用 [迁移工作流](../.github/workflows/dependency-bootstrap.yml)：从 `26-11-01` 的离线附件分片重组归档，核对分片与完整 SHA256，再推送已验收镜像。迁移清单在 [dependencies-bootstrap.json](../release/dependencies-bootstrap.json)。OCI 索引和 digest 全程保留，后续发版直接从 GHCR 复制。
+统一环境构建命令：
 
-GHCR 包首次创建默认私有。维护者需在组织 Packages 页面将五个包设置为 Public，确认关联本仓库，并允许本仓库的 Actions 写入。公开下载未验证通过前，快速开始继续使用离线包，不把 GHCR 视作可用来源。
+```bash
+docker build --network host --progress plain \
+  --file docker/auto_aim/Unified.Dockerfile --tag aperture_vision:26-11-1 .
+```
 
-失败先查看“发布依赖镜像”日志。修复网络或包访问设置后，从 Actions 页面手动运行，输入同一 Release 日期即可；无需移动 Git 标签或重新发布 Release。首次发布前的旧标签缺少发布工具，应通过迁移工作流处理，不使用常规重试入口。
+维护构建需已有原 OpenVINO 开发镜像、修正云台模拟器镜像及 `rust:1.98-slim-bookworm`。前两者来自旧 Release 离线包，Rust 来源为 Docker Hub 官方 rust 镜像；日常开发者只需取得最终统一镜像。构建源码、基础镜像身份及兼容验证见 [统一镜像验收](../release/20261101-unified/README.md)。
 
-本地已安装 Skopeo 的维护者可验证匿名下载：
+[首次发布工作流](../.github/workflows/dependency-bootstrap.yml) 从 `26-11-01` 附件取得已验收的统一归档，核对归档 SHA256 后推送同一包。来源清单是 [unified-bootstrap.json](../release/unified-bootstrap.json)。历史五包迁移信息保存在 release/20261101-ghcr，不再用于当前发布。
+
+GitHub Actions 使用临时 GITHUB_TOKEN，只申请镜像写和 Release 附件写权限。GHCR 新包首次默认私有，维护者在 Packages 中将 `aperture_vision` 设为 Public，并确认本仓库有 Actions 写权限。公开下载未通过前，快速开始使用真实可获取的离线附件。
+
+失败先看“发布依赖镜像”日志。修复网络或访问设置后，在 Actions 手动运行并输入相同 Release 日期。已有不同内容的日期标签或 Release 清单禁止覆盖；相同内容可重试。首次发布前的旧源码标签缺少工具，应通过首次发布工作流补发，不移动历史 Git 标签。
+
+本地维护者装有 Skopeo 时可验证全部层的匿名下载：
 
 ```bash
 python3 tools/dependency_registry.py verify-public --download
 ```
-
-新人只需要 Docker，在线拉取入口为 `python3 tools/dependency_registry.py pull`；仅在公开下载验收完成并更新快速开始后作为主流程使用。离线导入入口继续保留。
 
 ## 本地实验调度器
 

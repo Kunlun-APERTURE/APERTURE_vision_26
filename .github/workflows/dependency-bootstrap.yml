@@ -1,4 +1,4 @@
-name: 首批依赖镜像迁移
+name: 统一镜像首次发布
 on:
   workflow_dispatch:
 permissions:
@@ -19,27 +19,28 @@ jobs:
       - name: 检出迁移工具
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: 安装镜像复制工具
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends skopeo
       - name: 下载并校验首批离线包
-        run: python3 tools/dependency_registry.py bootstrap --manifest release/dependencies-bootstrap.json --output exports/images.tar
+        run: python3 tools/dependency_registry.py bootstrap --manifest release/unified-bootstrap.json --output exports/images.tar
       - name: 登录组织镜像仓库
         run: printf '%s' "$GH_TOKEN" | skopeo login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
       - name: 迁移已验收镜像
-        run: python3 tools/dependency_registry.py publish --archive exports/images.tar --tag 26-11-01 --output exports/dependencies.json
+        run: python3 tools/dependency_registry.py publish --archive exports/images.tar --tag 26-11-01 --output exports/aperture-dependencies.json
       - name: 保存首批镜像清单
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependency-bootstrap-${{ github.run_id }}
-          path: exports/dependencies.json
+          path: exports/aperture-dependencies.json
           if-no-files-found: ignore
           retention-days: 30
       - name: 验证匿名下载
-        run: python3 tools/dependency_registry.py verify-public --manifest exports/dependencies.json --download
+        run: python3 tools/dependency_registry.py verify-public --manifest exports/aperture-dependencies.json --download
       - name: 附加首批镜像清单
-        run: python3 tools/dependency_registry.py attach --manifest exports/dependencies.json
+        run: python3 tools/dependency_registry.py attach --manifest exports/aperture-dependencies.json
       - name: 退出镜像仓库
         if: always()
         run: skopeo logout ghcr.io || true

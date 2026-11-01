@@ -101,7 +101,7 @@ class Worker:
             'FASTRTPS_DEFAULT_PROFILES_FILE':'/opt/rm26/fastdds-udp.xml',
             'FASTDDS_DEFAULT_PROFILES_FILE':'/opt/rm26/fastdds-udp.xml'}
         volumes = [str(self.source_ops)+':/opt/rm26:ro',str(self.RUNTIME)+':/run/rm26-sim']
-        simulator = dict(common, image=self.IMAGE, container_name=self.SIMULATOR,
+        simulator = dict(common, image=self.IMAGE, container_name=self.SIMULATOR, working_dir='/app',
             environment=dict(ros, WGPU_BACKEND='vulkan', HOME='/tmp/daedalus-home',
                 XDG_RUNTIME_DIR='/tmp/daedalus-runtime',
                 NVIDIA_DRIVER_CAPABILITIES='graphics,utility,compute',

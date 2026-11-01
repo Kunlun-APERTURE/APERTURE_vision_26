@@ -1,0 +1,16 @@
+{
+  "release": "26-11-01",
+  "archive_sha256": "0d95f38a00bdc65c6a0cc0b73b34e538b45ca876827cb0c921b320a5949683f0",
+  "parts": [
+    {
+      "name": "dependencies.tar.part1",
+      "sha256": "ae13340e6e4b5a3d0bdf68679ba61dc1bfad9da2ad03a5b0fb31697f52944bf4",
+      "size": 1610612736
+    },
+    {
+      "name": "dependencies.tar.part2",
+      "sha256": "1adc780ac1d3e3f1c2bf3b11fdcc51159d647829cd34d75c7a4ff672bb83b601",
+      "size": 1489942528
+    }
+  ]
+}

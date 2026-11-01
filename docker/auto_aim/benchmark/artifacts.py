@@ -77,6 +77,8 @@ def freeze(identifier,environment,adapter,artifact):
         proof=Path(artifact).resolve().parent.parent/'build-provenance.json'
         if proof.exists() and json.loads(proof.read_text())!=description:raise ValueError('B1 source or configuration differs from build provenance; rebuild')
     if description.get('image'):images['algorithm']=description['image']
+    if description.get('runtime_image'):
+        images=dict.fromkeys(('simulator','evaluator','algorithm'),description['runtime_image'])
     bundle=jobs.freeze(identifier,environment.gimbal_dynamics,algorithm_binary=artifact,image_tags=images)
     meta=json.loads((bundle/'bundle.json').read_text())
     target=bundle/'sp_vision_25/configs/simulator.yaml';target.unlink();shutil.copy2(config,target)

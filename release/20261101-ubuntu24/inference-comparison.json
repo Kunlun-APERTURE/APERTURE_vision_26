@@ -1,0 +1,23 @@
+[
+  {
+    "output": "tiny_resnet.onnx:0",
+    "shape": [
+      1,
+      9
+    ],
+    "exact": true,
+    "max_absolute_error": 0.0,
+    "close": true
+  },
+  {
+    "output": "yolov5.xml:0",
+    "shape": [
+      1,
+      25200,
+      22
+    ],
+    "exact": true,
+    "max_absolute_error": 0.0,
+    "close": true
+  }
+]

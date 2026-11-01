@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 已存在的 Release 日期标签，例如 26-11-01
+        description: 已存在的 Release 日期标签，例如 26-11-1
         required: true
         type: string
 permissions:
@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
           persist-credentials: false
       - name: 检查版本与清单
         run: |
@@ -44,17 +45,17 @@ jobs:
       - name: 登录组织镜像仓库
         run: printf '%s' "$GH_TOKEN" | skopeo login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
       - name: 为本版本发布已验证依赖
-        run: python3 tools/dependency_registry.py publish --tag "$RELEASE_TAG" --output exports/dependencies.json
+        run: python3 tools/dependency_registry.py publish --tag "$RELEASE_TAG" --output exports/aperture-dependencies.json
       - name: 验证公开下载
-        run: python3 tools/dependency_registry.py verify-public --manifest exports/dependencies.json --download
+        run: python3 tools/dependency_registry.py verify-public --manifest exports/aperture-dependencies.json --download
       - name: 附加固定版本清单
-        run: python3 tools/dependency_registry.py attach --manifest exports/dependencies.json
+        run: python3 tools/dependency_registry.py attach --manifest exports/aperture-dependencies.json
       - name: 保存发布诊断
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependencies-${{ github.run_id }}
-          path: exports/dependencies.json
+          path: exports/aperture-dependencies.json
           if-no-files-found: ignore
           retention-days: 30
       - name: 退出镜像仓库

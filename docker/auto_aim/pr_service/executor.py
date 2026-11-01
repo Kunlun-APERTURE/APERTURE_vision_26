@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+from dependency_image import build_image
 
 
 class Executor:
@@ -72,7 +73,7 @@ class Executor:
             shutil.copytree(manage.OPS,source/'docker/auto_aim',ignore=shutil.ignore_patterns('.runtime','experiments','logs','__pycache__'))
             output=source/'output';output.mkdir()
             build=['docker','run','--rm','--network','none','--cap-drop','ALL','--security-opt','no-new-privileges','--label','aperture.pr='+request.key(),
-                '--user',f'{os.getuid()}:{os.getgid()}','-v',str(source/'sp_vision_25')+':/source:ro','-v',str(output)+':/work','--entrypoint','bash',self.config.get('build_image','sp_vision_dev:2024.6.0'),'-c',
+                '--user',f'{os.getuid()}:{os.getgid()}','-v',str(source/'sp_vision_25')+':/source:ro','-v',str(output)+':/work','--entrypoint','bash',self.config.get('build_image',build_image()),'-c',
                 'set -e; source /opt/intel/openvino/setupvars.sh >/dev/null; cmake -S /source -B /work/build -DBUILD_SIMULATOR_ADAPTER=ON -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=/usr/lib/x86_64-linux-gnu/cmake/opencv4; cmake --build /work/build --target sim_auto_aim -j4']
             self.command(build,log,timeout=1200)
             script=Path(__file__).with_name('harness.py')

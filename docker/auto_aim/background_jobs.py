@@ -245,7 +245,15 @@ def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None
     import experiments
     from gimbal_dynamics import simulator_image
     image_tags=image_tags or {}
-    simulator_tag=simulator_image(gimbal_dynamics,image_tags.get("simulator",manage.IMAGE))
+    requested=image_tags.get("simulator",manage.IMAGE)
+    selected=manage.inspect(requested)
+    unified=bool(selected and selected['Config'].get('Labels',{}).get('aperture.unified')=='1')
+    if unified:
+        from gimbal_dynamics import FORMULA_SHA256, MODELS
+        models=(gimbal_dynamics,) if isinstance(gimbal_dynamics,str) else tuple(gimbal_dynamics)
+        if any(model not in MODELS for model in models) or selected['Config']['Labels'].get('rm26.reference_yaw_formula_sha256')!=FORMULA_SHA256:
+            raise RuntimeError('Unified runtime yaw provenance differs')
+    simulator_tag=requested if unified else simulator_image(gimbal_dynamics,requested)
     bundle=STATE/'bundles'/job_id
     bundle.mkdir(parents=True)
     provenance=bundle/'provenance';provenance.mkdir()
@@ -278,7 +286,8 @@ def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None
             raise RuntimeError('Image changed while freezing '+tag+'; submit again')
         retained_images[key]=retained
     evaluator=manage.inspect(images['evaluator'])
-    if evaluator['Config'].get('Labels',{}).get('rm26.integration_image_id')!=manage.inspect(image_tags.get('simulator',manage.IMAGE))['Id']:
+    same_runtime=unified and len(set(images.values()))==1
+    if not same_runtime and evaluator['Config'].get('Labels',{}).get('rm26.integration_image_id')!=manage.inspect(image_tags.get('simulator',manage.IMAGE))['Id']:
         raise RuntimeError('Evaluator interfaces differ; rebuild evaluator')
     # Reject an inconsistent source snapshot if an editor saved during copying.
     for name,before in repositories.items():

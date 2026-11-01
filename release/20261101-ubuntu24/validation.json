@@ -1,0 +1,181 @@
+{
+  "passed": true,
+  "scope": "Ubuntu 24.04 algorithm build, component tests and three paired closed-loop smoke cases",
+  "images": {
+    "toolkit_source": {
+      "tag": "sp_vision_dev:2024.6.0",
+      "id": "sha256:29befeb0a1d4221f11212b5a1c5804c602715115714a9d97b3a92c50e17c787f"
+    },
+    "base": {
+      "tag": "daedalus:rm26-reference-yaw-corrected-20261029",
+      "id": "sha256:370746accca944e39ef52785a5791c5b3b36cf5a7b8bba66128bc90b7019aa43"
+    },
+    "candidate": {
+      "tag": "rm26-validation:ubuntu24-openvino2024.6",
+      "id": "sha256:879740bffffdbd6430085e6953701499db39d031a3ff97c7c843eb3f4cc8d5c3"
+    }
+  },
+  "source_commit": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476",
+  "simulator_commit": "778c0c8fba8022835eeabb3f81c4c865f588a34e",
+  "toolkit": "2024.6.0-17404-4c0f47d2335-releases/2024/6",
+  "candidate_binary_sha256": "7a3597db09e09b2bbd433e21302a52dd7258968f3ec894e6031e8631344cbc5b",
+  "build_targets": [
+    "standard",
+    "auto_aim_test",
+    "sim_auto_aim",
+    "continuity_test",
+    "robustness_test",
+    "optimization_test",
+    "motion_test",
+    "perception_test",
+    "maneuver_filter_test"
+  ],
+  "component_tests": {
+    "continuity": true,
+    "robustness": true,
+    "optimization": true,
+    "motion": 2094,
+    "perception": 94,
+    "maneuver": 4471
+  },
+  "inference_comparison": [
+    {
+      "output": "tiny_resnet.onnx:0",
+      "shape": [
+        1,
+        9
+      ],
+      "exact": true,
+      "max_absolute_error": 0.0,
+      "close": true
+    },
+    {
+      "output": "yolov5.xml:0",
+      "shape": [
+        1,
+        25200,
+        22
+      ],
+      "exact": true,
+      "max_absolute_error": 0.0,
+      "close": true
+    }
+  ],
+  "paired_cases": [
+    {
+      "scene": "hf_static_5",
+      "sensor_seed": 2026110101,
+      "reference": {
+        "shots_fired": 29,
+        "target_armor_hits": 29,
+        "weighted_hit_rate": 0.9317061108951828,
+        "weighted_hit_score_sum": 27.019477215960304,
+        "hits_per_s": 4.833333333333333
+      },
+      "candidate": {
+        "shots_fired": 29,
+        "target_armor_hits": 29,
+        "weighted_hit_rate": 0.9317061108951828,
+        "weighted_hit_score_sum": 27.019477215960304,
+        "hits_per_s": 4.833333333333333
+      },
+      "metrics_equal": true,
+      "runs": [
+        {
+          "run_id": "20261101T052842_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6d8a7479",
+          "evidence_valid": true,
+          "within_cost_budget": true
+        },
+        {
+          "run_id": "20261101T052951_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_1f9ef1a8",
+          "evidence_valid": true,
+          "within_cost_budget": true
+        }
+      ]
+    },
+    {
+      "scene": "hf_uniform_3",
+      "sensor_seed": 2026110101,
+      "reference": {
+        "shots_fired": 17,
+        "target_armor_hits": 15,
+        "weighted_hit_rate": 0.4486302987409979,
+        "weighted_hit_score_sum": 7.626715078596964,
+        "hits_per_s": 3.0
+      },
+      "candidate": {
+        "shots_fired": 17,
+        "target_armor_hits": 15,
+        "weighted_hit_rate": 0.4486302987409979,
+        "weighted_hit_score_sum": 7.626715078596964,
+        "hits_per_s": 3.0
+      },
+      "metrics_equal": true,
+      "runs": [
+        {
+          "run_id": "20261101T052902_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_29921471",
+          "evidence_valid": true,
+          "within_cost_budget": true
+        },
+        {
+          "run_id": "20261101T053011_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_034179a0",
+          "evidence_valid": true,
+          "within_cost_budget": true
+        }
+      ]
+    },
+    {
+      "scene": "hf_spin_pos",
+      "sensor_seed": 2026110101,
+      "reference": {
+        "shots_fired": 21,
+        "target_armor_hits": 20,
+        "weighted_hit_rate": 0.7090787292162147,
+        "weighted_hit_score_sum": 14.89065331354051,
+        "hits_per_s": 3.3333333333333335
+      },
+      "candidate": {
+        "shots_fired": 21,
+        "target_armor_hits": 20,
+        "weighted_hit_rate": 0.7090787292162147,
+        "weighted_hit_score_sum": 14.89065331354051,
+        "hits_per_s": 3.3333333333333335
+      },
+      "metrics_equal": true,
+      "runs": [
+        {
+          "run_id": "20261101T052924_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_d92e77cf",
+          "evidence_valid": true,
+          "within_cost_budget": true
+        },
+        {
+          "run_id": "20261101T053032_hf_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_5af1660e",
+          "evidence_valid": true,
+          "within_cost_budget": true
+        }
+      ]
+    }
+  ],
+  "execution": {
+    "reference": {
+      "complete": true,
+      "all_evidence_valid": true,
+      "within_cost_budget": true
+    },
+    "candidate": {
+      "complete": true,
+      "all_evidence_valid": true,
+      "within_cost_budget": true
+    }
+  },
+  "comparison_eligible": true,
+  "artifacts": {
+    "dockerfile_sha256": "be2a4f269136d1206de518ed5c77613274d18507ff1bd817cbe75f1814ac0833",
+    "component_script_sha256": "b7bbfd51c2871eab86ce92bc83471ec15369ad895427cadad159ebe9f0eb0e49"
+  },
+  "limitations": [
+    "Single sensor seed and three smoke cases; not full benchmark qualification",
+    "Simulator, bridge and evaluator use existing accepted images; a complete single-image deployment is not yet tested",
+    "CPU inference tested; no Intel GPU/NPU inference qualification"
+  ]
+}

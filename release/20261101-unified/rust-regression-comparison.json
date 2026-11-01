@@ -1,0 +1,34 @@
+[
+  {
+    "environment": "rust-tests-direct.log",
+    "summary": "test result: FAILED. 283 passed; 10 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+    "failures": [
+      "capture::effect::tests::a_missing_capture_setup_degrades_to_a_no_op",
+      "capture::effect::tests::f7_switches_the_preview_between_the_simulated_and_the_clean_image",
+      "capture::effect::tests::the_config_picks_the_starting_side_of_the_toggle",
+      "capture::effect::tests::the_layer_follows_the_config_and_the_grain_seed_moves",
+      "capture::effect::tests::the_layer_only_ever_lands_on_the_capture_camera",
+      "capture::effect::tests::the_toggle_is_ignored_while_the_layer_is_switched_off",
+      "config::tests::shipped_config_publishes_compressed_only",
+      "robomaster::armor::common::tests::debug_sequence_and_indexes_keep_legacy_order",
+      "robomaster::armor::common::tests::sticker_slot_tables_keep_asset_suffixes",
+      "robomaster::common::tests::robot_configs_preserve_legacy_armor_values"
+    ]
+  },
+  {
+    "environment": "rust-tests-reference.log",
+    "summary": "test result: FAILED. 283 passed; 10 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+    "failures": [
+      "capture::effect::tests::a_missing_capture_setup_degrades_to_a_no_op",
+      "capture::effect::tests::f7_switches_the_preview_between_the_simulated_and_the_clean_image",
+      "capture::effect::tests::the_config_picks_the_starting_side_of_the_toggle",
+      "capture::effect::tests::the_layer_follows_the_config_and_the_grain_seed_moves",
+      "capture::effect::tests::the_layer_only_ever_lands_on_the_capture_camera",
+      "capture::effect::tests::the_toggle_is_ignored_while_the_layer_is_switched_off",
+      "config::tests::shipped_config_publishes_compressed_only",
+      "robomaster::armor::common::tests::debug_sequence_and_indexes_keep_legacy_order",
+      "robomaster::armor::common::tests::sticker_slot_tables_keep_asset_suffixes",
+      "robomaster::common::tests::robot_configs_preserve_legacy_armor_values"
+    ]
+  }
+]

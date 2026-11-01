@@ -27,32 +27,29 @@ git submodule update --init --recursive
 
 ## 获取依赖包
 
-clone 不包含依赖镜像。当前可用来源是 [26-11-01 Release 附件](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01)，下载以下三个文件到主仓库 `exports/team-dependencies/`。GHCR 已完成上传，公开下载仍待验收，暂不作为新人主流程。
+所有开发与实验角色共用一个 Ubuntu 24.04 镜像：`ghcr.io/kunlun-aperture/aperture_vision:26-11-1`，包含 OpenVINO 2024.6、C++ 与 Rust 工具链、模拟器和评分依赖。包名必须小写，项目显示名称为 APERTURE_vision。clone 不包含镜像。
 
-|位置／文件|说明|
-|---|---|
-|`dependencies.tar.part1`|归档第一部分，约1.5GiB|
-|`dependencies.tar.part2`|归档第二部分，约1.4GiB|
-|`manifest.json`|镜像身份及完整归档 SHA256|
-
-网络无法下载时，向维护者索取工作站 `/home/rm/rm26/exports/team-dependencies-20261031/` 中的 `images.tar` 和 `manifest.json`，通过团队文件渠道或移动硬盘交付。拿不到完整文件时停在此步，不假定本机已有镜像。镜像包维护见 [运维指南](OPERATIONS.md#依赖包分发)。
-
-下载 Release 分片后，从根目录合并为归档（直接取得完整 `images.tar` 时跳过合并）：
+公开镜像已通过匿名拉取与身份校验，从根目录执行：
 
 ```bash
-cat exports/team-dependencies/dependencies.tar.part1 exports/team-dependencies/dependencies.tar.part2 > exports/team-dependencies/images.tar
-```
-
-确认 `images.tar` 与 `manifest.json` 均在该目录，执行：
-
-```bash
-python3 tools/dependency_bundle.py import exports/team-dependencies
-python3 tools/dependency_bundle.py check exports/team-dependencies
+python3 tools/dependency_registry.py pull
+python3 tools/dependency_registry.py check
 python3 tools/development.py doctor
-docker run --rm --gpus all --entrypoint nvidia-smi daedalus:rm26-algorithm
+docker run --rm --gpus all aperture_vision:26-11-1 nvidia-smi
 ```
 
-import 校验、加载并检查镜像；doctor 只检查已有工具，不安装依赖。最后一条检查容器 GPU。`exports/` 不提交 Git。
+pull 按仓库清单固定的 digest 下载，并恢复本地镜像名，不需要 GitHub 登录。doctor 只检查已有工具，不安装宿主机驱动、Docker 或 NVIDIA Container Toolkit。
+
+无法访问 GHCR 时，从 [26-11-01 Release 附件](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01) 下载 `aperture_vision-26-11-1.tar`（约1.48GB）和 `aperture-offline.json`，分别放为主仓库 `exports/aperture/images.tar` 和 `exports/aperture/manifest.json`：
+
+```bash
+python3 tools/dependency_bundle.py import exports/aperture
+python3 tools/dependency_registry.py check
+```
+
+import 校验完整归档 SHA256 和镜像身份。拿不到完整归档和清单时先联系维护者，不假定本机已有依赖。工作站原件为 `/home/rm/rm26/exports/unified-20261101/`，镜像发布与分发维护见 [运维指南](OPERATIONS.md#镜像自动发布)。
+
+使用历史 Release 时按其对应文档操作，旧五镜像离线包继续保留。`exports/` 不提交 Git。
 
 ## 构建与首次实验
 

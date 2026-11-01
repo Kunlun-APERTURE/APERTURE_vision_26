@@ -25,7 +25,8 @@ DESKTOP = ROOT / 'docker/sunshine/home'
 DESKTOP_CONTAINER = 'sp_vision_sunshine'
 SIMULATOR = 'vision_simulator_26'
 BRIDGE = 'sp_vision_ros_bridge'
-IMAGE = 'daedalus:rm26-integration'
+from dependency_image import unified_image
+IMAGE = unified_image() or 'daedalus:rm26-integration'
 ALGORITHM_PROFILES = ('legacy','tracking_v2','tracking_fire_v2','tracking_v3','tracking_fire_v3','tracking_fire_v4m','tracking_fire_v4mt','tracking_fire_v4mtr')
 from gimbal_dynamics import MODELS as GIMBAL_DYNAMICS, simulator_image
 GIMBAL_PROFILES = ('legacy','timing','feedforward','combined')
@@ -59,6 +60,10 @@ def inspect(name):
 
 def compose(*args, capture=False):
     env = os.environ.copy()
+    if unified_image():
+        env.setdefault('RM26_SIMULATOR_IMAGE',unified_image())
+        env.setdefault('RM26_BRIDGE_IMAGE',unified_image())
+        env.setdefault('RM26_EVALUATOR_IMAGE',unified_image())
     env['RM26_RUN_UID'] = str(os.getuid())
     env['RM26_RUN_GID'] = str(os.getgid())
     evaluator = inspect('daedalus:rm26-evaluator')
