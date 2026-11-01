@@ -10,7 +10,7 @@
 
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-08669C) ![Rust](https://img.shields.io/badge/Rust-Bevy-062538) ![ROS 2](https://img.shields.io/badge/ROS_2-Jazzy-22314E) ![OpenVINO](https://img.shields.io/badge/Inference-OpenVINO-098ED5)
 
-[快速开始](#快速开始) · [效果展示](#效果展示) · [系统架构](#系统架构) · [开发文档](#开发文档)
+[快速开始](#快速开始) · [效果展示](#效果展示) · [系统架构](#系统架构) · [开发文档](#使用与开发文档)
 
 </div>
 
@@ -53,45 +53,11 @@ flowchart LR
 
 ## 快速开始
 
-### 1. 获取项目
+支持 **Ubuntu 24.04 x86_64＋NVIDIA GPU＋Docker**，后台实验无需 Sunshine 或显示器。无 GPU 可运行自动测试。
 
-```bash
-git clone --recurse-submodules https://github.com/Kunlun-APERTURE/APERTURE_vision_26.git
-cd APERTURE_vision_26
-python3 tools/check-workspace.py
-```
+请按 [新人快速开始](docs/QUICKSTART.md) 获取源码、导入依赖、构建并完成首轮实验。**依赖包由维护者从工作站分发，目前没有公开下载地址**，实际来源、所需文件及交付限制见快速开始。
 
-已有主仓库可执行 `git submodule update --init --recursive`，取得主仓库指定的源码版本。
-
-### 2. 准备环境
-
-|模块|主要环境|
-|---|---|
-|视觉算法|C++17、OpenCV、Eigen、OpenVINO|
-|模拟器|Rust、Bevy、ROS 2 Jazzy；集成构建启用 `ros2 bench`|
-|实验平台|Python 3、Docker Compose / Buildx、NVIDIA GPU 与容器支持|
-|当前 UI 部署|Sunshine 桌面与显示会话|
-
-首次使用请按[部署说明](docs/DEPLOYMENT.md)准备依赖环境和镜像。当前启动脚本对接已有工作站，克隆源码后还需完成环境配置。
-
-### 3. 运行与检查
-
-在已配置的工作站上：
-
-```bash
-./sim.sh status
-./sim.sh start --scene static --control off --fire off
-./sim.sh control on
-./sim.sh stop
-```
-
-启动默认关闭控制和开火；上述示例只开启跟踪控制。后台射击实验的完整命令见[实验操作](docker/auto_aim/README.md)，也可以先查看可选场景：
-
-```bash
-./sim.sh experiment suite --tier advanced --cases variable,turn04 --list
-```
-
-构建与组件测试见[可用性自检](docs/CHECKS.md)。
+本地验证后按 [贡献指南](CONTRIBUTING.md) 提交 PR，独立审查者批准后由工作站回传实验成绩和日志。
 
 ## 项目结构
 
@@ -117,32 +83,25 @@ APERTURE_vision_26/
 
 两个 submodule 保留各自历史和构建方式，主仓库记录经选择的提交版本。更新及提交顺序见[协作指南](docs/SUBMODULES.md)。
 
-## 开发方向
+## 使用与开发文档
 
-- 完善高速移动、旋转和变向工况下的估计与预测。
-- 核对枪口瞬时速度、旋转装甲接触和物理步长收敛。
-- 对齐云台响应、底盘运动、成像和通信时序的实测特征。
-- 完善环境分发与实车适配，降低团队复现实验的成本。
-
-当前能力、模型假设及待解决问题集中记录在[阶段状态](docs/STATUS.md)。
-
-## 开发文档
-
-|主题|文档|
+|任务|入口|
 |---|---|
-|环境与部署|[部署说明](docs/DEPLOYMENT.md)|
-|构建与自检|[可用性检查](docs/CHECKS.md)|
-|仓库协作|[Submodule 指南](docs/SUBMODULES.md)|
-|模块职责与数据流|[接口边界](docs/INTERFACES.md)|
-|实验操作与后台队列|[运行入口](docker/auto_aim/README.md) · [任务与证据](docker/auto_aim/THROUGHPUT.md)|
-|测试场景|[基础与进阶分档](docker/auto_aim/MOVEMENT_TIERS.md)|
-|团队视觉审查|[视频验收](docker/auto_aim/REVIEW_VIDEO.md)|
-|当前进度|[阶段状态](docs/STATUS.md)|
+|安装并完成第一次实验|[新人快速开始](docs/QUICKSTART.md)|
+|选择场景、查看分数、比较结果|[实验指南](docs/EXPERIMENTS.md)|
+|改算法、加场景、运行测试|[开发指南](docs/DEVELOPMENT.md)|
+|提交改动并申请 PR 实验|[贡献指南](CONTRIBUTING.md)|
+|维护工作站与排查服务|[运维指南](docs/OPERATIONS.md)|
+|查阅协议与仓库职责|[接口参考](docs/INTERFACES.md)|
+
+## 使用边界
+
+已有本地闭环、独立算法接入和真实 PR 批准→实验→回传→清理验证。完整空机器安装尚未验收，当前 PR 服务主要评估算法 submodule 改动。
+
+车辆、云台、成像和时延尚未对当前实车完成标定。分数用于同环境算法对照，不代表实车命中率，详见 [实验指南](docs/EXPERIMENTS.md#结果的适用范围)。
 
 ## 致谢与来源
 
 视觉算法基于[同济大学 SuperPower 战队 sp_vision_25](https://github.com/TongjiSuperPower/sp_vision_25)继续开发；仿真部分基于[vision_simulator_26 / Daedalus](https://github.com/ANGJustinl/vision_simulator_26)。感谢相关开源项目及 OpenVINO、OpenCV、Eigen、Bevy、ROS 2 等工具生态的贡献者。
 
 子仓库及第三方组件的许可分别见其 LICENSE 文件：[算法 MIT 许可](https://github.com/ANGJustinl/sp_vision_25/blob/d5d012d6b5d50b9ac80a041647a9d7ba410fd476/LICENSE)、[模拟器 AGPL-3.0 许可](https://github.com/ANGJustinl/vision_simulator_26/blob/778c0c8fba8022835eeabb3f81c4c865f588a34e/LICENSE)。仓库组合不替代各组件的原许可。
-
-开发与协作：[团队本地开发](docs/DEVELOPMENT.md) · [审查触发的 PR 实验服务](docs/PR_EXPERIMENTS.md)。

@@ -1,45 +1,61 @@
-# 团队开发环境
+# 开发指南
 
-第一版支持 Ubuntu 24.04、NVIDIA 驱动与 Docker GPU runtime。无 GPU 可运行自动测试。仓库需递归克隆；算法修改在 submodule 自己的分支提交，再更新主仓库指针。
+环境、依赖包和第一次构建按 [快速开始](QUICKSTART.md)；日常实验与比较按 [实验指南](EXPERIMENTS.md)。本页只定义开发入口和扩展方法，提交流程见 [贡献指南](../CONTRIBUTING.md)。所有命令从主仓库根目录执行。
+
+## 修改算法
+
+算法核心在 `sp_vision_25/`，主仓库只负责适配、实验和评分。修改 C++ 后重新构建：
 
 ```bash
-python3 tools/development.py doctor
 python3 tools/development.py build
-./sim.sh experiment suite --tier basic --cases hf_static_5 \
-  --sensor-seeds 1 --output exports/local-static --wait
-./sim.sh experiment suite --tier advanced --cases pursuit \
-  --sensor-seeds 1 --output exports/local-pursuit --wait
 ```
 
-依赖镜像准备方法见 DEPLOYMENT.md。算法环境 Dockerfile 为 `docker/auto_aim/Algorithm.Dockerfile`，其基础镜像为 `sp_vision_dev:2024.6.0`；该基础镜像及模拟器镜像需要团队分发，当前仓库尚不能在全新机器自动取得全部依赖。`doctor` 检查已有依赖，不能替代安装。
+B1 配置在 `docker/auto_aim/benchmark/configs/B1.yaml`，其补偿参数属于仿真配置，不能直接当作实车标定。构建之后修改配置会触发来源一致性检查，应重新构建或创建独立 manifest。
 
-开发运行会保存当前源码、配置和模型记录，不要求正式发布认证。默认构建输出位于 `.runtime/benchmark/B1`，修改配置可复制 B1.yaml 并用算法 manifest 指定；实验报告记录实际配置。已有输出目录恢复需使用原参数，新的参数使用新目录。
+## 独立算法接入
 
-场景通过 Scenario 子类定义 generate/validate/difficulty；统一注册表在 benchmark/scenarios.py。新增后 CLI、后台和评分从注册表读取。ExampleStatic 展示最小场景；AlgorithmAdapter/ProcessAdapter 负责独立进程和模型资源，公共 image_v1 协议不要求 R4 的内部诊断。
+`AlgorithmAdapter` 提供 build/describe；JSON manifest 由 `ProcessAdapter` 接入独立产物。完整可运行例子：
 
 ```bash
 python3 tools/development.py example
-# 按输出命令运行独立 Python 算法和 example_static 场景。
+./sim.sh experiment suite --algorithm exports/idle-example/adapter.json --artifact docker/auto_aim/benchmark/examples/idle_algorithm.py --cases example_static --sensor-seeds 1 --output exports/example-run --wait
 ```
 
-示例算法只消费图像、返回无效控制且不开火，用于验证接口，不作为瞄准算法。
+调度器需运行，启动方法见快速开始。例子独立于 R4，只消费图像并返回无效控制，不开火；验证的是协议和新增场景链路。已有 example-run 时换新目录。
+
+|manifest 字段|说明|
+|---|---|
+|id / version|算法名称和版本|
+|protocol|`rm26-image-v1`|
+|capabilities|至少包含 simulation_clock、session_reset、fire_advice|
+|image|已准备的运行镜像|
+|binary_sha256|传入 `--artifact` 文件的 SHA256|
+|config / config_sha256|相对 manifest 的配置文件路径及校验值|
+|algorithm_profile|独立通用算法用 `image_v1`|
+|launch|启动参数数组，支持 `{port}`、`{fire}`、`{aim_origin}`、`{execution_mode}`|
+|setup|可选环境初始化命令；不需要 OpenVINO 时设为空字符串|
+|resources|可选，相对 manifest 的模型资源目录|
+
+产物在容器内统一挂载到 `/snapshot/sp_vision_25/build/simulator/sim_auto_aim`，配置为 `/snapshot/sp_vision_25/configs/simulator.yaml`，资源在 `/snapshot/sp_vision_25/assets`；`/work` 可写。名称是兼容路径，不要求算法必须用 C++。配置示例由 example 命令生成，不必手写哈希。
+
+协议细节见 [接口参考](INTERFACES.md)。必须响应会话重置，并返回 `detector_history=session`、首次会话结果的 `detector_reset=true`，以满足当前会话审计；内部跟踪／切板等诊断可以缺省。先参照 [最小算法](../docker/auto_aim/benchmark/examples/idle_algorithm.py)，再替换自己的处理逻辑。
+
+## 新增场景
+
+参照 [ExampleStatic](../docker/auto_aim/benchmark/examples/scene.py) 实现 Scenario：generate 返回脚本、时长、语义和所需阶段信息；difficulty 做事后评估。然后在 [注册表](../docker/auto_aim/benchmark/scenarios.py) 注册唯一名称，使用 `--cases 名称` 选择。当前没有自动扫描外部插件机制。
+
+轨迹由场景生成，真实速度与命中由记录评估；目标真值不应回流算法。validate 接口可供扩展，但当前没有通用 CLI 参数注入流程，新增参数需同步设计入口和测试。
+
+## 自动测试与覆盖率
+
+使用 Python 3.12 venv 安装固定测试依赖，不需要 GPU：
 
 ```bash
-uv run --no-project --with coverage python tools/test-development.py
+python3 -m venv .venv
+.venv/bin/python -m pip install coverage==7.17.0
+.venv/bin/python tools/test-development.py
 ```
 
-本地和 GitHub 使用同一入口，覆盖率报告位于 `.coverage-reports/html`。统计包含所有 benchmark/pr_service 生产模块，未覆盖的 UI、Docker 和历史迁移路径也保留在总数里。目标为语句80%、分支70%；当前未达标时必须在交付摘要明确说明，不能通过排除模块提升数字。
+CI 使用同一测试入口。报告在 `.coverage-reports/html/index.html`，门槛为语句≥80%、分支≥70%。统计包含 benchmark 和 pr_service 的生产模块；不能以总体覆盖率替代具体 Docker／GitHub 路径验收。`.venv/` 与覆盖率产物不提交。
 
-## 离线依赖交付
-
-维护者在已验工作站运行 `python3 tools/dependency_bundle.py export exports/team-dependencies`，分发目录中的 images.tar 和 manifest.json。它包含构建基础、算法运行、输入链路、评分和修正云台镜像，并记录内容校验。
-
-新 Ubuntu x86_64 工作站先安装 NVIDIA 驱动、Docker Engine 和 NVIDIA Container Toolkit，再执行：
-
-```bash
-python3 tools/dependency_bundle.py import /path/to/team-dependencies
-python3 tools/development.py doctor
-python3 tools/development.py build
-```
-
-导入与检查只验证镜像和本机运行条件。全新系统驱动安装仍需要在实际新机器验收；复用现有 Docker daemon 的测试不能被称为全新机器安装通过。
+C++ 组件的独立测试命令见 [组件检查](CHECKS.md)。增加测试优先覆盖输入协议、场景扩展、零射击、异常、取消、恢复和清理边界。

@@ -30,6 +30,20 @@ class RequestTests(unittest.TestCase):
   for body,out in [('',()),('- [x] experiment:none',()),('- [X] experiment:basic',('basic',))]:self.assertEqual(choices(body),out)
   for body in ('- [x] experiment:unknown','- [x] experiment:pressure','- [x] experiment:none\n- [x] experiment:basic'):
    with self.assertRaises(ValueError):choices(body)
+ def test_chinese_choices(self):
+  template=(Path(__file__).resolve().parents[1]/'.github/PULL_REQUEST_TEMPLATE.md').read_text()
+  self.assertEqual(choices(template),())
+  selected=template.replace('[x] 不申请','[ ] 不申请').replace('[ ] 基础实验','[X] 基础实验')
+  self.assertEqual(choices(selected),('basic',))
+  self.assertEqual(choices(selected+'\n- [x] experiment:basic'),('basic',))
+  self.assertEqual(choices('- [x] 动态追击 <!-- experiment:pursuit -->\n- [x] 压力 <!-- experiment:pressure -->'),('pressure','pursuit'))
+  for body in ('- [x] 未知 <!-- experiment:unknown -->','- [x] 压力 <!-- experiment:pressure -->',template+'\n- [x] experiment:basic'):
+   with self.assertRaises(ValueError):choices(body)
+  self.assertEqual(choices('<!-- experiment:basic -->'),())
+  self.assertEqual(choices('- [ ] 基础实验 <!-- experiment:basic -->'),())
+ def test_chinese_approval_identity(self):
+  translated=dict(pr(),body='- [x] 基础实验 <!-- experiment:basic -->')
+  self.assertEqual(authorize('team/repo',translated,review(),'write').key(),request().key())
  def test_approval(self):
   a=authorize('team/repo',pr(),review(),'write');self.assertEqual(a.key(),request().key())
   for change,rev,permission,time in [(dict(state='closed'),{},'write',None),(dict(draft=True),{},'write',None),({},dict(state='DISMISSED'),'write',None),({},dict(user={'login':'author'}),'write',None),({},dict(commit_id=BASE),'write',None),({}, {},'read',None),({}, {},'write','2026-01-03')]:

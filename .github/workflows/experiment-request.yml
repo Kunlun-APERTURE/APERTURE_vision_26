@@ -1,4 +1,4 @@
-name: Experiment request
+name: 实验申请
 on:
   pull_request_review:
     types: [submitted, dismissed]
@@ -9,14 +9,14 @@ jobs:
     if: github.event.review.state == 'approved'
     runs-on: ubuntu-24.04
     steps:
-      # No candidate checkout or code execution in this event handler.
+      # 此事件处理器不检出或执行候选代码。
       - uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const r = context.payload.review, p = context.payload.pull_request;
             const permission = await github.rest.repos.getCollaboratorPermissionLevel({...context.repo, username:r.user.login});
-            if (!['write','maintain','admin'].includes(permission.data.permission) || r.user.login===p.user.login || r.commit_id!==p.head.sha) core.setFailed('Current independent reviewer approval required');
+            if (!['write','maintain','admin'].includes(permission.data.permission) || r.user.login===p.user.login || r.commit_id!==p.head.sha) core.setFailed('需要独立审查者批准当前提交');
             else fs.writeFileSync('request.json', JSON.stringify({pr:p.number, head:p.head.sha, base:p.base.sha, review_id:r.id, body:p.body}));
       - uses: actions/upload-artifact@v4
         with:
