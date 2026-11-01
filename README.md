@@ -53,7 +53,7 @@ flowchart LR
 
 ## 快速开始
 
-支持 **Ubuntu 24.04 x86_64＋NVIDIA GPU＋Docker**，后台实验无需 Sunshine 或显示器。无 GPU 可运行自动测试。
+支持 **Ubuntu 24.04 x86_64＋Docker**。后台实验无需 Sunshine 或显示器；有 NVIDIA GPU 时自动使用硬件渲染，无可用 NVIDIA 设备时使用 CPU 软件渲染。
 
 请按 [新人快速开始](docs/QUICKSTART.md) 获取源码、导入依赖、构建并完成首轮实验。统一镜像包含 C++／Rust 开发环境和完整实验依赖，GHCR 支持匿名拉取，Release 提供离线包；实际来源和所需文件见快速开始。
 

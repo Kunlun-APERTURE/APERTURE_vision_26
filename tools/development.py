@@ -21,6 +21,9 @@ elif a.action=='example':
  shutil.copy2(root/'docker/auto_aim/benchmark/configs/B1.yaml',output/'B1.yaml');(output/'adapter.json').write_text(json.dumps(descriptor,indent=2))
  print('sim.sh experiment suite --algorithm exports/idle-example/adapter.json --artifact docker/auto_aim/benchmark/examples/idle_algorithm.py --cases example_static --sensor-seeds 1 --output exports/example-run --wait')
 else:
- for cmd in (['git','submodule','status'],['docker','version','--format','{{.Server.Version}}'],['nvidia-smi','--query-gpu=name','--format=csv,noheader']):
+ for cmd in (['git','submodule','status'],['docker','version','--format','{{.Server.Version}}']):
   r=subprocess.run(cmd,cwd=root,check=False)
   if r.returncode:raise SystemExit(r.returncode)
+ sys.path.insert(0,str(root/'docker/auto_aim'))
+ from render_backend import select
+ print('默认渲染环境：'+json.dumps(select(),ensure_ascii=False))

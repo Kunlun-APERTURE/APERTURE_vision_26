@@ -38,6 +38,8 @@ class Worker:
         self.BRIDGE = self.project+'-bridge'
         self.DESKTOP_CONTAINER = self.project+'-algorithm'
         self.metadata = load(self.bundle/'bundle.json')
+        from render_backend import frozen
+        self.renderer=frozen(self.metadata)
         self.IMAGE = self.metadata['images']['simulator']
         self.gpu_uuid=self.metadata.get('gpu_uuid')
         self.settings = dict(request['settings'])
@@ -68,7 +70,8 @@ class Worker:
     def rpc(self, op, **fields):
         body = json.dumps(dict(version=1, type='admin', op=op, **fields)).encode()
         with socket.create_connection(('127.0.0.1',self.port), timeout=2) as conn:
-            conn.settimeout(180 if self.lockstep else 12)
+            from render_backend import wall_budget
+            conn.settimeout(wall_budget(self.renderer,True) if self.lockstep else 12)
             conn.sendall(struct.pack('!II',len(body),0)+body)
             def read(n):
                 result = b''
@@ -88,14 +91,15 @@ class Worker:
 
     def definition(self):
         s = self.settings
-        available=self.run(['nvidia-smi','--query-gpu=uuid','--format=csv,noheader'],capture=True).splitlines()
-        requested=os.environ.get('RM26_BENCHMARK_GPU')
-        self.gpu_uuid=requested or (self.gpu_uuid if self.gpu_uuid in available else available[0])
-        if self.gpu_uuid not in available:raise ValueError('Requested GPU unavailable')
+        if self.renderer['backend']=='nvidia':
+            from render_backend import nvidia_devices
+            available=nvidia_devices()
+            if self.gpu_uuid not in available:raise ValueError('Frozen GPU unavailable; submit a new experiment with --renderer cpu')
         labels = {'rm26.background':'true','rm26.slot':str(self.slot),'rm26.workspace':str(self.OPS.parent.parent)}
         if os.environ.get('RM26_PR_TASK'):labels['aperture.pr']=os.environ['RM26_PR_TASK']
         common = dict(init=True, restart='no', network_mode='host', ipc='private',
             labels=labels, logging={'driver':'json-file','options':{'max-size':'20m','max-file':'2'}})
+        if self.renderer['backend']=='cpu':common['runtime']='runc'
         ros = {'ROS_DOMAIN_ID':str(self.domain),'RMW_IMPLEMENTATION':'rmw_fastrtps_cpp',
             'FASTDDS_BUILTIN_TRANSPORTS':'UDPv4','ROS_LOCALHOST_ONLY':'1',
             'FASTRTPS_DEFAULT_PROFILES_FILE':'/opt/rm26/fastdds-udp.xml',
@@ -121,6 +125,13 @@ class Worker:
         if self.lockstep:
             simulator['environment'].update(DAEDALUS_EXECUTION_MODE='lockstep',DAEDALUS_STEP_SOCKET='/run/rm26-sim/lockstep.sock')
             simulator['volumes'].append(str(self.RUNTIME)+':/run/rm26-sim')
+        if self.renderer['backend']=='cpu':
+            from render_backend import SOFTWARE_ICD
+            simulator.pop('deploy',None)
+            simulator['runtime']='runc'
+            simulator['environment'].pop('NVIDIA_DRIVER_CAPABILITIES',None)
+            simulator['environment'].update(VK_ICD_FILENAMES=SOFTWARE_ICD,
+                VK_DRIVER_FILES=SOFTWARE_ICD,LIBGL_ALWAYS_SOFTWARE='1',NVIDIA_VISIBLE_DEVICES='void',LP_NUM_THREADS='4')
         bridge = dict(common, image=self.IMAGE,container_name=self.BRIDGE,environment=ros,
             volumes=volumes,command=['python3','-u','/opt/rm26/bridge.py','--port',str(self.port),
                 '--fps','30','--bullet-speed',str(s['reported_bullet_speed']),
@@ -240,17 +251,18 @@ class Worker:
             while not self.resources_stop.is_set():
                 row = dict(time_ns=time.time_ns(),loadavg=os.getloadavg(),
                     memory_available_kib=next(int(l.split()[1]) for l in Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:')),
-                    requested_parallelism=self.request['parallelism'],slot=self.slot)
+                    requested_parallelism=self.request['parallelism'],slot=self.slot,renderer=self.renderer['backend'],
+                    disk_free_bytes=shutil.disk_usage(self.OPS).free)
                 try:
-                    stats = subprocess.run(['nvidia-smi','--query-gpu=utilization.gpu,memory.used,memory.free','--format=csv,noheader,nounits'],
-                        capture_output=True,text=True,timeout=2)
-                    row['gpu'] = stats.stdout.strip()
-                    row['gpu_free_mib']=float(stats.stdout.strip().splitlines()[0].split(',')[-1])
-                    row['disk_free_bytes']=shutil.disk_usage(self.OPS).free
+                    if self.renderer['backend']=='nvidia':
+                        stats = subprocess.run(['nvidia-smi','--query-gpu=utilization.gpu,memory.used,memory.free','--format=csv,noheader,nounits'],
+                            capture_output=True,text=True,timeout=2)
+                        row['gpu'] = stats.stdout.strip()
+                        row['gpu_free_mib']=float(stats.stdout.strip().splitlines()[0].split(',')[-1])
                     containers = subprocess.run(['docker','ps','--filter','label=rm26.background=true','--filter','name=algorithm','--format','{{.Names}}'],
                         capture_output=True,text=True,timeout=2)
                     row['active_algorithm_containers'] = containers.stdout.splitlines()
-                except (subprocess.TimeoutExpired,ValueError,IndexError):
+                except (OSError,subprocess.TimeoutExpired,ValueError,IndexError):
                     row['sampling_timeout'] = True
                 output.write(json.dumps(row)+'\n')
                 self.resources_stop.wait(2)
@@ -258,6 +270,7 @@ class Worker:
     def snapshot(self, folder, scene, args):
         proxy = SimpleNamespace(OPS=self.source_ops,ROOT=self.bundle,RUNTIME=self.RUNTIME,
             inspect=self.inspect,profile=self.profile,run=self.run,
+            renderer=self.renderer,
             SIMULATOR=self.SIMULATOR,BRIDGE=self.BRIDGE,
             FROZEN_REPOSITORIES=self.metadata['repositories'],PIPELINE_VERSION=self.PIPELINE_VERSION)
         # Existing scoring snapshot with the worker's calibration and immutable inputs.
@@ -269,7 +282,7 @@ class Worker:
             shutil.copy2(actual,folder/'configuration/runtime-calibration.yaml')
         shutil.copy2(self.compose_path,folder/'configuration/worker-compose.json')
         shutil.copy2(self.bundle/'bundle.json',folder/'configuration/bundle.json')
-        manifest.update(execution_gpu_uuid=self.gpu_uuid,benchmark=self.metadata.get('benchmark'),algorithm_identity=self.metadata.get('algorithm'),environment_identity=self.metadata.get('environment'),ros_domain_id=self.domain,background={
+        manifest.update(execution_gpu_uuid=self.gpu_uuid,renderer=self.renderer,benchmark=self.metadata.get('benchmark'),algorithm_identity=self.metadata.get('algorithm'),environment_identity=self.metadata.get('environment'),ros_domain_id=self.domain,background={
             'job_id':self.request['job_id'],'item_id':self.request['item_id'],
             'attempt':self.request['attempt'],'slot':self.slot,'bridge_port':self.port,
             'headless':True,'requested_parallelism':self.request['parallelism'],
@@ -334,7 +347,8 @@ def main():
 
             if worker.DESKTOP.exists():experiments.publish_desktop(worker,folder)
             if worker.PIPELINE_VERSION==2:
-                budget=180 if worker.lockstep else 40
+                from render_backend import wall_budget
+                budget=wall_budget(worker.renderer,worker.lockstep)
                 elapsed=time.monotonic()-worker.basic_started
                 timing=load(folder/'timing.json',{})
                 timing.update(wall_seconds=elapsed,within_budget=elapsed<=budget,

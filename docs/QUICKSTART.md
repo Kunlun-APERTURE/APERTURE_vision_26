@@ -5,8 +5,8 @@
 ## 主机前提
 
 - Ubuntu 24.04 x86_64，Git、Python 3.12 和 Python venv。
-- NVIDIA GPU 与驱动，`nvidia-smi` 可用。
-- Docker Engine、Compose 插件、NVIDIA Container Toolkit；当前用户能访问 Docker。
+- Docker Engine、Compose 插件；当前用户能访问 Docker。
+- 可选 NVIDIA GPU、驱动及 NVIDIA Container Toolkit，用于加速模拟器渲染。无 GPU 使用镜像内的软件渲染，不需要安装 NVIDIA 驱动或 Toolkit。
 - 首次建议至少预留20GiB空间，实际需求随实验数量增加。
 
 先确认 `docker version` 能访问 Server、`docker compose version` 可用。仓库不自动安装系统依赖，无需 Sunshine 或显示器。完整空机器安装尚未验收，系统环境有问题时先联系维护者。
@@ -37,10 +37,12 @@ git submodule update --init --recursive
 python3 tools/dependency_registry.py pull
 python3 tools/dependency_registry.py check
 python3 tools/development.py doctor
-docker run --rm --gpus all aperture_vision:26-11-1 nvidia-smi
+docker run --rm aperture_vision:26-11-1 python3 -c 'import openvino, cv2; print(openvino.__version__, cv2.__version__)'
 ```
 
-pull 按仓库清单固定的 digest 下载，并恢复本地镜像名，不需要 GitHub 登录。doctor 只检查已有工具，不安装宿主机驱动、Docker 或 NVIDIA Container Toolkit。
+pull 按仓库清单固定的 digest 下载，并恢复本地镜像名，不需要 GitHub 登录。doctor 检查已有工具并显示自动选择的渲染模式；缺少 NVIDIA 不会使检查失败。镜像中的 OpenVINO 使用 CPU 推理。
+
+希望使用 NVIDIA 加速时，另行运行 `docker run --rm --gpus all aperture_vision:26-11-1 nvidia-smi` 确认容器驱动。软件渲染无需执行这一步。
 
 无法访问 GHCR 时，从 [26-11-01 Release 附件](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01) 下载 `aperture_vision-26-11-1.tar`（约1.48GB）和 `aperture-offline.json`，分别放为主仓库 `exports/aperture/images.tar` 和 `exports/aperture/manifest.json`：
 
@@ -73,6 +75,8 @@ python3 tools/development.py build
 ./sim.sh experiment suite --algorithm B1 --environment E1 --tier basic --cases hf_static_5 --sensor-seeds 1 --output exports/first-static --wait
 cat exports/first-static/report.md
 ```
+
+默认 `--renderer auto`：有可用 NVIDIA 设备时使用它，否则使用 CPU 软件 Vulkan。可加 `--renderer cpu` 在有 GPU 的机器上明确验证软件渲染。两种模式使用同一镜像、图像分辨率与逻辑时序；软件渲染较慢，首轮需等待，硬超时为900秒，报告仍单列40秒成本指标。旧发布标签没有该选项时，先更新主仓库和子模块，镜像无需更换。
 
 命令返回 job ID，`--wait` 等待完成。目录还有 report.html 和 results.json。执行以下检查，确认完成、证据有效并实际发生射击：
 

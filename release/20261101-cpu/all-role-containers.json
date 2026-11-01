@@ -1,0 +1,34 @@
+[
+  {
+    "name": "/rm26-eval-ada686b02bf7",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null,
+    "gpu_device_paths": "",
+    "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819"
+  },
+  {
+    "name": "/rm26-worker-1-algorithm",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null,
+    "gpu_device_paths": "",
+    "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819"
+  },
+  {
+    "name": "/rm26-worker-1-bridge",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null,
+    "gpu_device_paths": "",
+    "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819"
+  },
+  {
+    "name": "/rm26-worker-1-simulator",
+    "runtime": "runc",
+    "device_requests": null,
+    "devices": null,
+    "gpu_device_paths": "",
+    "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819"
+  }
+]

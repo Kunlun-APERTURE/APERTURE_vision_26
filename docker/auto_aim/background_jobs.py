@@ -37,10 +37,10 @@ MAX_SLOTS=8
 def stack_signature(metadata):
     names=['background_jobs.py','background_runtime.py','experiments.py','manage.py','bridge.py','observer.py',
         'evaluator.py','report.py','shots.py','impact_quality.py','scenario_catalog.py',
-        'highspeed_scenarios.py','focus_scenarios.py','movement_scenarios.py','movement_analysis.py','fastdds-udp.xml','session_evidence.py']
+        'highspeed_scenarios.py','focus_scenarios.py','movement_scenarios.py','movement_analysis.py','fastdds-udp.xml','session_evidence.py','render_backend.py']
     selected={name:metadata['files'].get('docker/auto_aim/'+name) for name in names}
     return hashlib.sha256(json.dumps(dict(images=metadata['images'],code=selected,
-        gpu_uuid=metadata['gpu_uuid']),sort_keys=True).encode()).hexdigest()
+        gpu_uuid=metadata['gpu_uuid'],renderer=metadata.get('renderer',{'backend':'nvidia'})),sort_keys=True).encode()).hexdigest()
 
 
 def add_parser(commands):
@@ -241,10 +241,12 @@ def expand(args):
     return rows,parallelism,spec
 
 
-def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None):
+def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None,renderer='auto'):
     import experiments
     from gimbal_dynamics import simulator_image
     image_tags=image_tags or {}
+    from render_backend import select
+    rendering=select(renderer)
     requested=image_tags.get("simulator",manage.IMAGE)
     selected=manage.inspect(requested)
     unified=bool(selected and selected['Config'].get('Labels',{}).get('aperture.unified')=='1')
@@ -295,7 +297,7 @@ def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None
         if after!=before:raise RuntimeError('Sources changed while freezing '+name+'; submit again')
     files={str(p.relative_to(bundle)):experiments.digest(p) for p in sorted(bundle.rglob('*')) if p.is_file()}
     metadata=dict(bundle_id=job_id,created=time.time(),repositories=repositories,images=images,retained_images=retained_images,files=files,
-        gpu_uuid=manage.run(['nvidia-smi','--query-gpu=uuid','--format=csv,noheader'],capture=True).splitlines()[0],
+        gpu_uuid=rendering['gpu_uuid'],renderer=rendering,
         source_workspace=str(manage.ROOT))
     write(bundle/'bundle.json',metadata)
     # Read-only payload files; scheduler logs and per-slot state live elsewhere.
@@ -528,6 +530,9 @@ def daemon():
                         candidates=db.execute("SELECT i.*,j.bundle,j.parallelism,j.exploratory,j.spec FROM items i JOIN jobs j ON j.id=i.job_id WHERE i.state='pending' AND j.state IN ('queued','running') ORDER BY j.created,i.ordinal").fetchall()
                         chosen=None
                         for row in candidates:
+                            from render_backend import frozen
+                            renderer=frozen(load(Path(row['bundle'])/'bundle.json'))
+                            if renderer['backend']=='nvidia' and not resources.get('nvidia_healthy',resources['healthy']):continue
                             limit=capacity_limit(row,capacity,qualification)
                             # A serial task reserves the machine; don't mix it with another job.
                             if len(active)>=limit:continue
