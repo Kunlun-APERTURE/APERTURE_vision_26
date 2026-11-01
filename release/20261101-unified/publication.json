@@ -1,0 +1,12 @@
+{
+  "image": "ghcr.io/kunlun-aperture/aperture_vision:26-11-1",
+  "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+  "workflow": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/actions/runs/41279952445",
+  "published": true,
+  "anonymous_all_layers": true,
+  "anonymous_docker_pull": true,
+  "default_b1_build": true,
+  "default_b1_closed_loop": true,
+  "release_sources_corrected": true,
+  "original_bootstrap_manifest_retained": true
+}

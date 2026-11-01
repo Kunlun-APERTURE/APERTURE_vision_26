@@ -1,9 +1,6 @@
 name: 统一镜像首次发布
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/unified-image]
-    paths: [release/unified-bootstrap.json]
 permissions:
   contents: read
 concurrency:
@@ -22,6 +19,7 @@ jobs:
       - name: 检出迁移工具
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: 安装镜像复制工具
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends skopeo

@@ -135,9 +135,10 @@ def publish(data, tag, output, archive=None):
     target_tag = image_tag(tag) if data['version'] == 3 else tag
     if data['version'] == 3:
         result['image_tag'] = target_tag
-        result['release_sources'] = dict(main=run(['git', 'rev-parse', 'HEAD']).strip())
+        release_commit=run(['git', 'rev-parse', tag+'^{commit}']).strip()
+        result['release_sources'] = dict(main=release_commit)
         for name in ('sp_vision_25', 'vision_simulator_26'):
-            result['release_sources'][name] = run(['git', 'ls-tree', 'HEAD', name]).split()[2]
+            result['release_sources'][name] = run(['git', 'ls-tree', release_commit, name]).split()[2]
     sources = []
     existing = []
     for entry in data['images']:

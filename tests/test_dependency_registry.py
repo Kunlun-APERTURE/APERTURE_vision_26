@@ -72,6 +72,23 @@ class RegistryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             registry.verify_source(ENTRY, 'oci-archive:bundle.tar:2024.6.0')
 
+    @patch.object(registry, 'verify_source')
+    @patch.object(registry, 'existing_reference', return_value=ENTRY['reference'])
+    @patch.object(registry, 'run')
+    def test_release_sources_use_target_tag_instead_of_workflow_head(self, run, existing, verify):
+        target='c'*40
+        run.side_effect=lambda args: target if args[1]=='rev-parse' else '160000 commit '+'d'*40+' submodule'
+        with tempfile.TemporaryDirectory() as temporary:
+            proof=Path(temporary)/'validation.json'
+            proof.write_text(json.dumps(dict(passed=True,image_id=ID)))
+            data=dict(DATA,version=3,acceptance=dict(path='validation.json',sha256=registry.sha(proof)))
+            output=Path(temporary)/'published.json'
+            with patch.object(registry,'ROOT',Path(temporary)):
+                registry.publish(data,'26-11-1',output)
+            result=json.loads(output.read_text())
+            self.assertEqual(result['release_sources']['main'],target)
+            run.assert_any_call(['git','rev-parse','26-11-1^{commit}'])
+
     @patch.object(registry, 'run')
     def test_local_identity_supports_classic_and_containerd_docker(self, run):
         entry = dict(ENTRY, manifest_id='sha256:' + 'c' * 64, config_id='sha256:' + 'd' * 64)

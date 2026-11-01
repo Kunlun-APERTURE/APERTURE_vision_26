@@ -29,23 +29,25 @@ git submodule update --init --recursive
 
 所有开发与实验角色共用一个 Ubuntu 24.04 镜像：`ghcr.io/kunlun-aperture/aperture_vision:26-11-1`，包含 OpenVINO 2024.6、C++ 与 Rust 工具链、模拟器和评分依赖。包名必须小写，项目显示名称为 APERTURE_vision。clone 不包含镜像。
 
-GHCR 首次公开下载仍待验收，当前从 [26-11-01 Release 附件](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01) 下载以下两个文件：
-
-|文件|用途|
-|---|---|
-|`aperture_vision-26-11-1.tar`|统一镜像离线归档，约1.48GB|
-|`aperture-offline.json`|完整归档 SHA256 和镜像身份|
-
-将文件分别放为主仓库 `exports/aperture/images.tar` 和 `exports/aperture/manifest.json`，然后从根目录执行：
+公开镜像已通过匿名拉取与身份校验，从根目录执行：
 
 ```bash
-python3 tools/dependency_bundle.py import exports/aperture
+python3 tools/dependency_registry.py pull
 python3 tools/dependency_registry.py check
 python3 tools/development.py doctor
 docker run --rm --gpus all aperture_vision:26-11-1 nvidia-smi
 ```
 
-import 校验归档并加载镜像；check 核对当前源码所需的固定身份。GHCR 公开验收通过后，同一目录的依赖也可用 `python3 tools/dependency_registry.py pull` 获取，该命令按 digest 拉取并恢复本地镜像名；目前不把它作为已可用来源。拿不到完整归档和清单时先联系维护者，不假定本机已有依赖。工作站原件为 `/home/rm/rm26/exports/unified-20261101/`，镜像分发维护见 [运维指南](OPERATIONS.md#镜像自动发布)。
+pull 按仓库清单固定的 digest 下载，并恢复本地镜像名，不需要 GitHub 登录。doctor 只检查已有工具，不安装宿主机驱动、Docker 或 NVIDIA Container Toolkit。
+
+无法访问 GHCR 时，从 [26-11-01 Release 附件](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01) 下载 `aperture_vision-26-11-1.tar`（约1.48GB）和 `aperture-offline.json`，分别放为主仓库 `exports/aperture/images.tar` 和 `exports/aperture/manifest.json`：
+
+```bash
+python3 tools/dependency_bundle.py import exports/aperture
+python3 tools/dependency_registry.py check
+```
+
+import 校验完整归档 SHA256 和镜像身份。拿不到完整归档和清单时先联系维护者，不假定本机已有依赖。工作站原件为 `/home/rm/rm26/exports/unified-20261101/`，镜像发布与分发维护见 [运维指南](OPERATIONS.md#镜像自动发布)。
 
 使用历史 Release 时按其对应文档操作，旧五镜像离线包继续保留。`exports/` 不提交 Git。
 
