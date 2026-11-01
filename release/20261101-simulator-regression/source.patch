@@ -1,0 +1,231 @@
+diff --git a/src/capture/sensor.rs b/src/capture/sensor.rs
+index f21accb..b6f189c 100644
+--- a/src/capture/sensor.rs
++++ b/src/capture/sensor.rs
+@@ -43,9 +43,12 @@ pub fn poll_control(
+     config: Res<crate::config::SimulationConfig>,
+     scene: Option<Res<crate::bench::scenario::Scenario>>,
+     sequence: Res<SensorSequence>,
+-    input: Res<crate::ros2::topic::TopicSubscriber<crate::ros2::topic::bench_topics::SimSensorControlTopic>>,
+-    output: Res<crate::ros2::topic::TopicPublisher<crate::ros2::topic::bench_topics::SimSensorStateTopic>>,
++    input: Option<Res<crate::ros2::topic::TopicSubscriber<crate::ros2::topic::bench_topics::SimSensorControlTopic>>>,
++    output: Option<Res<crate::ros2::topic::TopicPublisher<crate::ros2::topic::bench_topics::SimSensorStateTopic>>>,
+ ) {
++    // The lens plugin can run without ROS. Do not consume a reset unless its
++    // acknowledgement channel exists as well.
++    let (Some(input), Some(output)) = (input, output) else { return; };
+     while let Some(message)=input.try_recv() {
+         let Ok(value)=serde_json::from_str::<serde_json::Value>(&message.data) else {continue;};
+         let Some(id)=value["reset_id"].as_str().filter(|id|!id.is_empty() && id.len()<=64) else {continue;};
+@@ -57,3 +60,26 @@ pub fn poll_control(
+         }
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn stale_and_duplicate_captures_cannot_advance_a_new_session() {
++        let sequence = SensorSequence::default();
++        sequence.reset("old".into(), 1);
++        let old = sequence.current();
++        sequence.reset("new".into(), 2);
++        sequence.captured(&old);
++        assert_eq!(sequence.current().index, 0);
++        let new = sequence.current();
++        sequence.captured(&new);
++        sequence.captured(&new);
++        let current = sequence.current();
++        assert_eq!(current.reset_id, "new");
++        assert_eq!(current.seed, Some(2));
++        assert_eq!(current.index, 1);
++        assert_eq!(current.phase, phase(2, 1));
++    }
++}
+diff --git a/src/config.rs b/src/config.rs
+index bb12c08..8cc3575 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -1010,7 +1010,8 @@ mod tests {
+ 
+     #[test]
+     fn repository_config_parses() {
+-        let config = SimulationConfig::load().expect("config.toml 必须能解析");
++        let config: SimulationConfig = toml::from_str(include_str!("../config.toml"))
++            .expect("the repository config.toml must parse independently of the working directory");
+ 
+         assert!(config.camera.pip_refresh_divisor >= 1);
+         assert!(config.camera.pip_far > 0.0);
+@@ -1173,7 +1174,8 @@ mod tests {
+ 
+     #[test]
+     fn shipped_config_publishes_compressed_only() {
+-        let config = SimulationConfig::load().expect("config.toml 必须能解析");
++        let config: SimulationConfig = toml::from_str(include_str!("../config.toml"))
++            .expect("the repository config.toml must parse independently of the working directory");
+         let color = &config.capture.color;
+ 
+         assert!(color.wants_image());
+@@ -1181,10 +1183,9 @@ mod tests {
+             color.publish_compressed,
+             "the compressed stream is what keeps DDS affordable"
+         );
+-        assert!(
+-            color.publish_period().is_some(),
+-            "the shipped config rate limits the image stream"
+-        );
++        assert!(!color.publish_raw);
++        assert_eq!(color.publish_hz, 0.0);
++        assert!(color.publish_period().is_none(), "publish every captured frame");
+     }
+ 
+     #[test]
+diff --git a/src/robomaster/armor/common.rs b/src/robomaster/armor/common.rs
+index e333c0f..82881d6 100644
+--- a/src/robomaster/armor/common.rs
++++ b/src/robomaster/armor/common.rs
+@@ -154,7 +154,7 @@ pub const LARGE_ARMOR_STICKER_SLOTS: [ArmorStickerSlot; 5] = [
+         name_suffix: "1",
+     },
+     ArmorStickerSlot {
+-        label: ArmorLabel::Base,
++        label: ArmorLabel::Three,
+         name_suffix: "3",
+     },
+     ArmorStickerSlot {
+@@ -253,11 +253,22 @@ mod tests {
+         assert_eq!(ArmorLabel::index_from_small(ArmorLabel::Outpost), 5);
+         assert_eq!(ArmorLabel::index_from_small(ArmorLabel::Base), 6);
+         assert_eq!(ArmorLabel::index_from_small(ArmorLabel::Five), 7);
+-        assert_eq!(ArmorLabel::index_from_small(ArmorLabel::Base), 8);
++        let sequence = ArmorLabel::sequence_small();
++        let unique: std::collections::HashSet<_> = sequence.iter().collect();
++        assert_eq!(unique.len(), sequence.len());
++        for (index, &label) in sequence.iter().enumerate() {
++            assert_eq!(ArmorLabel::index_from_small(label), index);
++        }
+     }
+ 
+     #[test]
+     fn sticker_slot_tables_keep_asset_suffixes() {
++        for slots in [&SMALL_ARMOR_STICKER_SLOTS[..], &LARGE_ARMOR_STICKER_SLOTS[..]] {
++            let labels: std::collections::HashSet<_> = slots.iter().map(|s| s.label).collect();
++            let suffixes: std::collections::HashSet<_> = slots.iter().map(|s| s.name_suffix).collect();
++            assert_eq!(labels.len(), slots.len(), "one visible sticker per label");
++            assert_eq!(suffixes.len(), slots.len());
++        }
+         assert_eq!(
+             ArmorSpec::Small(SmallArmorLabel::Outpost).sticker_slots(),
+             &[
+diff --git a/src/robomaster/common.rs b/src/robomaster/common.rs
+index f5590bf..f09abb4 100644
+--- a/src/robomaster/common.rs
++++ b/src/robomaster/common.rs
+@@ -80,13 +80,13 @@ mod tests {
+     use super::*;
+ 
+     #[test]
+-    fn robot_configs_preserve_legacy_armor_values() {
++    fn robot_configs_match_robot_numbers_and_armor_sizes() {
+         let cases = [
+             (HERO_ROBOT_CONFIG, ArmorType::Large, ArmorLabel::One, 4),
+             (
+                 ENGINEER_ROBOT_CONFIG,
+                 ArmorType::Small,
+-                ArmorLabel::Sentry,
++                ArmorLabel::Two,
+                 4,
+             ),
+             (
+diff --git a/src/ros2/topic.rs b/src/ros2/topic.rs
+index b2cffc0..bc0c4d5 100644
+--- a/src/ros2/topic.rs
++++ b/src/ros2/topic.rs
+@@ -374,6 +374,85 @@ pub mod bench_topics {
+ mod tests {
+     use super::*;
+ 
++    #[cfg(feature = "bench")]
++    #[test]
++    fn sensor_control_requires_both_endpoints_and_acknowledges_idle_resets() {
++        use bevy::prelude::*;
++        use crate::bench::{motion::MotionLimits, scenario::{Phase, Scenario}};
++        use crate::capture::sensor::{poll_control, SensorSequence};
++        use crate::config::SimulationConfig;
++        use super::bench_topics::{SimSensorControlTopic, SimSensorStateTopic};
++
++        for (has_input, has_output) in [(false, false), (true, false), (false, true), (true, true)] {
++            let mut app = App::new();
++            let mut config = SimulationConfig::default();
++            config.capture.effect.sensor_seed = Some(42);
++            let scenario = Scenario::parse(
++                "id = 'sensor-test'\nseed = 1\nduration = 1.0\ntrigger = 'on_first_gimbal_cmd'\n\
++                 [[robot]]\nid = 1\n[[robot.segment]]\nt0 = 0.0\nt1 = 1.0\ntype = 'static'\n",
++                &MotionLimits::default(),
++            ).unwrap();
++            assert_eq!(scenario.phase, Phase::Idle);
++            let input = TopicSubscriber::<SimSensorControlTopic>::new();
++            let incoming = input.mailbox.clone();
++            let outgoing = Arc::new(Mailbox::new(16));
++            app.insert_resource(config).insert_resource(scenario)
++                .init_resource::<SensorSequence>().add_systems(Update, poll_control);
++            if has_input { app.insert_resource(input); }
++            if has_output {
++                app.insert_resource(TopicPublisher::<SimSensorStateTopic>::new(outgoing.clone()));
++            }
++            let request = |id: &str| RosString { data: serde_json::json!({"reset_id": id}).to_string() };
++            incoming.push(request("first"));
++            app.update();
++            let sequence = app.world().resource::<SensorSequence>().clone();
++            if !(has_input && has_output) {
++                assert!(sequence.current().seed.is_none());
++                assert_eq!(incoming.len(), 1, "do not consume a reset without an acknowledgement channel");
++                assert!(outgoing.try_pop().is_none());
++                continue;
++            }
++            let reply: serde_json::Value = serde_json::from_str(&outgoing.try_pop().unwrap().data).unwrap();
++            assert_eq!(reply["reset_id"], "first");
++            assert_eq!(reply["seed"], 42);
++            assert_eq!(reply["kind"], "reset");
++            assert_eq!(reply["version"], 1);
++            sequence.captured(&sequence.current());
++            incoming.push(request("first"));
++            app.update();
++            assert_eq!(sequence.current().index, 1, "repeated reset is idempotent");
++            assert!(outgoing.try_pop().is_some(), "retries receive an acknowledgement");
++
++            app.world_mut().resource_mut::<Scenario>().phase = Phase::Running;
++            incoming.push(request("during-run"));
++            app.update();
++            assert_eq!(sequence.current().reset_id, "first");
++            assert!(outgoing.try_pop().is_none());
++
++            app.world_mut().resource_mut::<Scenario>().phase = Phase::Idle;
++            let old_frame = sequence.current();
++            incoming.push(request("second"));
++            app.update();
++            assert_eq!(sequence.current().reset_id, "second");
++            assert_eq!(sequence.current().index, 0);
++            assert!(outgoing.try_pop().is_some());
++            sequence.captured(&old_frame);
++            assert_eq!(sequence.current().index, 0);
++
++            for data in ["invalid json".to_string(), request("").data, request(&"x".repeat(65)).data] {
++                incoming.push(RosString { data });
++            }
++            app.update();
++            assert_eq!(sequence.current().reset_id, "second");
++            assert!(outgoing.try_pop().is_none());
++            app.world_mut().remove_resource::<Scenario>();
++            incoming.push(request("no-scene"));
++            app.update();
++            assert_eq!(sequence.current().reset_id, "second");
++            assert!(outgoing.try_pop().is_none());
++        }
++    }
++
+     #[test]
+     fn mailbox_keeps_only_the_newest_when_full() {
+         let mailbox: Mailbox<u32> = Mailbox::new(2);

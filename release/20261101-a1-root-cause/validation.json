@@ -1,0 +1,119 @@
+{
+  "passed": true,
+  "live_wire_replay_frames": 84,
+  "live_wire_differences": {
+    "detector_summary": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "observations": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "tracker": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "continuity": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "filter_state": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "track_estimate": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "selected_plate_id": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "aim_point": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "yaw": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "pitch": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "distance": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "fire_advice": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "fire_check": {
+      "different_frames": 0,
+      "first_frame": null
+    },
+    "prediction_horizon_s": {
+      "different_frames": 0,
+      "first_frame": null
+    }
+  },
+  "source_run": "20261101T123108_basic_move3_spin_pos_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_14a332f5",
+  "baseline_functional_parity": {
+    "tracker": 0,
+    "filter_state": 0,
+    "selected_plate_id": 0
+  },
+  "source_artifacts": {
+    "observations.jsonl": "68082a0420da3637ce6fab54219548f49880beb3b6abe6f907f5067b755b1c42",
+    "observations-baseline.jsonl": "5ca8bba05ce0346ccf7d6bc328a5133988099c6dc16245ecf53e7b9f35ef159f",
+    "observations-no-hint.jsonl": "d822afc1f295d48339d5599d7d2509ae8198660495c56359ad4fc534be4b6d0e",
+    "live-replay/events.jsonl": "00b6545b7345ee65c721f5c31e3a83a237f16157244db852f6a4d37ed5772ef3",
+    "observations-minima-only.jsonl": "2895abbd976c406cac584fb6f10ae86edfcd4be5947195d48e4fe21fd2c5f6c6"
+  },
+  "algorithm_behavior_changed": false,
+  "interpretation": "Validated local failure mechanism; not a closed-loop improvement claim",
+  "minima_only_window": [
+    {
+      "seq": 68,
+      "tracker": "tracking",
+      "reset": null
+    },
+    {
+      "seq": 69,
+      "tracker": "tracking",
+      "reset": null
+    },
+    {
+      "seq": 70,
+      "tracker": "tracking",
+      "reset": null
+    },
+    {
+      "seq": 71,
+      "tracker": "tracking",
+      "reset": null
+    },
+    {
+      "seq": 72,
+      "tracker": "tracking",
+      "reset": null
+    },
+    {
+      "seq": 73,
+      "tracker": "tracking",
+      "reset": null
+    },
+    {
+      "seq": 74,
+      "tracker": "temp_lost",
+      "reset": null
+    },
+    {
+      "seq": 75,
+      "tracker": "tracking",
+      "reset": null
+    }
+  ]
+}
