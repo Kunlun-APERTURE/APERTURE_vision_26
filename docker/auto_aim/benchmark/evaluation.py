@@ -76,7 +76,7 @@ def report(root):
     lines=['# B1 实验参考成绩','','环境：'+contract['spec']['environment'], '',
         '|场景|噪声种子|命中/发射|加权命中|命中/秒|证据有效|40秒成本|','|---|---:|---:|---:|---:|---|---|']
     from render_backend import frozen
-    lines.insert(4,'渲染：'+frozen(verify(contract['bundle']))['backend']+'；不同渲染后端的成绩不作为配对算法比较。')
+    lines[4:4]=['渲染：'+frozen(verify(contract['bundle']))['backend']+'；不同渲染后端的成绩不作为配对算法比较。','']
     for r in rows:
         m=r['metrics'];w=m['weighted_hit_rate'];lines.append(f"|{r['scene']}|{r['sensor_seed']}|{m['target_armor_hits']}/{m['shots_fired']}|{w if w is not None else 'N/A'}|{m['hits_per_s']:.3f}|{r['evidence_valid']}|{r['within_cost_budget']}|")
     lines+=['','实际难度与分阶段射击见 results.json 的 runs[].difficulty；零射击保持 N/A，所有失败尝试保留。',
