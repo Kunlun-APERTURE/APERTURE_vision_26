@@ -19,6 +19,8 @@ cd APERTURE_vision_26
 python3 tools/check-workspace.py
 ```
 
+以上检出 main 的当前组合，适合日常开发。固定复现 [26-11-1](https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-1) 时，在 clone 命令加入 `--branch 26-11-1`；不要把历史 `26-11-01` 当作单镜像版本。切换主仓库版本后先执行下文子模块更新，再重新拉取该版本清单与构建算法。
+
 主仓库和两个子仓库当前可公开读取，推送权限分别管理。已有克隆缺少子模块时：
 
 ```bash
@@ -59,7 +61,7 @@ python3 tools/development.py build
 
 输出位于 `docker/auto_aim/.runtime/benchmark/B1/`。默认 B1 是 R4 配置，E1 是修正原式云台环境；参数见 [实验指南](EXPERIMENTS.md)。
 
-开两个终端，都进入主仓库根目录。终端 A 启动调度器并保持运行：
+开两个终端，都进入主仓库根目录。终端 A 启动调度器并保持运行（已有后台服务时跳过终端 A）：
 
 ```bash
 ./sim.sh jobs daemon
@@ -72,7 +74,21 @@ python3 tools/development.py build
 cat exports/first-static/report.md
 ```
 
-命令返回 job ID，`--wait` 等待完成。目录还有 report.html 和 results.json。确认 `complete`、`all_evidence_valid` 为 true；验收射击链路还需发射数大于零。命中率不保证固定值。
+命令返回 job ID，`--wait` 等待完成。目录还有 report.html 和 results.json。执行以下检查，确认完成、证据有效并实际发生射击：
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+result = json.loads(Path("exports/first-static/results.json").read_text())
+assert result["complete"] and result["all_evidence_valid"]
+shots = sum(group["shots"] for group in result["groups"])
+assert shots > 0
+print(f"首轮实验完成，证据有效，共发射 {shots} 发")
+PY
+```
+
+命中率不保证固定值。
 
 新实验使用新输出目录；恢复和评分解读见 [实验指南](EXPERIMENTS.md)。停止前用 `./sim.sh jobs list` 确认任务完成，再在终端 A 按 Ctrl+C。
 

@@ -1,0 +1,34 @@
+{
+  "single_image": "ghcr.io/kunlun-aperture/aperture_vision:26-11-1",
+  "independent_recursive_checkout": true,
+  "anonymous_pull": true,
+  "host_doctor": true,
+  "gpu_probe": true,
+  "fresh_algorithm_build": true,
+  "first_local_experiment": {
+    "complete": true,
+    "all_evidence_valid": true,
+    "shots": 28,
+    "hits": 28
+  },
+  "release_retry_identical": true,
+  "empty_machine_install_certified": false,
+  "validation_host": "existing Ubuntu/NVIDIA workstation; separate source checkout and fresh algorithm build",
+  "source_base": "88c8295b74dad6ee13672ccdd2dcd123d9ffdb4f",
+  "job_id": "job_benchmark_65a3d9b1c0da",
+  "development_check": {
+    "statements": 83.73,
+    "branches": 73.92,
+    "passed": true
+  },
+  "workflow_actionlint": true,
+  "local_links_and_anchors": true,
+  "release_workflow": {
+    "url": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/actions/runs/41282103827",
+    "branch": "docs/unified-onboarding",
+    "release": "26-11-1",
+    "passed": true,
+    "anonymous_all_layers": true,
+    "existing_manifest_verified": true
+  }
+}

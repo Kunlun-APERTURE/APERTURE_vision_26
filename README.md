@@ -92,6 +92,7 @@ APERTURE_vision_26/
 |改算法、加场景、运行测试|[开发指南](docs/DEVELOPMENT.md)|
 |提交改动并申请 PR 实验|[贡献指南](CONTRIBUTING.md)|
 |维护工作站与排查服务|[运维指南](docs/OPERATIONS.md)|
+|核对 Release、镜像版本与自动发布|[版本与镜像发布](docs/RELEASES.md)|
 |查阅协议与仓库职责|[接口参考](docs/INTERFACES.md)|
 
 ## 使用边界

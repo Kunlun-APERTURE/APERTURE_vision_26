@@ -1,0 +1,20 @@
+[
+  {
+    "body": "本阶段版本统一新人入门、实验与贡献文档，并建立中文协作模板。对应提交 a69da151c445dc39ecccc73da6ff73afe335ea11，来自 docs/team-onboarding 分支。\n\n## 主要变化\n\n- 统一快速开始、实验、开发、贡献和运维入口，重复流程改为引用。\n- 明确依赖包实际来源和交付文件，保留历史文档快照。\n- 新增模拟器、算法、实验三类中文 Issue 表单。\n- PR 实验选项使用中文名称和 HTML 注释标识，解析器兼容旧版选项。\n- 建立英文提交类型加中文摘要的提交规范，中文化工作流说明。\n\n## 验证\n\nPython 3.12 完整开发检查通过：语句覆盖率 83.77%，分支覆盖率 74.35%。提交前重新运行 19 项开发回归测试，全部通过。工作区、依赖包校验、场景列举、本地链接目标、YAML 解析及差异格式检查通过。\n\n## 获取与使用\n\n从本标签递归克隆，再按 docs/QUICKSTART.md 操作：\n\n    git clone --recurse-submodules --branch 26-11-01 https://github.com/Kunlun-APERTURE/APERTURE_vision_26.git\n    cd APERTURE_vision_26\n    python3 tools/check-workspace.py\n\n离线依赖镜像已添加到本 Release 附件：dependencies.tar.part1、dependencies.tar.part2 和 manifest.json。下载到 exports/team-dependencies/ 后，从仓库根目录执行：\n\n    cat exports/team-dependencies/dependencies.tar.part1 exports/team-dependencies/dependencies.tar.part2 > exports/team-dependencies/images.tar\n    python3 tools/dependency_bundle.py import exports/team-dependencies\n    python3 tools/dependency_bundle.py check exports/team-dependencies\n\n导入会校验完整归档 SHA256 与镜像身份。GHCR 镜像已上传，公开下载验收仍在进行；当前请使用以上离线附件。GitHub 自动生成的源码压缩包不包含子模块源码，建议使用递归克隆命令。\n\n完整空机器安装和本轮首次 GPU 实验尚未完成端到端验收。本版本不表示实车标定或跨硬件一致性认证。标签直接指向文档分支提交，不代表已合并至 main。\n\n",
+    "isPrerelease": false,
+    "name": "26-11-01",
+    "publishedAt": "2026-11-01T02:38:09Z",
+    "tagName": "26-11-01",
+    "targetCommitish": "a69da151c445dc39ecccc73da6ff73afe335ea11",
+    "url": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-01"
+  },
+  {
+    "body": "统一开发与实验环境的验收版本。源码来自 feat/unified-image 分支，尚待 PR #8 审查合入 main。\n\n## 获取镜像\n\n    docker pull ghcr.io/kunlun-aperture/aperture_vision:26-11-1\n\n镜像包含 Ubuntu 24.04、OpenVINO 2024.6、C++ 与 Rust 1.98.1 工具链、ROS 2 Jazzy、模拟器和评分/视频依赖。仓库路径按 Docker 要求小写，显示名称为 APERTURE_vision。\n\n## 从本版本开始\n\n    git clone --recurse-submodules --branch 26-11-1 https://github.com/Kunlun-APERTURE/APERTURE_vision_26.git\n    cd APERTURE_vision_26\n    python3 tools/dependency_registry.py pull\n    python3 tools/dependency_registry.py check\n\n随后按 docs/QUICKSTART.md 构建算法并完成首次实验。宿主机仍需 NVIDIA 驱动、Docker 和 NVIDIA Container Toolkit。原始源码压缩包不包含子模块，建议递归克隆。\n\n## 验收\n\n- 9 个 C++ 目标构建和 6 个组件回归程序通过。\n- 统一镜像内完整构建 ros2 bench 模拟器成功。\n- 模拟器、桥接、算法和评分共用同一镜像 ID；10 个基础场景全部完成，181 发、161 次命中，全部证据有效。\n- 镜像发布及全部层匿名下载、本机 Docker 匿名拉取已验证。\n- Rust 单元测试为283通过、10失败、1忽略；原运行环境重现相同失败，无新增失败。详情在 release/20261101-unified/，未宣称全部单测通过。\n\n镜像展开约6.42GB，离线归档约1.48GB。离线备用包位于 26-11-01 Release 附件中的 aperture_vision-26-11-1.tar 和 aperture-offline.json，导入步骤见快速开始。\n\n## 版本与范围\n\n发布工作流将自动附加 aperture-dependencies.json，固定镜像 digest、构建来源和本次 Release 的主仓库/子仓库提交。日期标签复用已验收镜像，不重新构建。只有工作流成功且清单附件出现后，才表示该次自动发布完成。\n\n本版本验证一个种子的10个基础场景，尚未认证全部进阶/压力场景、跨硬件一致性和完整空机器安装。\n",
+    "isPrerelease": true,
+    "name": "APERTURE_vision 26-11-1：统一开发与实验环境",
+    "publishedAt": "2026-11-01T06:25:28Z",
+    "tagName": "26-11-1",
+    "targetCommitish": "5613e796d0cde6e19d24a04183b4ea8755a9381e",
+    "url": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/releases/tag/26-11-1"
+  }
+]
