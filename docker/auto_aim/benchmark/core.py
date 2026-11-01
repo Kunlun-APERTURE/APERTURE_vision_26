@@ -75,8 +75,10 @@ class ExperimentSpec:
     sensor_seeds: tuple
     trajectory_seed: int=2026102207
     repeats: int=1
+    renderer: str='auto'
 
     def validate(self):
+        if self.renderer not in ('auto','cpu','nvidia'):raise ValueError('Unknown renderer')
         if not self.scenes or not self.sensor_seeds or not 1<=self.repeats<=10:raise ValueError('Empty selection or invalid repeat count')
         if len(set(self.sensor_seeds))!=len(self.sensor_seeds):raise ValueError('Duplicate sensor seeds; use repeats')
         for seed in (*self.sensor_seeds,self.trajectory_seed):

@@ -13,19 +13,21 @@ def signature(bundle):
     meta=json.loads((Path(bundle)/'bundle.json').read_text())
     files=meta['files']
     names=('vision_simulator_26/config.toml','docker/auto_aim/background_runtime.py',
-        'docker/auto_aim/evaluator.py','docker/auto_aim/fastdds-udp.xml')
-    value=dict(profile=PROFILE,gpu=meta['gpu_uuid'],images=meta['images'],
+        'docker/auto_aim/evaluator.py','docker/auto_aim/fastdds-udp.xml','docker/auto_aim/render_backend.py')
+    value=dict(profile=PROFILE,gpu=meta['gpu_uuid'],renderer=meta.get('renderer',{'backend':'nvidia'}),images=meta['images'],
         files={n:files.get(n) for n in names})
     return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
 
 
 def resource_health(root):
     memory=next(int(l.split()[1]) for l in Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:'))*1024
-    gpu=subprocess.run(['nvidia-smi','--query-gpu=memory.free','--format=csv,noheader,nounits'],
-        capture_output=True,text=True,timeout=3)
-    try:free_gpu=min(float(v) for v in gpu.stdout.splitlines())*1024**2
-    except ValueError:free_gpu=0
-    return dict(healthy=memory>=2*1024**3 and free_gpu>=1024**3 and shutil.disk_usage(root).free>=6*1024**3,
+    try:
+        gpu=subprocess.run(['nvidia-smi','--query-gpu=memory.free','--format=csv,noheader,nounits'],
+            capture_output=True,text=True,timeout=3)
+        free_gpu=min(float(v) for v in gpu.stdout.splitlines())*1024**2 if gpu.returncode==0 else 0
+    except (OSError,ValueError,subprocess.TimeoutExpired):free_gpu=0
+    host_ok=memory>=2*1024**3 and shutil.disk_usage(root).free>=6*1024**3
+    return dict(healthy=host_ok,nvidia_healthy=host_ok and free_gpu>=1024**3,
         memory_free_bytes=memory,gpu_free_bytes=free_gpu,disk_free_bytes=shutil.disk_usage(root).free)
 
 
@@ -64,11 +66,11 @@ def assess(folder,reference=None):
     elif not lockstep and reference is not None and not .9*reference<=rate<=1.1*reference:issues.append('control_frequency')
     resources=[]
     if (folder/'resources.jsonl').exists():
-        resources=[json.loads(l) for l in (folder/'resources.jsonl').open()]
+        with (folder/'resources.jsonl').open() as stream:resources=[json.loads(l) for l in stream]
     if not resources:issues.append('resource_samples_missing')
     for r in resources:
         if r.get('memory_available_kib',0)<2*1024**2:issues.append('memory_guard')
-        if r.get('gpu_free_mib',0)<1024:issues.append('vram_guard')
+        if r.get('renderer','nvidia')!='cpu' and r.get('gpu_free_mib',0)<1024:issues.append('vram_guard')
         if r.get('disk_free_bytes',0)<6*1024**3:issues.append('disk_guard')
     return dict(healthy=not issues,issues=sorted(set(issues)),control_hz=rate)
 

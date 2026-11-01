@@ -40,7 +40,9 @@ docker build --network host --progress plain \
 ./sim.sh jobs list
 ```
 
-install 会安装并启动 systemd 服务，要求已有 Docker 和对应镜像。不要在任务执行中重启服务；重启中断任务会留档并暂停，由维护者检查后恢复。
+install 会安装并启动 systemd 服务，要求已有 Docker 和对应镜像。CPU 任务仅检查主存和磁盘余量，NVIDIA 任务还检查显存；NVIDIA 查询缺失不会阻塞 CPU 队列。不要在任务执行中重启服务；重启中断任务会留档并暂停，由维护者检查后恢复。
+
+同一主机只运行一个实验调度器，不在多个仓库克隆中同时启动 daemon。当前 worker 容器名和端口按 slot 编号分配，多套调度器会相互影响；切换验证目录前先等任务结束并停止上一套调度器。
 
 ## GitHub App 与 PR 服务
 

@@ -21,7 +21,7 @@ class Runner:
             fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
             previous=load(root/'contract.json',{})
             if previous:
-                if not resume or previous['spec']!=json.loads(json.dumps(asdict(spec))):raise ValueError('Existing output requires --resume with identical specification')
+                if not resume or dict(previous['spec'],renderer=previous['spec'].get('renderer','auto'))!=json.loads(json.dumps(asdict(spec))):raise ValueError('Existing output requires --resume with identical specification')
                 if identity(previous)!=load(root/'state.json')['contract_sha256']:raise ValueError('Frozen contract changed')
                 frozen=verify(Path(previous['bundle']),previous.get('payload_identity'))
                 if bundle_path and Path(bundle_path).resolve()!=Path(previous['bundle']).resolve():raise ValueError('Resume bundle differs')
@@ -58,14 +58,17 @@ class Runner:
                 requested=spec.algorithm
                 if Path(requested).is_file():requested=algorithm(requested).data['id']
                 if meta.get('algorithm',{}).get('id')!=requested:raise ValueError('Imported algorithm differs')
-            else:bundle=freeze(name,env,adapter,artifact)
+            else:bundle=freeze(name,env,adapter,artifact,renderer=spec.renderer)
+            from render_backend import frozen
+            rendering=frozen(verify(bundle))
+            if spec.renderer!='auto' and rendering['backend']!=spec.renderer:raise ValueError('Imported renderer differs from request')
             if parallelism>1:
                 from .qualification import signature
                 registry=load(jobs.STATE/'benchmark-capacity.json',{})
                 if any(registry.get(signature(bundle,row),{}).get('parallelism',1)<parallelism for row in rows):raise ValueError('Unqualified parallelism; run algorithm qualify on serial reference')
             contract=dict(payload_identity=verify(bundle).get('content_id'),rows=rows,parallelism=parallelism,version=1,spec=asdict(spec),plans=plans,bundle=str(bundle),algorithm=verify(bundle)['algorithm'],
                 environment=asdict(env),scoring_version=2,impact_quality_version=1,
-                maximum_complete_trial_s=40,trajectory_variation=False)
+                maximum_complete_trial_s=40,trajectory_variation=False,renderer=rendering)
             contract=json.loads(json.dumps(contract))
             write(root/'contract.json',contract)
             if not bundle_path:
@@ -97,7 +100,7 @@ def execute(args):
     if args.list:return print(json.dumps(selection(args.tier,args.cases,args.pressure),indent=2))
     if not args.output:raise ValueError('--output required')
     seeds=tuple(int(x) for x in args.sensor_seeds.split(','))
-    spec=ExperimentSpec(args.algorithm,args.environment,tuple(selection(args.tier,args.cases,args.pressure)),seeds,args.trajectory_seed,args.repeats)
+    spec=ExperimentSpec(args.algorithm,args.environment,tuple(selection(args.tier,args.cases,args.pressure)),seeds,args.trajectory_seed,args.repeats,getattr(args,'renderer','auto'))
     if args.algorithm!='B1' and not args.artifact and not args.bundle and not args.resume:raise ValueError('--artifact required for independent algorithm')
     artifact=args.artifact or manage.OPS/'.runtime/benchmark/B1/build/sim_auto_aim'
     result=Runner().submit(spec,args.output,artifact,int(args.parallelism),args.resume,args.bundle)

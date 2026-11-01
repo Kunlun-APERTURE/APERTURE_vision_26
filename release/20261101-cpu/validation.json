@@ -1,0 +1,174 @@
+{
+  "passed": true,
+  "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+  "image_unchanged": true,
+  "physical_host_has_nvidia": true,
+  "host_nvidia_smi_unavailable": true,
+  "default_auto_selected": {
+    "backend": "cpu",
+    "gpu_uuid": null,
+    "implementation": "mesa-lavapipe"
+  },
+  "roles_no_device_requests": true,
+  "roles_no_gpu_paths": true,
+  "roles_runtime": "runc",
+  "renderer_log": "llvmpipe (LLVM 20.1.2, 256 bits), device_type: Cpu, Vulkan",
+  "complete": true,
+  "all_evidence_valid": true,
+  "within_40_second_cost_budget": false,
+  "job": "job_benchmark_e4ecd1bf8ff3",
+  "shots": 46,
+  "hits": 45,
+  "runs": [
+    {
+      "scene": "hf_static_5",
+      "run_id": "20261101T074422_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4039b28d",
+      "metrics": {
+        "algorithm_fire_suggestions": 141,
+        "fire_pulses": 28,
+        "shots_fired": 28,
+        "target_armor_hits": 28,
+        "target_hit_rate": 1.0,
+        "other_robot_hits": 0,
+        "environment_hits": 0,
+        "shots_with_environment_contact": 0,
+        "no_hit_events": 0,
+        "flight_time_p50_s": 0.17655912041664124,
+        "flight_time_p95_s": 0.17808797955513,
+        "maximum_launch_spacing_s": 0.27727724,
+        "minimum_launch_spacing_s": 0.206483051,
+        "first_hit_s": 0.222215093,
+        "hit_contact_missing": 0,
+        "hit_trace_gap_max_m": 0.008499884864401794,
+        "projectile_trace_packets": 644,
+        "shot_sample_available": true,
+        "impact_quality_version": 1,
+        "impact_geometry_missing": 0,
+        "weighted_hit_score_sum": 26.201946855201143,
+        "weighted_hit_rate": 0.9357838162571837,
+        "useful_armor_hits": 28,
+        "useful_armor_hit_rate": 1.0,
+        "impact_center_distance_p50_m": 0.004396282179504555,
+        "impact_center_distance_p95_m": 0.007542000724023252,
+        "impact_x_bias_m": -0.002008142491291069,
+        "impact_y_bias_m": 0.0007993545069581067,
+        "scoring_version": 2,
+        "target_hits_per_s": 4.666666666666667,
+        "front_armor_hits": 28,
+        "front_armor_hit_rate": 1.0,
+        "hits_per_s": 4.666666666666667,
+        "weighted_points_per_s": 4.366991142533524
+      },
+      "timing": {
+        "wall_seconds": 533.4933199719962,
+        "budget_seconds": 900,
+        "within_budget": true,
+        "measurement_seconds": 6.0,
+        "settlement_seconds": 26.68684114998905,
+        "completion_boundary": "basic_results_and_sealed_evidence",
+        "media_seconds": null,
+        "provisioning_seconds": 2.384998680994613
+      },
+      "audit_passed": true,
+      "renderer": {
+        "backend": "cpu",
+        "gpu_uuid": null,
+        "implementation": "mesa-lavapipe"
+      },
+      "evidence_valid": true,
+      "evidence_index_sha256": "e06f843d196f8b309df1b5b40ea71f4aef9551ebbbb300cfcc5aedc330545b52"
+    },
+    {
+      "scene": "hf_uniform_3",
+      "run_id": "20261101T075317_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_30784b7c",
+      "metrics": {
+        "algorithm_fire_suggestions": 60,
+        "fire_pulses": 18,
+        "shots_fired": 18,
+        "target_armor_hits": 17,
+        "target_hit_rate": 0.9444444444444444,
+        "other_robot_hits": 0,
+        "environment_hits": 1,
+        "shots_with_environment_contact": 1,
+        "no_hit_events": 0,
+        "flight_time_p50_s": 0.20834244787693024,
+        "flight_time_p95_s": 0.3052278161048889,
+        "maximum_launch_spacing_s": 0.623382165,
+        "minimum_launch_spacing_s": 0.206483051,
+        "first_hit_s": 0.289076272,
+        "hit_contact_missing": 0,
+        "hit_trace_gap_max_m": 0.008500455627960833,
+        "projectile_trace_packets": 488,
+        "shot_sample_available": true,
+        "impact_quality_version": 1,
+        "impact_geometry_missing": 0,
+        "weighted_hit_score_sum": 7.65230460605131,
+        "weighted_hit_rate": 0.4251280336695172,
+        "useful_armor_hits": 17,
+        "useful_armor_hit_rate": 0.9444444444444444,
+        "impact_center_distance_p50_m": 0.038334364204404586,
+        "impact_center_distance_p95_m": 0.06376354586463358,
+        "impact_x_bias_m": -0.016516570825183676,
+        "impact_y_bias_m": -0.00023521311523182648,
+        "scoring_version": 2,
+        "target_hits_per_s": 3.4,
+        "front_armor_hits": 17,
+        "front_armor_hit_rate": 0.9444444444444444,
+        "hits_per_s": 3.4,
+        "weighted_points_per_s": 1.530460921210262
+      },
+      "timing": {
+        "wall_seconds": 459.4751333989989,
+        "budget_seconds": 900,
+        "within_budget": true,
+        "measurement_seconds": 5.0,
+        "settlement_seconds": 16.838914685999043,
+        "completion_boundary": "basic_results_and_sealed_evidence",
+        "media_seconds": null,
+        "provisioning_seconds": 3.452996633001021
+      },
+      "audit_passed": true,
+      "renderer": {
+        "backend": "cpu",
+        "gpu_uuid": null,
+        "implementation": "mesa-lavapipe"
+      },
+      "evidence_valid": true,
+      "evidence_index_sha256": "c2ea7807068e5579e31e0ae28cfbb1aa84b81803d985d7c314cd0b8f35be045f"
+    }
+  ],
+  "regression_tests": 11,
+  "coverage": {
+    "statements": 83.85,
+    "branches": 74.04
+  },
+  "failed_attempts": [
+    "old Ubuntu22 binary missing libfmt.so.8; rebuilt fresh in unified image",
+    "initial hard timeout 180 seconds; CPU budget set to 900",
+    "two schedulers shared worker names; cancelled conflict and reran serially",
+    "final sealing still used 180 seconds; fixed and reran without rewriting old evidence"
+  ],
+  "limitations": [
+    "CPU-isolated containers on a host with physical NVIDIA hardware; not an empty physical CPU-only machine certification",
+    "1440x1080 software rendering is slow; two basic smoke scenes only",
+    "CPU and hardware results must not be paired as identical render environments"
+  ],
+  "nvidia_regression": {
+    "complete": true,
+    "all_evidence_valid": true,
+    "groups": [
+      {
+        "scene": "hf_static_5",
+        "trials": 1,
+        "shots": 28,
+        "hits": 28,
+        "exact": 1.0,
+        "weighted": 0.934292284839548,
+        "hits_per_s": 4.666666666666667,
+        "weighted_points_per_s": 4.360030662584557
+      }
+    ],
+    "wall_seconds": 21.443819224994513,
+    "job": "job_benchmark_56b8909af3df"
+  }
+}

@@ -62,7 +62,7 @@ python3 tools/development.py example
 
 ## 自动测试与覆盖率
 
-使用 Python 3.12 venv 安装固定测试依赖，不需要 GPU：
+使用 Python 3.12 venv 安装固定测试依赖，不需要 GPU。完整本地闭环也可使用 CPU，选择与耗时见 [实验指南](EXPERIMENTS.md#渲染模式)：
 
 ```bash
 python3 -m venv .venv

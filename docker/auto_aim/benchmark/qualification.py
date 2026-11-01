@@ -11,7 +11,7 @@ from report import load,write
 
 def signature(bundle,settings):
     meta=load(Path(bundle)/'bundle.json')
-    return identity(dict(files=meta['files'],images=meta['images'],gpu=meta['gpu_uuid'],settings={k:v for k,v in settings.items() if k not in ('repeat_id','label','sensor_seed')}))
+    return identity(dict(files=meta['files'],images=meta['images'],gpu=meta['gpu_uuid'],renderer=meta.get('renderer',{'backend':'nvidia'}),settings={k:v for k,v in settings.items() if k not in ('repeat_id','label','sensor_seed')}))
 
 
 def limit(job):

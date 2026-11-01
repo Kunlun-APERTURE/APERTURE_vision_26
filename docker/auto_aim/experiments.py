@@ -80,6 +80,7 @@ def add_parser(commands):
     suite.add_argument('--bundle',type=Path);suite.add_argument('--artifact',type=Path);suite.add_argument('--sensor-seeds',default='8101,8102,8103')
     suite.add_argument('--trajectory-seed',type=int,default=2026102207);suite.add_argument('--repeats',type=int,default=1)
     suite.add_argument('--parallelism',choices=('1','2'),default='1')
+    suite.add_argument('--renderer',choices=('auto','cpu','nvidia'),default='auto',help='auto 优先 NVIDIA，无可用设备时使用 CPU 软件渲染')
     suite.add_argument('--resume',action='store_true');suite.add_argument('--wait',action='store_true')
     sub.add_parser('list')
     compare = sub.add_parser('compare',help='Compare paired frozen background tasks')
@@ -253,11 +254,13 @@ def snapshot(manager, folder, scene, args):
     if manifest['execution']['mode']=='lockstep':
         source=manager.OPS/'timing_profiles'/(args.timing_profile+'.json')
         shutil.copy2(source,configs/'timing-profile.json')
-        manifest.update(wall_budget_s=180)
+        from render_backend import wall_budget
+        manifest.update(wall_budget_s=wall_budget(getattr(manager,'renderer',{}),True))
         manifest['execution'].update(timing_profile=args.timing_profile,timing_sha256=digest(source),
             initialization='Fresh environment, fixed simulated settling/homing and warmup frame count',
             clock_domain='simulation',real_compute_cost_separate=True)
         manifest['configuration_sha256']['timing-profile.json']=digest(source)
+    if hasattr(manager,'renderer'):manifest['renderer']=manager.renderer
     manifest['baseline_key'] = baseline_key(manifest)
     baseline = load(manager.OPS/'baselines'/(manifest['baseline_key']+'.json'))
     if baseline:
@@ -349,7 +352,8 @@ def run_one(manager, scene, args):
     reset_detector=getattr(args,'detector_history','process')=='session'
     if reset_detector and session_option=='off':raise ValueError('Session detector history requires complete session evidence')
     session_evidence=lockstep or reset_detector or session_option in (True,'on')
-    budget=180 if lockstep else 40
+    from render_backend import wall_budget
+    budget=wall_budget(getattr(manager,'renderer',{}),lockstep)
     operation_deadline = start_mono+budget-4
     duration = measurement_duration(scene,args)
     short_scenario(manager,scene,duration,getattr(args,'seed',20261019))
