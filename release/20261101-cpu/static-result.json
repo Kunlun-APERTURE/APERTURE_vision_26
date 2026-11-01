@@ -1,0 +1,29 @@
+{
+  "run_id": "20261101T074422_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_4039b28d",
+  "scene": "hf_static_5",
+  "renderer": {
+    "backend": "cpu",
+    "gpu_uuid": null,
+    "implementation": "mesa-lavapipe"
+  },
+  "shots": 28,
+  "hits": 28,
+  "timing": {
+    "wall_seconds": 533.4933199719962,
+    "budget_seconds": 900,
+    "within_budget": true,
+    "measurement_seconds": 6.0,
+    "settlement_seconds": 26.68684114998905,
+    "completion_boundary": "basic_results_and_sealed_evidence",
+    "media_seconds": null,
+    "provisioning_seconds": 2.384998680994613
+  },
+  "summary_verdict": "passed",
+  "session_audit": {
+    "passed": true,
+    "errors": [],
+    "inputs": 217,
+    "results": 217
+  },
+  "evidence_sha256": "e06f843d196f8b309df1b5b40ea71f4aef9551ebbbb300cfcc5aedc330545b52"
+}
