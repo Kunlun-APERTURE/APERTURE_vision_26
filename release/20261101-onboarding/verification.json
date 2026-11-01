@@ -22,5 +22,13 @@
     "passed": true
   },
   "workflow_actionlint": true,
-  "local_links_and_anchors": true
+  "local_links_and_anchors": true,
+  "release_workflow": {
+    "url": "https://github.com/Kunlun-APERTURE/APERTURE_vision_26/actions/runs/41282103827",
+    "branch": "docs/unified-onboarding",
+    "release": "26-11-1",
+    "passed": true,
+    "anonymous_all_layers": true,
+    "existing_manifest_verified": true
+  }
 }
