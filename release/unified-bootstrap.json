@@ -1,0 +1,11 @@
+{
+  "release": "26-11-01",
+  "archive_sha256": "51ee45a1733f9919c1435f267a94cde095bee15ed5bd97764b273d173313cf27",
+  "parts": [
+    {
+      "name": "aperture_vision-26-11-1.tar",
+      "size": 1480756736,
+      "sha256": "51ee45a1733f9919c1435f267a94cde095bee15ed5bd97764b273d173313cf27"
+    }
+  ]
+}

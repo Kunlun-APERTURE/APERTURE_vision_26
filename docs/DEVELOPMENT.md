@@ -12,6 +12,19 @@ python3 tools/development.py build
 
 B1 配置在 `docker/auto_aim/benchmark/configs/B1.yaml`，其补偿参数属于仿真配置，不能直接当作实车标定。构建之后修改配置会触发来源一致性检查，应重新构建或创建独立 manifest。
 
+## 编译模拟器
+
+统一镜像包含 Rust 1.98.1 和 ROS 2 构建依赖。首次编译需下载 Cargo.lock 固定的 crate；缓存与产物写到独立目录：
+
+```bash
+mkdir -p exports/simulator-build
+docker run --rm --network host --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project:ro" --volume "$PWD/exports/simulator-build:/work" \
+  --workdir /work aperture_vision:26-11-1 bash /project/tools/build-simulator.sh
+```
+
+产物为 `exports/simulator-build/target/release/daedalus`。源码只读，修改 Rust 后重新执行同一命令。平台源码编译成功后仍需构建并验收新的环境镜像，不能将历史评分环境当作新平台版本。
+
 ## 独立算法接入
 
 `AlgorithmAdapter` 提供 build/describe；JSON manifest 由 `ProcessAdapter` 接入独立产物。完整可运行例子：
@@ -28,7 +41,8 @@ python3 tools/development.py example
 |id / version|算法名称和版本|
 |protocol|`rm26-image-v1`|
 |capabilities|至少包含 simulation_clock、session_reset、fire_advice|
-|image|已准备的运行镜像|
+|image|运行镜像，团队默认使用快速开始中的统一镜像|
+|runtime_image|可选，让模拟器、桥接和评分也使用该统一镜像；需具备对应接口和云台来源标记|
 |binary_sha256|传入 `--artifact` 文件的 SHA256|
 |config / config_sha256|相对 manifest 的配置文件路径及校验值|
 |algorithm_profile|独立通用算法用 `image_v1`|

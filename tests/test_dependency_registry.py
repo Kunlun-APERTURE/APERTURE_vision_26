@@ -35,9 +35,35 @@ class RegistryTests(unittest.TestCase):
 
     def test_date_tag(self):
         self.assertEqual(registry.release_tag('26-11-01'), '26-11-01')
+        self.assertEqual(registry.image_tag('26-11-01'), '26-11-1')
+        self.assertEqual(registry.image_tag('26-11-1'), '26-11-1')
         for invalid in ('latest', '26-02-30', '2026-11-01', '../tag'):
             with self.assertRaises(ValueError):
                 registry.release_tag(invalid)
+
+    def test_unified_manifest_requires_one_image(self):
+        repo = 'ghcr.io/kunlun-aperture/aperture_vision'
+        entry = dict(ENTRY, local='aperture_vision:26-11-1', repository=repo, reference=repo+'@'+ID)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/'dependencies.json'
+            data = dict(DATA, version=3, images=[entry])
+            path.write_text(json.dumps(data))
+            self.assertEqual(registry.load(path), data)
+            path.write_text(json.dumps(dict(data, images=[entry, ENTRY])))
+            with self.assertRaises(ValueError):
+                registry.load(path)
+
+    @patch.object(registry, 'ROOT')
+    @patch.object(registry.subprocess, 'run')
+    def test_unaccepted_unified_image_cannot_be_published(self, command, root):
+        with tempfile.TemporaryDirectory() as temporary:
+            proof = Path(temporary)/'validation.json'
+            proof.write_text(json.dumps(dict(passed=False, image_id=ID)))
+            data = dict(DATA, version=3, acceptance=dict(path='validation.json', sha256=registry.sha(proof)))
+            with patch.object(registry, 'ROOT', Path(temporary)):
+                with self.assertRaises(ValueError):
+                    registry.publish(data, '26-11-1', Path(temporary)/'out.json')
+            command.assert_not_called()
 
     @patch.object(registry, 'inspect_manifest', return_value=RAW)
     def test_source_index_must_match_exact_bytes(self, inspect):

@@ -3,6 +3,7 @@ import json
 import subprocess
 from pathlib import Path
 from .core import AlgorithmAdapter, sha, identity
+from dependency_image import build_image, unified_image
 
 CONFIG=Path(__file__).parent/'configs/B1.yaml'
 
@@ -20,7 +21,7 @@ cmake --build /work/build --target sim_auto_aim -j4
         import os
         subprocess.run(['docker','run','--rm','--user',f'{os.getuid()}:{os.getgid()}',
             '-v',str(root/'sp_vision_25')+':/source:ro','-v',str(output)+':/work',
-            '--entrypoint','bash','sp_vision_dev:2024.6.0','-c',command],check=True)
+            '--entrypoint','bash',build_image(),'-c',command],check=True)
         artifact=output/'build/sim_auto_aim'
         descriptor=self.describe(root,artifact)
         (output/'build-provenance.json').write_text(json.dumps(descriptor,indent=2))
@@ -33,14 +34,18 @@ cmake --build /work/build --target sim_auto_aim -j4
         # Bind executable to the full source tree and dependency image, not only HEAD.
         paths=subprocess.check_output(['git','-C',str(root/'sp_vision_25'),'ls-files','-z']).decode().split('\0')
         files={p:sha(root/'sp_vision_25'/p) for p in paths if p and (root/'sp_vision_25'/p).is_file() and not p.startswith('assets/')}
-        image=json.loads(subprocess.check_output(['docker','image','inspect','sp_vision_dev:2024.6.0'],text=True))[0]['Id']
-        return dict(id=self.id,version=1,adapter='r4',source_commit=head,source_tree_sha256=identity(files),build_image=image,binary_sha256=sha(artifact),
+        image=json.loads(subprocess.check_output(['docker','image','inspect',build_image()],text=True))[0]['Id']
+        result=dict(id=self.id,version=1,adapter='r4',source_commit=head,source_tree_sha256=identity(files),build_image=image,binary_sha256=sha(artifact),
             config_sha256=sha(CONFIG),protocol='rm26-image-v1',algorithm_profile='tracking_fire_v3',
             capabilities=['simulation_clock','session_reset','fire_advice','r4_diagnostics'],
             launch=['/snapshot/sp_vision_25/build/simulator/sim_auto_aim',
                 '--config=/snapshot/sp_vision_25/configs/simulator.yaml','--runtime=/work/calibration.yaml',
                 '--view=false','--port={port}','--fire={fire}','--aim-origin={aim_origin}',
                 '--algorithm-profile=tracking_fire_v3','--execution-mode={execution_mode}','--detector-history=session'])
+        if unified_image():
+            result['image']=unified_image()
+            result['runtime_image']=unified_image()
+        return result
 
 
 class ProcessAdapter(AlgorithmAdapter):

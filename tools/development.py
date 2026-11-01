@@ -12,8 +12,10 @@ elif a.action=='build':subprocess.run([str(root/'sim.sh'),'experiment','algorith
 elif a.action=='example':
  sys.path.insert(0,str(root/'docker/auto_aim'))
  from benchmark.core import sha
+ from dependency_image import unified_image
  script=root/'docker/auto_aim/benchmark/examples/idle_algorithm.py'
  descriptor=dict(id='idle-example',version=1,protocol='rm26-image-v1',algorithm_profile='image_v1',setup='',image='daedalus:rm26-algorithm',config='B1.yaml',config_sha256=sha(root/'docker/auto_aim/benchmark/configs/B1.yaml'),binary_sha256=sha(script),capabilities=['simulation_clock','session_reset','fire_advice'],launch=['python3','/snapshot/sp_vision_25/build/simulator/sim_auto_aim','--port={port}'])
+ if unified_image():descriptor.update(image=unified_image(),runtime_image=unified_image())
  output=root/'exports/idle-example';output.mkdir(parents=True,exist_ok=True)
  import shutil
  shutil.copy2(root/'docker/auto_aim/benchmark/configs/B1.yaml',output/'B1.yaml');(output/'adapter.json').write_text(json.dumps(descriptor,indent=2))

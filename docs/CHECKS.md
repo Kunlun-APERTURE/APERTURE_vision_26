@@ -14,7 +14,7 @@ python3 tools/check-workspace.py
 
 ## C++构建与回归测试
 
-以下命令需要本机已有`sp_vision_dev:2024.6.0`依赖镜像，在宿主机的完整主仓库根目录执行。源码只读挂载，构建与测试输出写入独立目录，不覆盖已验的`sp_vision_25/build/simulator`。
+以下命令需要本机已有`aperture_vision:26-11-1`依赖镜像，在宿主机的完整主仓库根目录执行。源码只读挂载，构建与测试输出写入独立目录，不覆盖已验的`sp_vision_25/build/simulator`。
 
 ```bash
 mkdir -p docker/auto_aim/.runtime/cpp-checks
@@ -22,7 +22,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
   --volume "$PWD:/project:ro" \
   --volume "$PWD/docker/auto_aim/.runtime/cpp-checks:/work" \
   --workdir /work \
-  --entrypoint bash sp_vision_dev:2024.6.0 -c '
+  --entrypoint bash aperture_vision:26-11-1 -c '
     set -e
     source /opt/intel/openvino/setupvars.sh >/dev/null
     ln -sfn /project/sp_vision_25/assets /work/assets

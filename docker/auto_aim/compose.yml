@@ -92,7 +92,7 @@ services:
       driver: json-file
       options: {max-size: 20m, max-file: "3"}
   evaluator:
-    image: daedalus:rm26-evaluator
+    image: ${RM26_EVALUATOR_IMAGE:-daedalus:rm26-evaluator}
     profiles: [experiment]
     build:
       context: .

@@ -7,6 +7,10 @@ from pathlib import Path
 import subprocess
 
 IMAGES=('sp_vision_dev:2024.6.0','daedalus:rm26-algorithm','daedalus:rm26-input-contract-v2','daedalus:rm26-evaluator-input-contract-v2','daedalus:rm26-reference-yaw-corrected-20261029')
+catalog=Path(__file__).resolve().parents[1]/'release/dependencies.json'
+if catalog.exists():
+ data=json.loads(catalog.read_text())
+ if data.get('version')==3:IMAGES=tuple(entry['local'] for entry in data['images'])
 
 
 def digest(path):

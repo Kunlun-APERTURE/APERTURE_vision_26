@@ -1,0 +1,555 @@
+{
+  "passed": true,
+  "errors": [],
+  "inputs": 225,
+  "results": 225,
+  "warmup_inputs": 31,
+  "unmatched_tail": [],
+  "events": [
+    {
+      "kind": "session_start",
+      "data": {
+        "session": "71c8e84b6ea24d988af6b112891e7b8d",
+        "wall_ns": 1793510926488077354
+      },
+      "event_index": 1,
+      "wall_ns": 1793510926488079158
+    },
+    {
+      "kind": "warmup_park",
+      "data": {
+        "stamp_ns": 1700000004772708245,
+        "pipeline": {
+          "image_due_ns": 1700000004796252285,
+          "image_index": 31,
+          "control_index": 534,
+          "capture_interval_index": 31,
+          "queued_images": [
+            {
+              "stamp_ns": 1700000004764842224,
+              "delivery_ns": 1700000004793464264,
+              "seq": 31
+            }
+          ],
+          "pending_command_receipt_ns": null
+        },
+        "receipt_boundary": true
+      },
+      "event_index": 62,
+      "wall_ns": 1793510928278690676
+    },
+    {
+      "kind": "warmup_contract",
+      "data": {
+        "contract": "aligned-v1",
+        "completed_frames": 30,
+        "inputs": [
+          {
+            "seq": 1,
+            "stamp_ns": 1700000003724560946,
+            "sensor": {
+              "index": 0,
+              "kind": "frame",
+              "phase": 568.360595703125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003724560946,
+              "version": 1
+            }
+          },
+          {
+            "seq": 2,
+            "stamp_ns": 1700000003759958041,
+            "sensor": {
+              "index": 1,
+              "kind": "frame",
+              "phase": 3640.9921875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003759958041,
+              "version": 1
+            }
+          },
+          {
+            "seq": 3,
+            "stamp_ns": 1700000003795355135,
+            "sensor": {
+              "index": 2,
+              "kind": "frame",
+              "phase": 484.433349609375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003795355135,
+              "version": 1
+            }
+          },
+          {
+            "seq": 4,
+            "stamp_ns": 1700000003828785725,
+            "sensor": {
+              "index": 3,
+              "kind": "frame",
+              "phase": 3835.03515625,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003828785725,
+              "version": 1
+            }
+          },
+          {
+            "seq": 5,
+            "stamp_ns": 1700000003864182819,
+            "sensor": {
+              "index": 4,
+              "kind": "frame",
+              "phase": 3821.6044921875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003864182819,
+              "version": 1
+            }
+          },
+          {
+            "seq": 6,
+            "stamp_ns": 1700000003899579914,
+            "sensor": {
+              "index": 5,
+              "kind": "frame",
+              "phase": 2082.89794921875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003899579914,
+              "version": 1
+            }
+          },
+          {
+            "seq": 7,
+            "stamp_ns": 1700000003933010503,
+            "sensor": {
+              "index": 6,
+              "kind": "frame",
+              "phase": 4047.75537109375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003933010503,
+              "version": 1
+            }
+          },
+          {
+            "seq": 8,
+            "stamp_ns": 1700000003968407597,
+            "sensor": {
+              "index": 7,
+              "kind": "frame",
+              "phase": 2206.450439453125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000003968407597,
+              "version": 1
+            }
+          },
+          {
+            "seq": 9,
+            "stamp_ns": 1700000004001838187,
+            "sensor": {
+              "index": 8,
+              "kind": "frame",
+              "phase": 4019.675048828125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004001838187,
+              "version": 1
+            }
+          },
+          {
+            "seq": 10,
+            "stamp_ns": 1700000004037235281,
+            "sensor": {
+              "index": 9,
+              "kind": "frame",
+              "phase": 3203.1123046875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004037235281,
+              "version": 1
+            }
+          },
+          {
+            "seq": 11,
+            "stamp_ns": 1700000004072632376,
+            "sensor": {
+              "index": 10,
+              "kind": "frame",
+              "phase": 3619.3623046875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004072632376,
+              "version": 1
+            }
+          },
+          {
+            "seq": 12,
+            "stamp_ns": 1700000004106062965,
+            "sensor": {
+              "index": 11,
+              "kind": "frame",
+              "phase": 777.97021484375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004106062965,
+              "version": 1
+            }
+          },
+          {
+            "seq": 13,
+            "stamp_ns": 1700000004141460060,
+            "sensor": {
+              "index": 12,
+              "kind": "frame",
+              "phase": 1886.010498046875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004141460060,
+              "version": 1
+            }
+          },
+          {
+            "seq": 14,
+            "stamp_ns": 1700000004174890649,
+            "sensor": {
+              "index": 13,
+              "kind": "frame",
+              "phase": 228.399169921875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004174890649,
+              "version": 1
+            }
+          },
+          {
+            "seq": 15,
+            "stamp_ns": 1700000004210287743,
+            "sensor": {
+              "index": 14,
+              "kind": "frame",
+              "phase": 3499.327392578125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004210287743,
+              "version": 1
+            }
+          },
+          {
+            "seq": 16,
+            "stamp_ns": 1700000004245684838,
+            "sensor": {
+              "index": 15,
+              "kind": "frame",
+              "phase": 3937.923583984375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004245684838,
+              "version": 1
+            }
+          },
+          {
+            "seq": 17,
+            "stamp_ns": 1700000004279115427,
+            "sensor": {
+              "index": 16,
+              "kind": "frame",
+              "phase": 609.947509765625,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004279115427,
+              "version": 1
+            }
+          },
+          {
+            "seq": 18,
+            "stamp_ns": 1700000004314512522,
+            "sensor": {
+              "index": 17,
+              "kind": "frame",
+              "phase": 728.25439453125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004314512522,
+              "version": 1
+            }
+          },
+          {
+            "seq": 19,
+            "stamp_ns": 1700000004349909616,
+            "sensor": {
+              "index": 18,
+              "kind": "frame",
+              "phase": 2892.751708984375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004349909616,
+              "version": 1
+            }
+          },
+          {
+            "seq": 20,
+            "stamp_ns": 1700000004383340206,
+            "sensor": {
+              "index": 19,
+              "kind": "frame",
+              "phase": 2927.204833984375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004383340206,
+              "version": 1
+            }
+          },
+          {
+            "seq": 21,
+            "stamp_ns": 1700000004418737300,
+            "sensor": {
+              "index": 20,
+              "kind": "frame",
+              "phase": 2836.168212890625,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004418737300,
+              "version": 1
+            }
+          },
+          {
+            "seq": 22,
+            "stamp_ns": 1700000004452167889,
+            "sensor": {
+              "index": 21,
+              "kind": "frame",
+              "phase": 799.42138671875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004452167889,
+              "version": 1
+            }
+          },
+          {
+            "seq": 23,
+            "stamp_ns": 1700000004487564984,
+            "sensor": {
+              "index": 22,
+              "kind": "frame",
+              "phase": 1024.9375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004487564984,
+              "version": 1
+            }
+          },
+          {
+            "seq": 24,
+            "stamp_ns": 1700000004522962078,
+            "sensor": {
+              "index": 23,
+              "kind": "frame",
+              "phase": 2945.9921875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004522962078,
+              "version": 1
+            }
+          },
+          {
+            "seq": 25,
+            "stamp_ns": 1700000004556392668,
+            "sensor": {
+              "index": 24,
+              "kind": "frame",
+              "phase": 3653.1162109375,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004556392668,
+              "version": 1
+            }
+          },
+          {
+            "seq": 26,
+            "stamp_ns": 1700000004591789762,
+            "sensor": {
+              "index": 25,
+              "kind": "frame",
+              "phase": 2991.80419921875,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004591789762,
+              "version": 1
+            }
+          },
+          {
+            "seq": 27,
+            "stamp_ns": 1700000004625220351,
+            "sensor": {
+              "index": 26,
+              "kind": "frame",
+              "phase": 598.049072265625,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004625220351,
+              "version": 1
+            }
+          },
+          {
+            "seq": 28,
+            "stamp_ns": 1700000004660617446,
+            "sensor": {
+              "index": 27,
+              "kind": "frame",
+              "phase": 735.638916015625,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004660617446,
+              "version": 1
+            }
+          },
+          {
+            "seq": 29,
+            "stamp_ns": 1700000004696014541,
+            "sensor": {
+              "index": 28,
+              "kind": "frame",
+              "phase": 272.413330078125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004696014541,
+              "version": 1
+            }
+          },
+          {
+            "seq": 30,
+            "stamp_ns": 1700000004729445130,
+            "sensor": {
+              "index": 29,
+              "kind": "frame",
+              "phase": 1809.718017578125,
+              "reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+              "seed": 2026110101,
+              "stamp_ns": 1700000004729445130,
+              "version": 1
+            }
+          }
+        ],
+        "sensor_reset_id": "71c8e84b6ea24d988af6b112891e7b8d",
+        "stamp_ns": 1700000004772708245
+      },
+      "event_index": 63,
+      "wall_ns": 1793510928278795301
+    },
+    {
+      "kind": "measurement_request",
+      "data": {
+        "stamp_ns": 1700000004772708245,
+        "scenario": {
+          "id": "rm26_hf_static_5",
+          "phase": 0,
+          "stamp_ns": 1700000004697981046,
+          "time": 0.0,
+          "spawn_applied": true,
+          "spawn_error": ""
+        }
+      },
+      "event_index": 64,
+      "wall_ns": 1793510928280357375
+    },
+    {
+      "kind": "measurement_pipeline",
+      "data": {
+        "stamp_ns": 1700000004772708245,
+        "continuous": true,
+        "before": {
+          "image_due_ns": 1700000004796252285,
+          "image_index": 31,
+          "control_index": 534,
+          "capture_interval_index": 31,
+          "queued_images": [
+            {
+              "stamp_ns": 1700000004764842224,
+              "delivery_ns": 1700000004793464264,
+              "seq": 31
+            }
+          ],
+          "pending_command_receipt_ns": null
+        },
+        "after": {
+          "image_due_ns": 1700000004796252285,
+          "image_index": 31,
+          "control_index": 534,
+          "capture_interval_index": 31,
+          "queued_images": [
+            {
+              "stamp_ns": 1700000004764842224,
+              "delivery_ns": 1700000004793464264,
+              "seq": 31
+            }
+          ],
+          "pending_command_receipt_ns": null
+        }
+      },
+      "event_index": 65,
+      "wall_ns": 1793510928280444197
+    },
+    {
+      "kind": "scenario_boundary",
+      "data": {
+        "generation": 1,
+        "id": "rm26_hf_static_5",
+        "measurement_end_stamp_ns": null,
+        "measurement_start_stamp_ns": 1700000004774674751,
+        "phase": 1,
+        "stamp_ns": 1700000004774674751,
+        "version": 1
+      },
+      "event_index": 66,
+      "wall_ns": 1793510928281678773
+    },
+    {
+      "kind": "measurement_ack",
+      "data": {
+        "stamp_ns": 1700000004774674751,
+        "step": 2428,
+        "generation": 1
+      },
+      "event_index": 67,
+      "wall_ns": 1793510928281886098
+    },
+    {
+      "kind": "scenario_boundary",
+      "data": {
+        "generation": 1,
+        "id": "rm26_hf_static_5",
+        "measurement_end_stamp_ns": 1700000010782348294,
+        "measurement_start_stamp_ns": 1700000004774674751,
+        "phase": 2,
+        "stamp_ns": 1700000010782348294,
+        "version": 1
+      },
+      "event_index": 414,
+      "wall_ns": 1793510938824309851
+    },
+    {
+      "kind": "session_stop",
+      "data": {
+        "stamp_ns": 1700000011517821258,
+        "scenario": {
+          "id": "rm26_hf_static_5",
+          "phase": 2,
+          "stamp_ns": 1700000011415562985,
+          "time": 6.0,
+          "spawn_applied": true,
+          "spawn_error": ""
+        }
+      },
+      "event_index": 459,
+      "wall_ns": 1793510940147166794
+    }
+  ],
+  "session": "71c8e84b6ea24d988af6b112891e7b8d",
+  "measurement_observations_verified": 173,
+  "detector_session_reset_verified": true
+}

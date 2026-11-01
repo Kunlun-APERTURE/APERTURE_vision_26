@@ -1,6 +1,7 @@
 """Remove only explicitly owned remote resources. Never use system prune."""
 import json
 import subprocess
+from dependency_image import unified_image
 
 
 class DockerResources:
@@ -31,4 +32,4 @@ for path in root.iterdir():
 """
         self.run(['docker','run','--rm','--network','none','--user','0:0','--cap-drop','ALL','--cap-add','DAC_OVERRIDE','--cap-add','FOWNER',
             '--security-opt','no-new-privileges','--label','aperture.pr='+work.name,'-v',str(work)+':/task',
-            '--entrypoint','python3','daedalus:rm26-algorithm','-c',script],check=True,capture_output=True,text=True)
+            '--entrypoint','python3',unified_image() or 'daedalus:rm26-algorithm','-c',script],check=True,capture_output=True,text=True)

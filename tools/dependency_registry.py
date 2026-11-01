@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / 'release/dependencies.json'
 REPOSITORY = 'Kunlun-APERTURE/APERTURE_vision_26'
 DIGEST = re.compile(r'sha256:[0-9a-f]{64}')
-IMAGE_REPOSITORY = re.compile(r'ghcr\.io/kunlun-aperture/rm26-[a-z0-9-]+')
+IMAGE_REPOSITORY = re.compile(r'ghcr\.io/kunlun-aperture/(?:rm26-[a-z0-9-]+|aperture_vision)')
 
 
 def run(args):
@@ -29,18 +29,25 @@ def sha(path):
 
 
 def release_tag(value):
-    if not re.fullmatch(r'\d{2}-\d{2}-\d{2}', value):
-        raise ValueError('版本标签必须为 年-月-日，例如 26-11-01')
+    if not re.fullmatch(r'\d{2}-\d{1,2}-\d{1,2}', value):
+        raise ValueError('版本标签必须为 年-月-日，例如 26-11-1')
     datetime.datetime.strptime(value, '%y-%m-%d')
     return value
 
 
+def image_tag(value):
+    parsed = datetime.datetime.strptime(release_tag(value), '%y-%m-%d')
+    return f'{parsed.year % 100:02d}-{parsed.month}-{parsed.day}'
+
+
 def load(path, require_reference=True):
     data = json.loads(Path(path).read_text())
-    if data.get('version') != 2 or data.get('platform') != 'linux/amd64':
+    if data.get('version') not in (2, 3) or data.get('platform') != 'linux/amd64':
         raise ValueError('不支持的镜像清单版本或平台')
     if not data.get('images'):
         raise ValueError('镜像清单不能为空')
+    if data['version'] == 3 and (len(data['images']) != 1 or data['images'][0]['repository'] != 'ghcr.io/kunlun-aperture/aperture_vision'):
+        raise ValueError('统一环境只允许一个 APERTURE_vision 镜像')
     names = set()
     repositories = set()
     for entry in data['images']:
@@ -115,8 +122,22 @@ def check(data):
 
 def publish(data, tag, output, archive=None):
     release_tag(tag)
+    if data['version'] == 3:
+        acceptance = data['acceptance']
+        proof = (ROOT / acceptance['path']).resolve()
+        if not proof.is_relative_to(ROOT) or sha(proof) != acceptance['sha256']:
+            raise ValueError('镜像验收记录缺失或校验失败')
+        verified = json.loads(proof.read_text())
+        if not verified.get('passed') or verified.get('image_id') != data['images'][0]['image_id']:
+            raise ValueError('该统一镜像尚未通过验收')
     output = Path(output)
     result = dict(data, release=tag, images=[])
+    target_tag = image_tag(tag) if data['version'] == 3 else tag
+    if data['version'] == 3:
+        result['image_tag'] = target_tag
+        result['release_sources'] = dict(main=run(['git', 'rev-parse', 'HEAD']).strip())
+        for name in ('sp_vision_25', 'vision_simulator_26'):
+            result['release_sources'][name] = run(['git', 'ls-tree', 'HEAD', name]).split()[2]
     sources = []
     existing = []
     for entry in data['images']:
@@ -124,13 +145,13 @@ def publish(data, tag, output, archive=None):
                   if archive else 'docker://' + entry['reference'])
         verify_source(entry, source)
         sources.append(source)
-        existing.append(existing_reference(entry, tag))
+        existing.append(existing_reference(entry, target_tag))
     with tempfile.TemporaryDirectory() as temporary:
         for index, (entry, source, reference) in enumerate(zip(data['images'], sources, existing)):
             if reference:
                 result['images'].append(dict(entry, reference=reference))
                 continue
-            destination = entry['repository'] + ':' + tag
+            destination = entry['repository'] + ':' + target_tag
             digest_file = Path(temporary) / str(index)
             subprocess.run(['skopeo', 'copy', '--all', '--preserve-digests',
                             '--retry-times', '3', '--digestfile', str(digest_file),
@@ -201,7 +222,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('pull', 'check', 'publish', 'verify-public', 'bootstrap', 'attach'))
     parser.add_argument('--manifest', type=Path, default=CATALOG, help='镜像清单路径')
-    parser.add_argument('--tag', help='日期版本标签，例如 26-11-01')
+    parser.add_argument('--tag', help='日期版本标签，例如 26-11-1')
     parser.add_argument('--output', type=Path, help='输出清单或归档路径')
     parser.add_argument('--archive', type=Path, help='仅首批迁移：保留 OCI 索引的已校验归档')
     parser.add_argument('--download', action='store_true', help='匿名下载全部镜像层进行验证')
