@@ -1,0 +1,29 @@
+{
+  "root": "/home/rm/rm26",
+  "branch": "feat/cpu-rendering",
+  "commit": "45d12df84e5cc02d7b4f89f4065178ca0195c927",
+  "submodules": "d5d012d6b5d50b9ac80a041647a9d7ba410fd476 sp_vision_25 (stage-20261031-usability)\n 778c0c8fba8022835eeabb3f81c4c865f588a34e vision_simulator_26 (stage-20261031-usability)",
+  "services": "MainPID=986083\nExecMainStartTimestamp=Sat 2026-10-31 15:06:39 UTC\nId=rm26-experiments.service\nNeedDaemonReload=yes\n\nMainPID=1056718\nExecMainStartTimestamp=Sat 2026-10-31 16:00:03 UTC\nId=aperture-pr-experiments.service\nNeedDaemonReload=yes",
+  "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+  "queue_counts": [
+    [
+      "cancelled",
+      18
+    ],
+    [
+      "completed",
+      1632
+    ],
+    [
+      "paused",
+      4
+    ]
+  ],
+  "paused_jobs": [
+    "capacity_20261022T133634_2c8c12_p4",
+    "job_benchmark_09d095ba18f7",
+    "job_benchmark_e1b37395718b",
+    "job_benchmark_adac4763908d"
+  ],
+  "active_jobs": []
+}

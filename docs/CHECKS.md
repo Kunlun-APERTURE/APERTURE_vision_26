@@ -27,7 +27,16 @@ docker run --rm --network none --user "$(id -u):$(id -g)" \
 
 [组件脚本](../tools/validate-ubuntu24-components.sh) 是构建与回归程序列表的唯一执行入口，加载 ROS/OpenVINO 后构建9个目标并运行6个回归程序。源码只读，结果写入上述独立目录。专用 YAML 是测试夹具，不替代生产配置；不要直接在宿主机运行容器构建的二进制。
 
-模拟器源码编译见 [开发指南](DEVELOPMENT.md#编译模拟器)，其已知单元测试失败见 [能力与限制](STATUS.md)。完整环境镜像重建与发布分别见运维和发布指南。
+模拟器源码编译见 [开发指南](DEVELOPMENT.md#编译模拟器)。默认特性与 ROS/bench 两套 Rust 回归使用以下入口；源码只读，首次运行会下载固定版本依赖：
+
+```bash
+mkdir -p exports/simulator-tests
+docker run --rm --network host --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project:ro" --volume "$PWD/exports/simulator-tests:/work" \
+  --workdir /work aperture_vision:26-11-1 bash /project/tools/test-simulator.sh
+```
+
+唯一保留的忽略项 `corrected_angle_loop_csv` 是需显式运行的 CSV 组件诊断。单测结果与候选镜像闭环验收分别记录；仅编译本地 Rust 不会替换运行镜像。当前版本状态见 [能力与限制](STATUS.md)，完整环境镜像重建与发布分别见运维和发布指南。
 
 ## 后台冒烟
 

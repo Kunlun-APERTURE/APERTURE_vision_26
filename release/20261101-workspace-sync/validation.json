@@ -1,0 +1,148 @@
+{
+  "passed": true,
+  "commit": "b83dcb3b4e6965a92cc8838792c47278e893d80d",
+  "image_id": "sha256:a2677e9387d21259f66f06768e163143089bf04e52ac5f9307469aef1e4e7819",
+  "services": {
+    "rm26-experiments.service": {
+      "MainPID": "1946942",
+      "ExecMainStartTimestamp": "Sun 2026-11-01 10:50:59 UTC",
+      "ActiveState": "active",
+      "NeedDaemonReload": "no"
+    },
+    "aperture-pr-experiments.service": {
+      "MainPID": "2042632",
+      "ExecMainStartTimestamp": "Sun 2026-11-01 11:11:27 UTC",
+      "ActiveState": "active",
+      "NeedDaemonReload": "no"
+    }
+  },
+  "paused_jobs_preserved": [
+    "capacity_20261022T133634_2c8c12_p4",
+    "job_benchmark_09d095ba18f7",
+    "job_benchmark_adac4763908d",
+    "job_benchmark_e1b37395718b"
+  ],
+  "cpu_device_isolation": [
+    {
+      "name": "rm26-worker-1-algorithm",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null,
+      "gpu_environment": [],
+      "gpu_paths_probe": {
+        "returncode": 0,
+        "stdout": "[]",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "rm26-worker-1-bridge",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null,
+      "gpu_environment": [],
+      "gpu_paths_probe": {
+        "returncode": 0,
+        "stdout": "[]",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "rm26-worker-1-simulator",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null,
+      "gpu_environment": [
+        "VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json",
+        "LIBGL_ALWAYS_SOFTWARE=1",
+        "VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json",
+        "LP_NUM_THREADS=4",
+        "NVIDIA_VISIBLE_DEVICES=void"
+      ],
+      "gpu_paths_probe": {
+        "returncode": 0,
+        "stdout": "[]",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "rm26-eval-0bbac6419435",
+      "runtime": "runc",
+      "device_requests": null,
+      "devices": null,
+      "state": "running"
+    }
+  ],
+  "runs": [
+    {
+      "renderer": "nvidia",
+      "scene": "hf_static_5",
+      "run_id": "20261101T105318_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_c4ee3415",
+      "shots": 28,
+      "hits": 28,
+      "weighted_hit_rate": 0.934292284839548,
+      "wall_seconds": 17.709520821998012,
+      "hard_budget_seconds": 180,
+      "within_cost_budget": true,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "4290c732e71c8b11bff4c0a29a621a07bdd23e6d5bca144bbc57fd6cba8b91e9"
+    },
+    {
+      "renderer": "nvidia",
+      "scene": "hf_uniform_3",
+      "run_id": "20261101T105337_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_e2112df8",
+      "shots": 16,
+      "hits": 15,
+      "weighted_hit_rate": 0.47674983121321773,
+      "wall_seconds": 17.397033622997697,
+      "hard_budget_seconds": 180,
+      "within_cost_budget": true,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "7fee2a3ca06db5362eb64e46527419cbb9cce600f919f6f79ab95118a69b4b77"
+    },
+    {
+      "renderer": "cpu",
+      "scene": "hf_static_5",
+      "run_id": "20261101T105432_hf_static_5_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_d28dfc12",
+      "shots": 28,
+      "hits": 28,
+      "weighted_hit_rate": 0.9357838162571837,
+      "wall_seconds": 526.2034471570078,
+      "hard_budget_seconds": 900,
+      "within_cost_budget": false,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "af0052e668ec8d42568bbaf09e6549d3ac5795e2091651e5fc83384948651a71"
+    },
+    {
+      "renderer": "cpu",
+      "scene": "hf_uniform_3",
+      "run_id": "20261101T110320_hf_uniform_3_shoot_muzzle_no-drag_25p0_25p0_feedforward_5p0hz_tracking_fire_v3_6dad1c9b",
+      "shots": 18,
+      "hits": 17,
+      "weighted_hit_rate": 0.4251280336695172,
+      "wall_seconds": 459.6358145569975,
+      "hard_budget_seconds": 900,
+      "within_cost_budget": false,
+      "evidence_valid": true,
+      "all_shots_settled": true,
+      "evidence_index_sha256": "a80c9785dcdaeed97772b13d400fcf6008123bfec100e940042df6073679600c"
+    }
+  ],
+  "pr_check": {
+    "repository": "Kunlun-APERTURE/APERTURE_vision_26",
+    "credentials": "ok",
+    "enabled": true
+  },
+  "next_tasks": "docs/NEXT_TASKS.md",
+  "diagnostic_trials_planned": 32,
+  "simulator_fixes_implemented": false,
+  "diagnostic_trials_executed": false,
+  "limitations": [
+    "CPU exceeds the 40-second cost target.",
+    "CPU/GPU results are separate smoke tests, not paired algorithm comparisons.",
+    "No new PR experiment or image publication was triggered."
+  ]
+}

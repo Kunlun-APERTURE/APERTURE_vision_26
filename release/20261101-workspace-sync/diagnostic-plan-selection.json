@@ -1,0 +1,25 @@
+{
+  "scenes": [
+    "hf_static_5",
+    "hf_uniform_3",
+    "hf_turn90_3",
+    "hf_spin_pos",
+    "hf_spin_neg",
+    "ego_right_centered",
+    "basic_move3_spin_pos",
+    "basic_move3_spin_neg",
+    "basic_move4_spin_pos",
+    "basic_move4_spin_neg"
+  ],
+  "sensor_seeds": [
+    2026110101,
+    2026110102,
+    2026110103
+  ],
+  "repeated_scenes": [
+    "hf_static_5",
+    "basic_move3_spin_pos"
+  ],
+  "repeat_seed": 2026110101,
+  "total_trials": 32
+}
