@@ -22,6 +22,23 @@ def payload(path):
 
 
 class RunnerTests(unittest.TestCase):
+ def test_resume_reports_paused_state_and_latest_failure(self):
+  from benchmark.runner import Runner
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp);bundle=payload(root/'payload');out=root/'output';spec=ExperimentSpec('B1','E1',('hf_static_5',),(1,))
+   with patch.object(jobs,'STATE',root/'queue'),patch.object(jobs,'DB',root/'queue/db'):
+    runner=Runner();state=runner.submit(spec,out,None,bundle_path=bundle)
+    failure='RuntimeError: Worker readiness exceeded 60 seconds'
+    with jobs.connect() as db:
+     db.execute("UPDATE jobs SET state='paused',error='Invalid experiment' WHERE id=?",(state['job_id'],))
+     item=db.execute('SELECT id FROM items WHERE job_id=?',(state['job_id'],)).fetchone()['id']
+     db.execute('INSERT INTO attempts(id,item_id,slot,state,started,error) VALUES(?,?,?,?,?,?)',('failed-start',item,1,'failed',1,failure))
+    resumed=runner.submit(spec,out,None,resume=True)
+    self.assertEqual(resumed['state'],'paused')
+    self.assertEqual(resumed['job_id'],state['job_id'])
+    with self.assertRaises(RuntimeError) as raised:runner.wait(out)
+    self.assertIn(failure,str(raised.exception))
+    self.assertIn('./sim.sh jobs logs '+state['job_id'],str(raised.exception))
  def test_submission_resume_wait(self):
   from benchmark.runner import Runner
   with tempfile.TemporaryDirectory() as tmp:
