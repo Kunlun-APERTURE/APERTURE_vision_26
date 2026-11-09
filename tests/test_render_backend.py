@@ -10,6 +10,20 @@ from benchmark.core import ExperimentSpec
 
 
 class RendererTests(unittest.TestCase):
+    def test_wsl_auto_checks_vulkan_and_preserves_explicit_gpu_selection(self):
+        with patch.object(render_backend,'nvidia_devices',return_value=['GPU-test']), \
+                patch.object(render_backend,'is_wsl',return_value=True), \
+                patch.object(render_backend,'nvidia_vulkan_available',return_value=False) as probe, \
+                patch.dict('os.environ',{},clear=True),patch('sys.stderr'):
+            self.assertEqual(render_backend.select('auto','image-a'),render_backend.select('cpu'))
+            probe.assert_called_once_with('image-a','GPU-test')
+            probe.reset_mock()
+            self.assertEqual(render_backend.select('nvidia','image-a')['backend'],'nvidia')
+            probe.assert_not_called()
+            probe.return_value=True
+            self.assertEqual(render_backend.select('auto','image-b')['backend'],'nvidia')
+            probe.assert_called_once_with('image-b','GPU-test')
+
     @patch.object(render_backend, 'nvidia_devices')
     def test_cpu_never_probes_nvidia(self, devices):
         self.assertEqual(render_backend.select('cpu')['backend'], 'cpu')
@@ -37,7 +51,7 @@ class RendererTests(unittest.TestCase):
             ExperimentSpec('B1','E1',('hf_static_5',),(1,),renderer='invalid').validate()
 
     def test_cpu_budget_and_score_baseline_are_separate(self):
-        self.assertEqual(render_backend.wall_budget({'backend':'cpu'},True),900)
+        self.assertEqual(render_backend.wall_budget({'backend':'cpu'},True),3600)
         self.assertEqual(render_backend.wall_budget({'backend':'nvidia'},True),180)
         self.assertEqual(render_backend.wall_budget({'backend':'cpu'},False),40)
         from shots import baseline_key
@@ -65,15 +79,41 @@ class RendererTests(unittest.TestCase):
             self.assertEqual(services['daedalus']['environment']['NVIDIA_VISIBLE_DEVICES'],'void')
             for service in services.values():
                 self.assertEqual(service['runtime'],'runc')
+            with patch.object(render_backend,'is_wsl',return_value=True):
+                isolated=worker.definition()['services']
+            self.assertNotIn('network_mode',isolated['bridge'])
+            self.assertEqual(isolated['bridge']['ports'],['127.0.0.1:18827:18827/tcp'])
+            self.assertEqual(isolated['bridge']['command'][-2:],['--host','0.0.0.0'])
+            for name in ('daedalus','algorithm','evaluator'):
+                self.assertEqual(isolated[name]['network_mode'],'service:bridge')
             worker.renderer=dict(backend='nvidia',gpu_uuid='GPU-test')
             worker.gpu_uuid='GPU-test'
             with patch.object(render_backend,'nvidia_devices',return_value=['GPU-test']):
                 hardware=worker.definition()['services']['daedalus']
             self.assertEqual(hardware['deploy']['resources']['reservations']['devices'][0]['device_ids'],['GPU-test'])
             self.assertNotIn('VK_DRIVER_FILES',hardware['environment'])
+            worker.renderer['implementation']='mesa-dozen-webgl2'
+            with patch.object(render_backend,'nvidia_devices',return_value=['GPU-test']):
+                compatible=worker.definition()['services']['daedalus']
+            self.assertIn('/usr/lib/wsl:/usr/lib/wsl:ro',compatible['volumes'])
+            self.assertEqual(compatible['deploy'],hardware['deploy'])
             with patch.object(render_backend,'nvidia_devices',return_value=[]):
                 with self.assertRaisesRegex(ValueError,'Frozen GPU unavailable'):
                     worker.definition()
+
+    def test_wsl_overlay_preserves_cpu_and_rejects_an_unrelated_sdk(self):
+        import wsl_gpu
+        base=dict(Id='base',Config={'Labels':{'aperture.unified':'1'}})
+        candidate=dict(Id='compat',Config={'Labels':{'aperture.unified':'1',
+            'aperture.base_image':'base','aperture.wsl_gpu':wsl_gpu.IMPLEMENTATION}})
+        with patch.object(render_backend,'is_wsl',return_value=True), \
+                patch.dict('os.environ',{'RM26_WSL_GPU_IMAGE':'compat'}):
+            inspect=lambda _:candidate
+            self.assertIsNone(wsl_gpu.compatible_runtime(base,'cpu',inspect))
+            self.assertEqual(wsl_gpu.compatible_runtime(base,'auto',inspect)['Id'],'compat')
+            candidate['Config']['Labels']['aperture.base_image']='another-sdk'
+            with self.assertRaisesRegex(ValueError,'does not match'):
+                wsl_gpu.compatible_runtime(base,'nvidia',inspect)
 
     def test_cpu_resource_assessment_does_not_inherit_vram_guard(self):
         from background_capacity import assess

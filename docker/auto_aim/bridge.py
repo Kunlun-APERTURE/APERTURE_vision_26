@@ -808,6 +808,7 @@ class Server(socketserver.ThreadingTCPServer):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=18726)
+    parser.add_argument('--host', choices=('127.0.0.1','0.0.0.0'), default='127.0.0.1')
     parser.add_argument('--fps', type=float, default=30)
     parser.add_argument('--bullet-speed', type=float, default=25)
     parser.add_argument('--actual-bullet-speed',type=float,default=25)
@@ -824,7 +825,7 @@ def main():
         parser.error('Fire rate must be within (0,5] Hz')
     rclpy.init()
     bridge = Bridge(args)
-    server = Server(('127.0.0.1', args.port), Handler)
+    server = Server((args.host, args.port), Handler)
     server.bridge = bridge
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:

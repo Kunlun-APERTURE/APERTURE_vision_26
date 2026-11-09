@@ -2,6 +2,7 @@
 import collections
 import json
 import math
+import os
 from pathlib import Path
 import queue
 import socket
@@ -60,6 +61,7 @@ class Coordinator:
         self.delivered=0;self.generation=None;self.wait_wall_s=0.;self.steps=0
         self.warm_remaining=0;self.current_result_time=None;self.frame_sequence=[]
         self.warm_drain=False
+        self.preparation_timeout=900 if os.environ.get('RM26_RENDERER_BACKEND')=='cpu' else 120
         self.begin_requested=False
         self.align_requested=False
         self.reset_requested=False
@@ -131,7 +133,7 @@ class Coordinator:
 
     def phase(self,mode,seconds=None,wait=True):
         done=self.transition(mode,seconds)
-        if wait and not done.wait(120):raise RuntimeError('Logical preparation timed out: '+mode)
+        if wait and not done.wait(getattr(self,'preparation_timeout',120)):raise RuntimeError('Logical preparation timed out: '+mode)
         self.check()
 
     def check(self):
@@ -139,7 +141,7 @@ class Coordinator:
 
     def warm(self,scene):
         done=self.transition('warm',scene=scene)
-        if not done.wait(120):raise RuntimeError('Fixed warmup did not complete')
+        if not done.wait(getattr(self,'preparation_timeout',120)):raise RuntimeError('Fixed warmup did not complete')
         self.check()
 
     def measure(self):
