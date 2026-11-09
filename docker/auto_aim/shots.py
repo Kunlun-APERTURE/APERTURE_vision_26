@@ -9,7 +9,11 @@ from impact_quality import impact_coordinates, summarize as summarize_quality
 def baseline_key(manifest):
     terrain=manifest.get('terrain','arena')
     history='_detector_session' if manifest.get('execution',{}).get('detector_history')=='session' else ''
-    if manifest.get('renderer',{}).get('backend')=='cpu':history+='_renderer_cpu_lavapipe'
+    renderer=manifest.get('renderer',{})
+    if renderer.get('backend')=='cpu':
+        history+='_renderer_cpu_lavapipe'
+    elif renderer.get('implementation') not in (None,'nvidia-vulkan'):
+        history+='_renderer_'+str(renderer['implementation']).replace('-','_').replace('.','_')
     if manifest.get('input_contract')=='aligned-v1':
         history+='_input_aligned1_warm'+str(manifest['warmup_frames'])+'_sensor'+str(manifest['sensor_seed'])
     if manifest.get('mode','track') != 'shoot':

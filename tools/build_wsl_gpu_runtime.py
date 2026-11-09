@@ -12,7 +12,24 @@ ROOT = Path(__file__).resolve().parents[1]
 OPS = ROOT/'docker/auto_aim'
 WORK = OPS/'.runtime/wsl-gpu-build'
 TAG = 'aperture_vision:wsl-gpu'
+LIBRARY_DIRS = ('/usr/lib', '/usr/lib/x86_64-linux-gnu', '/lib/x86_64-linux-gnu')
 sys.path.insert(0,str(OPS))
+
+
+def host_library(name):
+    for directory in LIBRARY_DIRS:
+        path = Path(directory)/name
+        if path.exists():
+            return path
+    raise SystemExit('Missing host library for the WSL GPU overlay: ' + name)
+
+
+def require_wgpu_env_support():
+    source = ROOT/'vision_simulator_26/src/main.rs'
+    if not source.exists() or 'settings_priority_from_env' not in source.read_text():
+        raise SystemExit(
+            'vision_simulator_26 is missing the WGPU_SETTINGS_PRIO compatibility patch; '
+            'merge the simulator change and update the submodule before building the GPU overlay')
 
 
 def main():
@@ -47,6 +64,7 @@ def main():
             validated_report=str(output.resolve())),indent=2)+'\n')
         print('Activated '+image)
         return
+    require_wgpu_env_support()
     if not Path('/usr/lib/wsl/lib/libd3d12.so').exists():
         raise SystemExit('WSL D3D12 provider unavailable')
     for folder in ('cargo','target','out','home','drivers','provenance'):
@@ -91,8 +109,11 @@ if grep -q 'not found' /out/ldd.txt; then cat /out/ldd.txt; exit 1; fi
     for name in libraries:
         target=WORK/'drivers'/name
         if target.exists():target.chmod(0o644)
-        shutil.copyfile(Path('/usr/lib')/name,target)
-    icd=json.loads(Path('/usr/share/vulkan/icd.d/dzn_icd.json').read_text())
+        shutil.copyfile(host_library(name),target)
+    icd_path=Path('/usr/share/vulkan/icd.d/dzn_icd.json')
+    if not icd_path.exists():
+        raise SystemExit('Mesa Dozen ICD not found: ' + str(icd_path))
+    icd=json.loads(icd_path.read_text())
     icd['ICD']['library_path']='/opt/aperture-wsl-vulkan/libvulkan_dzn.so'
     (WORK/'drivers/dzn_icd.json').write_text(json.dumps(icd,indent=2)+'\n')
     source=repository(manage,'vision_simulator_26',WORK/'provenance')

@@ -10,7 +10,7 @@ from benchmark.core import ExperimentSpec
 
 
 class RendererTests(unittest.TestCase):
-    def test_wsl_auto_checks_vulkan_and_preserves_explicit_gpu_selection(self):
+    def test_wsl_auto_falls_back_but_explicit_nvidia_requires_probe(self):
         with patch.object(render_backend,'nvidia_devices',return_value=['GPU-test']), \
                 patch.object(render_backend,'is_wsl',return_value=True), \
                 patch.object(render_backend,'nvidia_vulkan_available',return_value=False) as probe, \
@@ -18,11 +18,19 @@ class RendererTests(unittest.TestCase):
             self.assertEqual(render_backend.select('auto','image-a'),render_backend.select('cpu'))
             probe.assert_called_once_with('image-a','GPU-test')
             probe.reset_mock()
-            self.assertEqual(render_backend.select('nvidia','image-a')['backend'],'nvidia')
+            with self.assertRaisesRegex(ValueError,'no usable hardware NVIDIA Vulkan'):
+                render_backend.select('nvidia','image-a')
+            probe.assert_called_once_with('image-a','GPU-test')
+            probe.reset_mock()
+            with self.assertRaisesRegex(ValueError,'resolved simulator image'):
+                render_backend.select('nvidia')
             probe.assert_not_called()
             probe.return_value=True
             self.assertEqual(render_backend.select('auto','image-b')['backend'],'nvidia')
             probe.assert_called_once_with('image-b','GPU-test')
+            probe.reset_mock()
+            self.assertEqual(render_backend.select('nvidia','image-c')['backend'],'nvidia')
+            probe.assert_called_once_with('image-c','GPU-test')
 
     @patch.object(render_backend, 'nvidia_devices')
     def test_cpu_never_probes_nvidia(self, devices):
@@ -57,6 +65,18 @@ class RendererTests(unittest.TestCase):
         from shots import baseline_key
         manifest=dict(scene='hf_static_5',mode='track')
         self.assertNotEqual(baseline_key(manifest),baseline_key(dict(manifest,renderer={'backend':'cpu'})))
+        self.assertNotEqual(
+            baseline_key(dict(manifest,renderer={'backend':'nvidia','implementation':'nvidia-vulkan'})),
+            baseline_key(dict(manifest,renderer={'backend':'nvidia','implementation':'mesa-dozen-webgl2'})))
+
+    def test_status_rpc_timeout_is_capped(self):
+        from background_runtime import Worker, RPC_STATUS_TIMEOUT
+        worker=Worker.__new__(Worker);worker.renderer={'backend':'cpu'};worker.lockstep=True
+        self.assertEqual(worker.rpc_timeout('status'),RPC_STATUS_TIMEOUT)
+        self.assertEqual(worker.rpc_timeout('warm'),3600)
+        worker.renderer={'backend':'nvidia'}
+        self.assertEqual(worker.rpc_timeout('status'),RPC_STATUS_TIMEOUT)
+        self.assertEqual(worker.rpc_timeout('warm'),180)
 
     def test_cpu_compose_has_no_device_reservation_and_uses_lavapipe(self):
         from background_runtime import Worker

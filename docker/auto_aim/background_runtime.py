@@ -18,6 +18,8 @@ import experiments
 import manage
 from report import load, write
 
+RPC_STATUS_TIMEOUT = 12
+
 
 class Worker:
     def __init__(self, request):
@@ -67,11 +69,15 @@ class Worker:
         return self.run(['docker','compose','--project-name',self.project,
             '--file',str(self.compose_path),*args], capture=capture)
 
+    def rpc_timeout(self, op):
+        from render_backend import wall_budget
+        timeout = wall_budget(self.renderer, True) if self.lockstep else 12
+        return min(timeout, RPC_STATUS_TIMEOUT) if op == 'status' else timeout
+
     def rpc(self, op, **fields):
         body = json.dumps(dict(version=1, type='admin', op=op, **fields)).encode()
         with socket.create_connection(('127.0.0.1',self.port), timeout=2) as conn:
-            from render_backend import wall_budget
-            conn.settimeout(wall_budget(self.renderer,True) if self.lockstep else 12)
+            conn.settimeout(self.rpc_timeout(op))
             conn.sendall(struct.pack('!II',len(body),0)+body)
             def read(n):
                 result = b''

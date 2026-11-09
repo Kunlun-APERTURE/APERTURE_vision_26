@@ -81,11 +81,16 @@ def select(backend='auto', image_id=None):
     if requested and requested not in devices:
         raise ValueError('Requested GPU unavailable')
     if devices:
-        if (backend == 'auto' and is_wsl() and image_id
-                and not nvidia_vulkan_available(image_id,requested or devices[0])):
+        if is_wsl() and backend == 'nvidia' and not image_id:
+            raise ValueError(
+                'WSL NVIDIA rendering requires a resolved simulator image for the Vulkan probe')
+        if is_wsl() and image_id and not nvidia_vulkan_available(
+                image_id, requested or devices[0]):
             reason = 'The WSL container has no usable hardware NVIDIA Vulkan adapter'
-            print('sim.sh: '+reason+'; auto is using CPU software rendering',file=sys.stderr)
-            return dict(backend='cpu',gpu_uuid=None,implementation='mesa-lavapipe')
+            if backend == 'nvidia':
+                raise ValueError(reason + '; use --renderer cpu')
+            print('sim.sh: ' + reason + '; auto is using CPU software rendering', file=sys.stderr)
+            return dict(backend='cpu', gpu_uuid=None, implementation='mesa-lavapipe')
         return dict(backend='nvidia', gpu_uuid=requested or devices[0], implementation='nvidia-vulkan')
     if backend == 'nvidia':
         raise ValueError('NVIDIA renderer requested but no usable NVIDIA device is available; use --renderer cpu')
