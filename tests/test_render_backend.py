@@ -70,12 +70,16 @@ class RendererTests(unittest.TestCase):
             baseline_key(dict(manifest,renderer={'backend':'nvidia','implementation':'mesa-dozen-webgl2'})))
 
     def test_status_rpc_timeout_is_capped(self):
-        from background_runtime import Worker, RPC_STATUS_TIMEOUT
+        from background_runtime import Worker, RPC_STATUS_TIMEOUT, RPC_CLEANUP_TIMEOUT, RPC_SEAL_TIMEOUT
         worker=Worker.__new__(Worker);worker.renderer={'backend':'cpu'};worker.lockstep=True
         self.assertEqual(worker.rpc_timeout('status'),RPC_STATUS_TIMEOUT)
+        self.assertEqual(worker.rpc_timeout('control'),RPC_CLEANUP_TIMEOUT)
+        self.assertEqual(worker.rpc_timeout('seal_session'),RPC_SEAL_TIMEOUT)
         self.assertEqual(worker.rpc_timeout('warm'),3600)
         worker.renderer={'backend':'nvidia'}
         self.assertEqual(worker.rpc_timeout('status'),RPC_STATUS_TIMEOUT)
+        self.assertEqual(worker.rpc_timeout('control'),RPC_CLEANUP_TIMEOUT)
+        self.assertEqual(worker.rpc_timeout('seal_session'),RPC_SEAL_TIMEOUT)
         self.assertEqual(worker.rpc_timeout('warm'),180)
 
     def test_cpu_compose_has_no_device_reservation_and_uses_lavapipe(self):

@@ -19,6 +19,8 @@ import manage
 from report import load, write
 
 RPC_STATUS_TIMEOUT = 12
+RPC_CLEANUP_TIMEOUT = 3
+RPC_SEAL_TIMEOUT = 10
 
 
 class Worker:
@@ -72,7 +74,13 @@ class Worker:
     def rpc_timeout(self, op):
         from render_backend import wall_budget
         timeout = wall_budget(self.renderer, True) if self.lockstep else 12
-        return min(timeout, RPC_STATUS_TIMEOUT) if op == 'status' else timeout
+        if op == 'status':
+            return min(timeout, RPC_STATUS_TIMEOUT)
+        if op == 'control':
+            return min(timeout, RPC_CLEANUP_TIMEOUT)
+        if op == 'seal_session':
+            return min(timeout, RPC_SEAL_TIMEOUT)
+        return timeout
 
     def rpc(self, op, **fields):
         body = json.dumps(dict(version=1, type='admin', op=op, **fields)).encode()
