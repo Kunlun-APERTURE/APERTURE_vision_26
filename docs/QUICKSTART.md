@@ -11,6 +11,10 @@
 
 先确认 `docker version` 能访问 Server、`docker compose version` 可用。仓库不自动安装系统依赖，无需 Sunshine 或显示器。完整空机器安装尚未验收，系统环境有问题时先联系维护者。
 
+WSL 2 配合 Docker Desktop 时，在 **Settings → Resources → WSL Integration** 中启用实际使用的发行版。WSL 后台实验让各容器共享内部网络，仅向宿主机的 `127.0.0.1` 发布 bridge 的 TCP 端口，不依赖 **Enable host networking**；避免 DDS 随机 UDP 端口与 Windows 排除端口范围冲突。WSL 可保持 NAT，不要求切换 `mirrored`。WSL 全面兼容性仍未验收，Ubuntu 24.04 原生主机仍是支持基准。
+
+能运行 `nvidia-smi` 并不等于本次模拟器已使用 NVIDIA Vulkan；应检查模拟器日志中的实际适配器。日志选择 `llvmpipe` 表示软件渲染，此时需要排查容器图形驱动或显式使用 `--renderer cpu`，不能把 CUDA 可见当作 Vulkan 验收通过。
+
 ## 获取源码
 
 ```bash
@@ -76,7 +80,17 @@ python3 tools/development.py build
 cat exports/first-static/report.md
 ```
 
-默认 `--renderer auto`：有可用 NVIDIA 设备时使用它，否则使用 CPU 软件 Vulkan。可加 `--renderer cpu` 在有 GPU 的机器上明确验证软件渲染。两种模式使用同一镜像、图像分辨率与逻辑时序；软件渲染较慢，首轮需等待，硬超时为900秒，报告仍单列40秒成本指标。旧发布标签没有该选项时，先更新主仓库和子模块，镜像无需更换。
+默认 `--renderer auto`：有可用 NVIDIA 设备时使用它，否则使用 CPU 软件 Vulkan。WSL 会额外检查实际镜像中能否枚举到硬件 NVIDIA Vulkan 适配器；只能看到 `llvmpipe` 等软件适配器时，明确提示原因并回退到软件渲染。可加 `--renderer cpu` 在有 GPU 的机器上明确验证软件渲染。软件渲染较慢，首轮需等待，硬超时为3600秒，报告仍单列40秒成本指标。
+
+WSL 的 CUDA 可用不代表容器里的 Vulkan 可用。对于已安装 Mesa Dozen（`/usr/share/vulkan/icd.d/dzn_icd.json`）的 WSL 主机，可以从固定 SDK 构建独立的本地 GPU 镜像。它通过 WSL D3D12 使用 NVIDIA 渲染，并设置 Bevy 的 `WGPU_SETTINGS_PRIO=webgl2`，避开部分 NVIDIA/Dozen 组合中会崩溃的计算预处理管线。首次编译需要下载 Rust 依赖：
+
+```bash
+python3 tools/build_wsl_gpu_runtime.py
+RM26_WSL_GPU_IMAGE=aperture_vision:wsl-gpu ./sim.sh experiment suite --algorithm B1 --environment E1 --tier basic --cases hf_static_5 --sensor-seeds 1 --renderer nvidia --output exports/first-static-gpu --wait
+python3 tools/build_wsl_gpu_runtime.py --activate-report exports/first-static-gpu
+```
+
+激活要求实验完成、证据有效且发生射击；之后新实验的 `auto` 使用该 GPU 镜像，实际镜像和 `mesa-dozen-webgl2` 实现会写入冻结记录。原始 SDK 标签与 digest 保留，升级 SDK 后需要重新构建并验证。恢复旧实验仍使用其冻结的渲染方式，不会切换 GPU；已有输出重跑时使用 `--resume`。
 
 命令返回 job ID，`--wait` 等待完成。目录还有 report.html 和 results.json。执行以下检查，确认完成、证据有效并实际发生射击：
 
@@ -95,6 +109,8 @@ PY
 命中率不保证固定值。
 
 新实验使用新输出目录；恢复和评分解读见 [实验指南](EXPERIMENTS.md)。停止前用 `./sim.sh jobs list` 确认任务完成，再在终端 A 按 Ctrl+C。
+
+如果出现 `Inspect retained attempts` 或任务状态为 `paused`，先用 `./sim.sh jobs status job_实际ID` 和 `./sim.sh jobs logs job_实际ID --tail 100` 查看失败原因。suite `--resume` 只连接已有任务，不解除暂停，也不会采用修改后的源码或配置。保持原冻结输入恢复时，先修复外部故障，再执行 `./sim.sh jobs resume job_实际ID`；源码或配置修复后应改用新的 `--output`，不加 `--resume`，保留旧记录。
 
 ## 修改与提交
 

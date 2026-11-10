@@ -30,11 +30,11 @@ class Runner:
                     if sha(artifact)!=frozen['algorithm']['binary_sha256']:raise ValueError('Resume algorithm artifact differs')
                 state=load(root/'state.json')
                 with jobs.connect() as db:
-                    exists=db.execute('SELECT id FROM jobs WHERE id=?',(state['job_id'],)).fetchone()
+                    exists=db.execute('SELECT state FROM jobs WHERE id=?',(state['job_id'],)).fetchone()
                 if not exists:
                     if not previous.get('rows'):raise ValueError('Incomplete legacy submission; use a new output')
                     self.enqueue(state['job_id'],previous['bundle'],previous['rows'],previous.get('parallelism',1))
-                return state
+                return dict(state,state=exists['state'] if exists else 'queued')
             if resume:raise ValueError('No frozen experiment to resume')
             env=EnvironmentSpec() if spec.environment=='E1' else EnvironmentSpec('legacy','legacy')
             if spec.environment not in ('E1','legacy'):raise ValueError('Unknown environment')
@@ -91,7 +91,11 @@ class Runner:
             if status['state']=='completed':
                 from .evaluation import report
                 return report(root)
-            if status['state'] in ('paused','cancelled'):raise RuntimeError('Inspect retained attempts: '+state['job_id'])
+            if status['state'] in ('paused','cancelled'):
+                attempts=status.get('attempts',[])
+                reason=(attempts[-1].get('error') if attempts else None) or status.get('error') or 'Inspect retained attempts'
+                raise RuntimeError(f"{state['job_id']} is {status['state']}: {reason}. "
+                    f"Inspect logs: ./sim.sh jobs logs {state['job_id']} --tail 100")
             if time.time()-load(jobs.STATE/'daemon-status.json',{}).get('heartbeat',0)>15:raise RuntimeError('Scheduler unavailable; start sim.sh jobs daemon or jobs install')
             time.sleep(1)
 

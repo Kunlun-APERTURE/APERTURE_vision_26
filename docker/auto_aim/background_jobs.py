@@ -246,9 +246,24 @@ def freeze(job_id,gimbal_dynamics="legacy",algorithm_binary=None,image_tags=None
     from gimbal_dynamics import simulator_image
     image_tags=image_tags or {}
     from render_backend import select
-    rendering=select(renderer)
     requested=image_tags.get("simulator",manage.IMAGE)
     selected=manage.inspect(requested)
+    original=(requested,selected,image_tags)
+    from wsl_gpu import compatible_runtime,IMPLEMENTATION
+    compatible=compatible_runtime(selected,renderer,manage.inspect)
+    if compatible:
+        for tag in image_tags.values():
+            info=manage.inspect(tag)
+            if not info or info['Id']!=selected['Id']:
+                raise ValueError('WSL GPU compatibility requires the unified SDK for every role')
+        selected=compatible;requested=selected['Id']
+        image_tags=dict.fromkeys(('simulator','evaluator','algorithm'),requested)
+    rendering=select(renderer,selected['Id'] if selected else None)
+    if compatible and rendering['backend']=='cpu':
+        requested,selected,image_tags=original
+        compatible=None
+    if compatible and rendering['backend']=='nvidia':
+        rendering['implementation']=IMPLEMENTATION
     unified=bool(selected and selected['Config'].get('Labels',{}).get('aperture.unified')=='1')
     if unified:
         from gimbal_dynamics import FORMULA_SHA256, MODELS

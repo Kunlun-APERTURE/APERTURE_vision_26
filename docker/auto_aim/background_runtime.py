@@ -18,6 +18,10 @@ import experiments
 import manage
 from report import load, write
 
+RPC_STATUS_TIMEOUT = 12
+RPC_CLEANUP_TIMEOUT = 3
+RPC_SEAL_TIMEOUT = 10
+
 
 class Worker:
     def __init__(self, request):
@@ -67,11 +71,21 @@ class Worker:
         return self.run(['docker','compose','--project-name',self.project,
             '--file',str(self.compose_path),*args], capture=capture)
 
+    def rpc_timeout(self, op):
+        from render_backend import wall_budget
+        timeout = wall_budget(self.renderer, True) if self.lockstep else 12
+        if op == 'status':
+            return min(timeout, RPC_STATUS_TIMEOUT)
+        if op == 'control':
+            return min(timeout, RPC_CLEANUP_TIMEOUT)
+        if op == 'seal_session':
+            return min(timeout, RPC_SEAL_TIMEOUT)
+        return timeout
+
     def rpc(self, op, **fields):
         body = json.dumps(dict(version=1, type='admin', op=op, **fields)).encode()
         with socket.create_connection(('127.0.0.1',self.port), timeout=2) as conn:
-            from render_backend import wall_budget
-            conn.settimeout(wall_budget(self.renderer,True) if self.lockstep else 12)
+            conn.settimeout(self.rpc_timeout(op))
             conn.sendall(struct.pack('!II',len(body),0)+body)
             def read(n):
                 result = b''
@@ -100,8 +114,13 @@ class Worker:
         common = dict(init=True, restart='no', network_mode='host', ipc='private',
             labels=labels, logging={'driver':'json-file','options':{'max-size':'20m','max-file':'2'}})
         if self.renderer['backend']=='cpu':common['runtime']='runc'
+        # Jazzy's LOCALHOST discovery mode adds SHM transports after loading XML,
+        # which breaks peers with private IPC. Let the XML own loopback discovery
+        # and transport selection; keep RMW's safe default of data-sharing OFF.
         ros = {'ROS_DOMAIN_ID':str(self.domain),'RMW_IMPLEMENTATION':'rmw_fastrtps_cpp',
-            'FASTDDS_BUILTIN_TRANSPORTS':'UDPv4','ROS_LOCALHOST_ONLY':'1',
+            'FASTDDS_BUILTIN_TRANSPORTS':'UDPv4','ROS_LOCALHOST_ONLY':'0',
+            'ROS_AUTOMATIC_DISCOVERY_RANGE':'SYSTEM_DEFAULT','ROS_STATIC_PEERS':'',
+            'RMW_FASTRTPS_USE_QOS_FROM_XML':'0',
             'FASTRTPS_DEFAULT_PROFILES_FILE':'/opt/rm26/fastdds-udp.xml',
             'FASTDDS_DEFAULT_PROFILES_FILE':'/opt/rm26/fastdds-udp.xml'}
         volumes = [str(self.source_ops)+':/opt/rm26:ro',str(self.RUNTIME)+':/run/rm26-sim']
@@ -132,13 +151,16 @@ class Worker:
             simulator['environment'].pop('NVIDIA_DRIVER_CAPABILITIES',None)
             simulator['environment'].update(VK_ICD_FILENAMES=SOFTWARE_ICD,
                 VK_DRIVER_FILES=SOFTWARE_ICD,LIBGL_ALWAYS_SOFTWARE='1',NVIDIA_VISIBLE_DEVICES='void',LP_NUM_THREADS='4')
+        elif self.renderer.get('implementation')=='mesa-dozen-webgl2':
+            simulator['volumes'].append('/usr/lib/wsl:/usr/lib/wsl:ro')
         bridge = dict(common, image=self.IMAGE,container_name=self.BRIDGE,environment=ros,
             volumes=volumes,command=['python3','-u','/opt/rm26/bridge.py','--port',str(self.port),
                 '--fps','30','--bullet-speed',str(s['reported_bullet_speed']),
                 '--actual-bullet-speed',str(s['bullet_speed']),'--fire',s['fire'],
                 '--physics',s['physics'],'--fire-policy',s['fire_policy'],
                 '--fire-rate-hz',str(s['fire_rate_hz']),'--algorithm-profile',s['algorithm_profile']])
-        bridge['environment']=dict(ros,RM26_RECORD_TIMING='1' if s.get('record_timing')=='on' else '0')
+        bridge['environment']=dict(ros,RM26_RECORD_TIMING='1' if s.get('record_timing')=='on' else '0',
+            RM26_RENDERER_BACKEND=self.renderer['backend'])
         if self.metadata.get('algorithm'):
             bridge['environment']['RM26_ALGORITHM_PROTOCOL']=self.metadata['algorithm']['protocol']
         if self.lockstep:
@@ -171,7 +193,19 @@ class Worker:
             environment=dict(ros, MPLCONFIGDIR='/tmp/matplotlib',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1'),
             volumes=[str(self.source_ops)+':/opt/rm26:ro',str(self.RUNTIME)+':/run/rm26-sim:ro',
                 str(self.OPS/'experiments')+':/experiments'])
-        return dict(services=dict(daedalus=simulator,bridge=bridge,algorithm=algorithm,evaluator=evaluator))
+        services = dict(daedalus=simulator,bridge=bridge,algorithm=algorithm,evaluator=evaluator)
+        from render_backend import is_wsl
+        if is_wsl():
+            # Keep DDS UDP sockets inside one private network namespace. Desktop
+            # host networking forwards them to Windows, whose excluded UDP
+            # ranges can collide with the dynamically assigned source ports.
+            bridge.pop('network_mode')
+            bridge['ports'] = [f'127.0.0.1:{self.port}:{self.port}/tcp']
+            bridge['command'].extend(['--host','0.0.0.0'])
+            for name, service in services.items():
+                if name != 'bridge':
+                    service['network_mode'] = 'service:bridge'
+        return dict(services=services)
 
     def start(self):
         cold_start = time.monotonic()
@@ -218,9 +252,13 @@ class Worker:
                 '--env','XAUTHORITY=/run/user/1000/Xauthority',manage.DESKTOP_CONTAINER,
                 'python3','/home/openvino/.local/share/rm26-sim/sync_view.py',directory])
         deadline = time.monotonic()+60
+        last_status = None
+        last_connection_error = None
         while time.monotonic()<deadline:
             try:
                 status = self.rpc('status')
+                last_status = status
+                last_connection_error = None
                 ready=(status.get('synchronization') or {}).get('mode')=='hold' if self.lockstep else status.get('frame_age_ms') is not None and status['frame_age_ms']<250
                 if status.get('connected') and ready:
                     algorithm_now = self.inspect(self.DESKTOP_CONTAINER)
@@ -229,14 +267,18 @@ class Worker:
                         algorithm_started_at=algorithm_now['State']['StartedAt'],
                         algorithm_lifecycle=self.settings.get('algorithm_lifecycle','session')))
                     return
-            except (OSError, RuntimeError):
-                pass
+            except (OSError, RuntimeError) as error:
+                last_connection_error = str(error)
             for name in (self.SIMULATOR,self.BRIDGE,self.DESKTOP_CONTAINER):
                 info = self.inspect(name)
                 if info and not info['State']['Running']:
-                    raise RuntimeError('Worker component exited: '+name)
+                    raise RuntimeError('Worker component exited: '+name+
+                        f" (exit_code={info['State'].get('ExitCode')}, oom_killed={info['State'].get('OOMKilled')})")
             time.sleep(.3)
-        raise RuntimeError('Worker readiness exceeded 60 seconds')
+        detail = dict(bridge_connection_error=last_connection_error,
+            bridge_status={key:last_status.get(key) for key in
+                ('connected','services_ready','scenario','synchronization','last_error')} if last_status else None)
+        raise RuntimeError('Worker readiness exceeded 60 seconds: '+json.dumps(detail))
 
     def on_run_created(self, folder):
         self.current_folder = folder
